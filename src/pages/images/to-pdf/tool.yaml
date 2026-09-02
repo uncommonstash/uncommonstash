@@ -1,0 +1,8 @@
+name: Image to PDF
+description: Convert multiple images into a single PDF document.
+ready: true
+icon: FileTextIcon
+tags:
+  - image
+  - pdf
+  - convert

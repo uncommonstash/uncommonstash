@@ -1,0 +1,4 @@
+name: Color Picker
+description: Pick colors and convert between HEX, RGB, and HSL values.
+ready: true
+icon: BlendingModeIcon

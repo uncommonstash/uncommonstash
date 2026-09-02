@@ -1,0 +1,4 @@
+name: HTML Formatter
+description: Beautify or minify HTML code.
+ready: true
+icon: CodeIcon

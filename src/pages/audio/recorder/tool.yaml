@@ -1,0 +1,4 @@
+name: Audio Recorder
+description: A tool to record audio.
+ready: true
+icon: VercelLogoIcon

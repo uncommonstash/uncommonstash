@@ -1,0 +1,4 @@
+name: Word Counter
+description: Count words and sentences in a text.
+ready: true
+icon: FileTextIcon

@@ -1,0 +1,4 @@
+name: Markdown to HTML
+description: A real-time Markdown to HTML converter with a dual-pane view.
+ready: true
+icon: FileTextIcon

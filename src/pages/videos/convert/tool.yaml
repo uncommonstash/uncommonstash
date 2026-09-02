@@ -1,0 +1,4 @@
+name: Video Converter
+description: "Supports MP4, MOV, AVI and more."
+icon: VideoIcon
+ready: true

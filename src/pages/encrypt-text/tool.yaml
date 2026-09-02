@@ -1,0 +1,4 @@
+name: Encrypt Text
+description: Securely encrypt and decrypt text in the browser using AES.
+ready: true
+icon: LockClosedIcon

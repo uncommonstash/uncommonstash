@@ -1,0 +1,4 @@
+name: Image Compressor
+description: Reduce image file size (JPG/PNG) without significant quality loss.
+ready: true
+icon: ImageIcon

@@ -1,0 +1,4 @@
+name: QR Code Generator
+description: Generate a QR code for a given URL or text.
+ready: true
+icon: FrameIcon

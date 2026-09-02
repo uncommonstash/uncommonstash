@@ -1,0 +1,4 @@
+name: Image Resizer
+description: Resize images to custom dimensions.
+ready: true
+icon: ImageIcon

@@ -1,0 +1,4 @@
+name: Base64 Converter
+description: Encode and decode text to and from Base64, including URL-safe variants.
+ready: true
+icon: FileTextIcon

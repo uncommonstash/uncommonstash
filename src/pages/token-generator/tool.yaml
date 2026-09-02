@@ -1,0 +1,4 @@
+name: Token Generator
+description: Generate secure random API keys, UUIDs, passwords, and Base64 strings.
+ready: true
+icon: LockClosedIcon

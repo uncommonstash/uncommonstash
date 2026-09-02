@@ -1,0 +1,5 @@
+# Legacy Cloudflare dev vars (kept for reference; Vite uses .env instead).
+# See .env.example for the active configuration.
+NEXTJS_ENV=development
+NEXT_PUBLIC_GA_ID=G-E1THWBT9EN
+CRONFORMER_API_URL=https://example.com/cronformer

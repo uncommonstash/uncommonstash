@@ -1,0 +1,4 @@
+name: Audio Converter
+description: Supports MP3, WAV, OGG, FLAC and more.
+ready: true
+icon: SpeakerLoudIcon

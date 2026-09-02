@@ -1,0 +1,4 @@
+name: Image Converter
+description: Supports JPG, PNG, HEIC, WEBP and more.
+ready: true
+icon: ImageIcon

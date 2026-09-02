@@ -1,0 +1,4 @@
+name: Text to Cron
+description: Convert natural language to a cron expression.
+ready: true
+icon: ChatBubbleIcon

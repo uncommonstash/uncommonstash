@@ -1,0 +1,4 @@
+name: Random Number Generator
+description: Generate random integers within a specific range.
+ready: true
+icon: ShuffleIcon
