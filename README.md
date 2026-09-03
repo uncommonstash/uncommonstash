@@ -1,9 +1,17 @@
-# UncommonStash
+<p align="center">
+  <img src="assets/banner.svg" alt="uncommonstash" width="100%" />
+</p>
 
-UncommonStash is a collection of useful browser-based tools. Everything runs
-locally in your browser — no uploads, no server processing.
+<p align="center">
+  A collection of useful browser-based tools. Everything runs
+  locally in your browser — no uploads, no server processing.
+</p>
 
-Live site: [https://uncommonstash.com](https://uncommonstash.com)
+<p align="center">
+  <a href="https://uncommonstash.com"><strong>Live site</strong></a> •
+  <a href="#getting-started">Getting started</a> •
+  <a href="./LICENSE">MIT license</a>
+</p>
 
 Built with Vite + React + Tailwind CSS, deployed as a static site to GitHub
 Pages (custom domain via `public/CNAME`).
