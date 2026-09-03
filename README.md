@@ -3,106 +3,80 @@
 </p>
 
 <p align="center">
-  A collection of useful browser-based tools. Everything runs
-  locally in your browser — no uploads, no server processing.
+  Free online tools that run <strong>entirely in your browser</strong> — no uploads, no accounts, no server processing.
 </p>
 
 <p align="center">
-  <a href="https://uncommonstash.com"><strong>Live site</strong></a> •
-  <a href="#getting-started">Getting started</a> •
+  <a href="https://uncommonstash.com"><strong>Try all tools live</strong></a> •
+  <a href="#tools">Browse tools</a> •
+  <a href="#contributing">Contribute</a> •
   <a href="./LICENSE">MIT license</a>
 </p>
 
-Built with Vite + React + Tailwind CSS, deployed as a static site to GitHub
-Pages (custom domain via `public/CNAME`).
+## Why uncommonstash
 
-## Getting Started
+- **Private by design** — your files never leave your device. Conversions run locally via WebAssembly (FFmpeg, ImageMagick, Tesseract).
+- **Free forever, no sign-up** — every tool works the moment the page loads.
+- **Works offline** — once loaded, most tools keep working without a connection.
+- **Fast** — static site, no backend round-trips; heavy work stays on your machine.
 
-Install Node.js 24 and pnpm 10, then install dependencies:
+![uncommonstash home page](assets/screenshot-home.png)
+
+## Tools
+
+### 🎵 Audio
+
+- [Audio Converter](https://uncommonstash.com/audio/convert) — MP3, WAV, OGG, FLAC and more
+- [Audio Cutter](https://uncommonstash.com/audio/cut) — trim audio files
+- [Audio Combiner](https://uncommonstash.com/audio/combine) — merge multiple files into one
+- [Voice Recorder](https://uncommonstash.com/audio/recorder) — record audio in the browser
+
+### 🖼️ Images & video
+
+- [Image Converter](https://uncommonstash.com/images/convert) — JPG, PNG, HEIC, WEBP and more
+- [Image Compressor](https://uncommonstash.com/images/compress) — shrink JPG/PNG without visible quality loss
+- [Image Resizer](https://uncommonstash.com/image-resizer) — custom dimensions
+- [Image to PDF](https://uncommonstash.com/images/to-pdf) — many images, one PDF
+- [Video Converter](https://uncommonstash.com/videos/convert) — MP4, MOV, AVI and more
+
+### ✍️ Text
+
+- [Word Counter](https://uncommonstash.com/word-counter) — words, sentences, characters
+- [Case Converter](https://uncommonstash.com/case-converter) — UPPER, lower, camelCase, snake_case…
+- [Markdown to HTML](https://uncommonstash.com/markdown-to-html) — live dual-pane preview
+- [Online Notepad](https://uncommonstash.com/online-notepad) — auto-saving scratchpad
+- [Base64 Converter](https://uncommonstash.com/base64-converter) — standard and URL-safe variants
+- [Encrypt Text](https://uncommonstash.com/encrypt-text) — AES encryption, client-side only
+
+### 🧰 Web & everyday
+
+- [QR Code Generator](https://uncommonstash.com/qr-code-generator) — QR codes for any URL or text
+- [UTM Builder](https://uncommonstash.com/utm-builder) — campaign URLs with UTM parameters
+- [HTML Editor](https://uncommonstash.com/html-editor) — live HTML/CSS preview
+- [HTML Formatter](https://uncommonstash.com/html-formatter) — beautify or minify markup
+- [Code Screenshot](https://uncommonstash.com/code-screenshot) — shareable code images
+- [Token Generator](https://uncommonstash.com/token-generator) — passwords, UUIDs, API keys
+- [Random Number Generator](https://uncommonstash.com/random-number-generator) — integers in any range
+- [Text to Cron](https://uncommonstash.com/text-to-cron) — natural language to cron expressions
+- [Bill Splitter](https://uncommonstash.com/bill-splitter) — scan a receipt, split expenses
+- [Color Picker](https://uncommonstash.com/color-picker) — HEX, RGB, HSL conversion
+- [Disclaimer Generator](https://uncommonstash.com/disclaimer-generator) — standard legal blurbs
+
+Short on words? There's also a [blog](https://uncommonstash.com/blog) with notes on how some of these are built.
+
+## Contributing
+
+New tools and fixes welcome! You'll need Node.js 24 and pnpm 10.
 
 ```bash
-pnpm install
+pnpm install   # also generates the tool index + blog data
+pnpm dev       # http://localhost:3000
+pnpm test      # unit tests
+pnpm lint && npx tsc -b
+pnpm build     # static output in dist/
 ```
 
-Copy the example env file (optional — the app works without it):
-
-```bash
-cp .env.example .env
-```
-
-Then run the development server:
-
-```bash
-pnpm dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser.
-
-## Building
-
-```bash
-pnpm build
-```
-
-Output goes to `dist/` (plus `dist/404.html` SPA fallback, `dist/.nojekyll`,
-`dist/CNAME`). Preview the production build:
-
-```bash
-pnpm preview
-```
-
-## Tests
-
-```bash
-pnpm test
-pnpm lint
-npx tsc -b
-```
-
-E2E (Playwright, Chromium):
-
-```bash
-npx playwright install chromium
-pnpm exec playwright test
-```
-
-## Deployment
-
-Pushes to `main` trigger `.github/workflows/deploy-pages.yml`:
-`install → build → upload dist/ → deploy-pages`.
-In repo Settings → Pages, set Source to **GitHub Actions**, add the custom
-domain `uncommonstash.com`, and enforce HTTPS.
-
-## Configuration
-
-- `vite.config.ts` — Vite + `@` alias + `magick.wasm` static copy
-- `index.html` — fonts, meta, root entry
-- `.env.example` — `VITE_GA_ID`, `VITE_CRONFORMER_API_URL`, `VITE_BASE_URL`
-- `scripts/prebuild-blog.mjs` — `content/blog/*.md` → `src/lib/blog-data.ts`
-- `scripts/collect-tools.mjs` — `src/pages/**/tool.yaml` → `src/lib/tools.json`
-- `scripts/postbuild-pages.mjs` — `404.html`, `.nojekyll`, `CNAME`
-
-The optional text-to-cron AI suggestions call `VITE_CRONFORMER_API_URL`
-directly from the browser. Without it, that tool falls back to local
-`cronstrue`/`cron-parser` while the rest of the app keeps working.
-
-## Project Structure
-
-- `src/main.tsx`, `src/App.tsx` — entry + `react-router` routes
-- `src/pages/` — one folder per tool + `home.tsx`, `blog/`, `DynamicConverter.tsx`
-- `src/components/` — converters, Radix/Shadcn-style `ui/`, `app-bar`, `page-meta`
-- `src/lib/` — `ffmpeg`, `blog`, `gtag`, `utils`, `compat`, generated `tools.json`/`blog-data.ts`
-- `content/blog/` — Markdown posts
-- `public/` — `logo.svg`, `magick.wasm`, `CNAME`
-- `e2e/` — Playwright specs
-
-## Tech Stack
-
-- **Build**: Vite 6 + `@vitejs/plugin-react`
-- **UI**: React 19, React Router 7, Tailwind CSS 4, Radix UI
-- **WASM**: `@ffmpeg/core` (single-thread), `@imagemagick/magick-wasm`, `tesseract.js`
-- **Language**: TypeScript (strict, `tsc -b`)
-- **Hosting**: GitHub Pages (static, no server)
+A tool is a folder under `src/pages/` with its component plus a `tool.yaml` (`name`, `description`, `ready`, `icon`) — that file is what puts it on the home page and in search. Pushes to `main` run CI and deploy to GitHub Pages automatically.
 
 ## License
 
