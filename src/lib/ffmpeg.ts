@@ -38,11 +38,20 @@ export function isMultiThreaded() {
   return multiThreaded;
 }
 
-// The MT build deadlocks when the encoder fans out to hardwareConcurrency
-// threads inside 32-bit wasm (reproduced: hangs at 18, fine at 2-4), so cap
-// re-encodes. Single-threaded core ignores the flag; it is only added for MT.
+// The MT build deadlocks when the encoder fans out too far inside 32-bit
+// wasm (reproduced: hangs at 6+ threads, healthy at <=4 — while x264's own
+// auto-selection stays clear of the zone). Scale with the machine but never
+// exceed the proven-safe ceiling, and never drop below 2.
+function threadCount(): number {
+  const cores =
+    typeof navigator !== "undefined" && navigator.hardwareConcurrency > 0
+      ? navigator.hardwareConcurrency
+      : 4;
+  return Math.max(2, Math.min(Math.floor(cores / 2), 4));
+}
+
 function threadArgs(): string[] {
-  return multiThreaded ? ["-threads", "4"] : [];
+  return multiThreaded ? ["-threads", String(threadCount())] : [];
 }
 
 export async function getFFmpeg() {
