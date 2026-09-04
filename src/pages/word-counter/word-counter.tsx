@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import React, { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { csr } from "@/lib/compat";
 import { stopWords } from "./stop-words";
 import { useDebounce } from "use-debounce";

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import type React from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { cutAudio } from "@/lib/ffmpeg";
 import { DualRangeSlider } from "@/components/ui/dual-range-slider";

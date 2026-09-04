@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { csr } from "@/lib/compat";
 import * as gtag from "@/lib/gtag";
 import { DownloadIcon } from "@radix-ui/react-icons";

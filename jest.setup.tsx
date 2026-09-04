@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import "@testing-library/jest-dom";
 import "jest-canvas-mock";
 import { TextEncoder, TextDecoder } from "util";

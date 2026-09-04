@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { HelmetProvider } from "react-helmet-async";
 import QRCodeGeneratorPage from "./qr-code-generator";
@@ -8,18 +8,45 @@ const renderPage = (ui: React.ReactElement) =>
 
 // Mock @/components/ui to prevent module resolution errors in the test environment
 jest.mock("@/components/ui/button", () => ({
-  Button: (props: any) => <button {...props} />,
+  Button: (props: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button {...props} />
+  ),
 }));
 jest.mock("@/components/ui/input", () => ({
-  Input: (props: any) => (
-    <input {...props} onChange={(e) => props.onChange?.(e.target.value)} />
+  Input: ({
+    onChange,
+    ...rest
+  }: React.InputHTMLAttributes<HTMLInputElement> & {
+    onChange?: (value: string) => void;
+  }) => (
+    <input
+      {...rest}
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+        onChange?.(e.target.value)
+      }
+    />
   ),
 }));
 jest.mock("@/components/ui/label", () => ({
-  Label: (props: any) => <label {...props} />,
+  Label: (props: React.LabelHTMLAttributes<HTMLLabelElement>) => (
+    <label {...props} />
+  ),
 }));
 jest.mock("@/components/ui/slider", () => ({
-  Slider: (props: any) => <div {...props} />,
+  Slider: ({
+    value: _value,
+    onValueChange: _onValueChange,
+    min: _min,
+    max: _max,
+    step: _step,
+    ...rest
+  }: {
+    value?: number[];
+    onValueChange?: (value: number[]) => void;
+    min?: number;
+    max?: number;
+    step?: number;
+  } & React.HTMLAttributes<HTMLDivElement>) => <div {...rest} />,
 }));
 
 // Mock the components since we only need to verify if value is rendered/passed properly.

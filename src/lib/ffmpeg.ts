@@ -1,5 +1,6 @@
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
+import { toBlobPart } from "./utils";
 
 let ffmpeg: FFmpeg | null;
 
@@ -44,7 +45,7 @@ export async function cutAudio(
   ]);
 
   const data = await ffmpeg.readFile("output.mp3");
-  return new Blob([data as any], { type: "audio/mpeg" });
+  return new Blob([toBlobPart(data)], { type: "audio/mpeg" });
 }
 
 export async function convertAudio(
@@ -58,7 +59,7 @@ export async function convertAudio(
   await ffmpeg.exec(["-i", file.name, outputFilename]);
 
   const data = await ffmpeg.readFile(outputFilename);
-  return new Blob([data as any], { type: `audio/${outputFormat}` });
+  return new Blob([toBlobPart(data)], { type: `audio/${outputFormat}` });
 }
 
 export async function convertVideo(
@@ -108,7 +109,7 @@ export async function convertVideo(
     await ffmpeg.exec(args);
     const data = await ffmpeg.readFile(outputName);
 
-    const blob = new Blob([data as any], { type: outputMimeType });
+    const blob = new Blob([toBlobPart(data)], { type: outputMimeType });
     const url = URL.createObjectURL(blob);
     await ffmpeg.deleteFile(outputName);
     await ffmpeg.deleteFile(file.name);
@@ -153,7 +154,7 @@ export async function combineAudio(files: File[]): Promise<Blob> {
     ]);
 
     const data = await ffmpeg.readFile("output.mp3");
-    const blob = new Blob([data as any], { type: "audio/mpeg" });
+    const blob = new Blob([toBlobPart(data)], { type: "audio/mpeg" });
 
     // Cleanup internal files
     for (const name of internalFileNames) {

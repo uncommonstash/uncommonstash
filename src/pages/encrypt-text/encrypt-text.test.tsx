@@ -1,4 +1,3 @@
-import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import EncryptTextPage from "./encrypt-text";
 import { encrypt, decrypt } from "./crypto-utils";
