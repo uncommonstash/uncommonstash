@@ -1,14 +1,14 @@
-import fs from 'fs';
-import path from 'path';
-import matter from 'gray-matter';
-import { marked } from 'marked';
-import { fileURLToPath } from 'url';
+import fs from "fs";
+import path from "path";
+import matter from "gray-matter";
+import { marked } from "marked";
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const postsDirectory = path.join(__dirname, '../content/blog');
-const outputFile = path.join(__dirname, '../src/lib/blog-data.ts');
+const postsDirectory = path.join(__dirname, "../content/blog");
+const outputFile = path.join(__dirname, "../src/lib/blog-data.ts");
 
 function getPostSlugs() {
   if (!fs.existsSync(postsDirectory)) {
@@ -37,8 +37,8 @@ async function getPostBySlug(slug) {
   const fullPath = path.join(postsDirectory, `${realSlug}.md`);
 
   if (!fs.existsSync(fullPath)) {
-      console.error(`Error: Post file not found: ${fullPath}`);
-      process.exit(1);
+    console.error(`Error: Post file not found: ${fullPath}`);
+    process.exit(1);
   }
 
   const fileContents = fs.readFileSync(fullPath, "utf8");
@@ -65,32 +65,38 @@ async function getAllPosts() {
   const posts = await Promise.all(
     slugs
       .filter((slug) => slug.endsWith(".md"))
-      .map((slug) => getPostBySlug(slug))
+      .map((slug) => getPostBySlug(slug)),
   );
 
   return posts
-    .filter(post => post !== null)
-    .sort((post1, post2) => (post1.datePublished > post2.datePublished ? -1 : 1));
+    .filter((post) => post !== null)
+    .sort((post1, post2) =>
+      post1.datePublished > post2.datePublished ? -1 : 1,
+    );
 }
 
 async function run() {
-    try {
-        console.log(`Generating blog data from ${postsDirectory} to ${outputFile}...`);
-        const posts = await getAllPosts();
+  try {
+    console.log(
+      `Generating blog data from ${postsDirectory} to ${outputFile}...`,
+    );
+    const posts = await getAllPosts();
 
-        if (posts.length === 0) {
-             console.error("Error: No posts were generated. Check if content/blog has .md files.");
-             process.exit(1);
-        }
-
-        const fileContent = `export const posts = ${JSON.stringify(posts, null, 2)};`;
-
-        fs.writeFileSync(outputFile, fileContent);
-        console.log(`Generated ${outputFile} with ${posts.length} posts.`);
-    } catch (error) {
-        console.error('Error generating blog data:', error);
-        process.exit(1);
+    if (posts.length === 0) {
+      console.error(
+        "Error: No posts were generated. Check if content/blog has .md files.",
+      );
+      process.exit(1);
     }
+
+    const fileContent = `export const posts = ${JSON.stringify(posts, null, 2)};`;
+
+    fs.writeFileSync(outputFile, fileContent);
+    console.log(`Generated ${outputFile} with ${posts.length} posts.`);
+  } catch (error) {
+    console.error("Error generating blog data:", error);
+    process.exit(1);
+  }
 }
 
 run();

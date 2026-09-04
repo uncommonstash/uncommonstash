@@ -38,7 +38,8 @@ const SUPPORTED_FORMATS = {
 
 export const VideoConverter = () => {
   const [files, setFiles] = useState<File[]>([]);
-  const [outputFormat, setOutputFormat] = useState<keyof typeof SUPPORTED_FORMATS>("mp4");
+  const [outputFormat, setOutputFormat] =
+    useState<keyof typeof SUPPORTED_FORMATS>("mp4");
   const [convertedVideos, setConvertedVideos] = useState<ConvertedVideo[]>([]);
   const [isConverting, setIsConverting] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -73,14 +74,14 @@ export const VideoConverter = () => {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const result = await convertVideo(
-          file, 
-          outputFormat, 
+          file,
+          outputFormat,
           SUPPORTED_FORMATS[outputFormat],
           (p) => {
-             const clampedP = Math.min(Math.max(p, 0), 1);
-             const globalProgress = ((i + clampedP) / files.length) * 100;
-             setProgress(globalProgress);
-          }
+            const clampedP = Math.min(Math.max(p, 0), 1);
+            const globalProgress = ((i + clampedP) / files.length) * 100;
+            setProgress(globalProgress);
+          },
         );
         newConvertedVideos.push(result);
         setConvertedVideos((prev) => [...prev, result]);

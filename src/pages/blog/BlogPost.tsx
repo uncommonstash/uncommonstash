@@ -29,19 +29,28 @@ export default function BlogPostPage() {
     author: { "@type": "Person", name: post.author },
   };
 
-  const formattedDate = new Date(post.datePublished).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  const formattedDate = new Date(post.datePublished).toLocaleDateString(
+    "en-US",
+    {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    },
+  );
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <BackLink to="/blog" label="Blog" />
-      <PageMeta title={post.title} description={post.description} jsonLd={jsonLd} />
+      <PageMeta
+        title={post.title}
+        description={post.description}
+        jsonLd={jsonLd}
+      />
       <article className="max-w-none">
         <header className="mb-8">
-          <h1 className="text-4xl font-bold tracking-tight mb-2">{post.title}</h1>
+          <h1 className="text-4xl font-bold tracking-tight mb-2">
+            {post.title}
+          </h1>
           <div className="text-muted-foreground flex items-center gap-2">
             {formattedDate}
             <span>•</span>

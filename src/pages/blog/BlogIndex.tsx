@@ -1,5 +1,10 @@
 import { Link } from "react-router-dom";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { getPosts } from "@/lib/blog";
 import { PageMeta } from "@/components/page-meta";
 import { useEffect, useState } from "react";

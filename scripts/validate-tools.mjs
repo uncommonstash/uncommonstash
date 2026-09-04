@@ -81,7 +81,9 @@ function run() {
   for (let i = 0; i < toolFiles.length; i += 1) {
     const slug = slugs[i];
     if (!routeSet.has(slug)) {
-      errors.push(`tool.yaml slug "${slug}" from ${toolFiles[i]} has no matching <Route path> in src/App.tsx`);
+      errors.push(
+        `tool.yaml slug "${slug}" from ${toolFiles[i]} has no matching <Route path> in src/App.tsx`,
+      );
     }
   }
 
@@ -90,7 +92,9 @@ function run() {
       continue;
     }
     if (!slugSet.has(routePath)) {
-      errors.push(`<Route path="${routePath}" /> in src/App.tsx has no matching tool.yaml (expected slug "${routePath}")`);
+      errors.push(
+        `<Route path="${routePath}" /> in src/App.tsx has no matching tool.yaml (expected slug "${routePath}")`,
+      );
     }
   }
 

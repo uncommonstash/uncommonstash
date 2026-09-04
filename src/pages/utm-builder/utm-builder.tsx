@@ -48,7 +48,7 @@ export default csr(function UTMBuilderPage() {
       let urlStr = websiteUrl.trim();
       // Basic check to see if protocol is missing
       if (!/^https?:\/\//i.test(urlStr)) {
-         urlStr = "https://" + urlStr;
+        urlStr = "https://" + urlStr;
       }
 
       const url = new URL(urlStr);
@@ -83,7 +83,8 @@ export default csr(function UTMBuilderPage() {
           <CardHeader>
             <CardTitle>UTM Builder</CardTitle>
             <CardDescription>
-              Generate tracking URLs with UTM parameters for your marketing campaigns.
+              Generate tracking URLs with UTM parameters for your marketing
+              campaigns.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -128,7 +129,7 @@ export default csr(function UTMBuilderPage() {
                   onChange={setCampaign}
                 />
               </div>
-               <div className="space-y-2">
+              <div className="space-y-2">
                 <Label htmlFor="term">Campaign Term</Label>
                 <Input
                   id="term"
@@ -152,30 +153,32 @@ export default csr(function UTMBuilderPage() {
         </Card>
 
         <Card className="w-full lg:w-96 flex flex-col h-fit">
-           <CardHeader>
+          <CardHeader>
             <CardTitle>Generated URL</CardTitle>
-            <CardDescription>
-              Copy this URL for your campaign.
-            </CardDescription>
+            <CardDescription>Copy this URL for your campaign.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="p-4 bg-muted rounded-md break-all min-h-[100px] text-sm font-mono border">
-                {generatedUrl || <span className="text-muted-foreground italic">Enter a website URL to start...</span>}
+              {generatedUrl || (
+                <span className="text-muted-foreground italic">
+                  Enter a website URL to start...
+                </span>
+              )}
             </div>
             <Button
-                className="w-full"
-                onClick={handleCopy}
-                disabled={!generatedUrl}
+              className="w-full"
+              onClick={handleCopy}
+              disabled={!generatedUrl}
             >
-                {isCopied ? (
-                    <>
-                        <CheckIcon className="mr-2 h-4 w-4" /> Copied!
-                    </>
-                ) : (
-                    <>
-                        <CopyIcon className="mr-2 h-4 w-4" /> Copy URL
-                    </>
-                )}
+              {isCopied ? (
+                <>
+                  <CheckIcon className="mr-2 h-4 w-4" /> Copied!
+                </>
+              ) : (
+                <>
+                  <CopyIcon className="mr-2 h-4 w-4" /> Copy URL
+                </>
+              )}
             </Button>
           </CardContent>
         </Card>

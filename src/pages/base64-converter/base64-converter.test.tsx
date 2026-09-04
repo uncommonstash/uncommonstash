@@ -18,7 +18,9 @@ describe("Base64Converter", () => {
   it("renders correctly", () => {
     render(<Base64Converter ssr={true} />);
     expect(screen.getByText("Base64 Converter")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Enter plain text here...")).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText("Enter plain text here..."),
+    ).toBeInTheDocument();
   });
 
   it("encodes text to standard Base64", async () => {
@@ -58,10 +60,14 @@ describe("Base64Converter", () => {
     // Disable padding
     fireEvent.click(screen.getByLabelText("Padding (=)"));
 
-    fireEvent.change(input, { target: { value: "Testing URL-safe variant with special characters >>" } });
+    fireEvent.change(input, {
+      target: { value: "Testing URL-safe variant with special characters >>" },
+    });
 
     await waitFor(() => {
-      expect(output).toHaveValue("VGVzdGluZyBVUkwtc2FmZSB2YXJpYW50IHdpdGggc3BlY2lhbCBjaGFyYWN0ZXJzID4-");
+      expect(output).toHaveValue(
+        "VGVzdGluZyBVUkwtc2FmZSB2YXJpYW50IHdpdGggc3BlY2lhbCBjaGFyYWN0ZXJzID4-",
+      );
     });
   });
 
@@ -72,7 +78,9 @@ describe("Base64Converter", () => {
     fireEvent.mouseDown(decodeTab);
     fireEvent.click(decodeTab);
 
-    const input = await screen.findByPlaceholderText("Enter Base64 string here...");
+    const input = await screen.findByPlaceholderText(
+      "Enter Base64 string here...",
+    );
     const output = screen.getByPlaceholderText("Result will appear here...");
 
     fireEvent.change(input, { target: { value: "SGVsbG8gV29ybGQ=" } });
@@ -93,14 +101,23 @@ describe("Base64Converter", () => {
     fireEvent.mouseDown(urlSafeTab);
     fireEvent.click(urlSafeTab);
 
-    const input = await screen.findByPlaceholderText("Enter Base64 string here...");
+    const input = await screen.findByPlaceholderText(
+      "Enter Base64 string here...",
+    );
     const output = screen.getByPlaceholderText("Result will appear here...");
 
     // Without padding and using URL-safe chars
-    fireEvent.change(input, { target: { value: "VGVzdGluZyBVUkwtc2FmZSB2YXJpYW50IHdpdGggc3BlY2lhbCBjaGFyYWN0ZXJzID4-" } });
+    fireEvent.change(input, {
+      target: {
+        value:
+          "VGVzdGluZyBVUkwtc2FmZSB2YXJpYW50IHdpdGggc3BlY2lhbCBjaGFyYWN0ZXJzID4-",
+      },
+    });
 
     await waitFor(() => {
-      expect(output).toHaveValue("Testing URL-safe variant with special characters >>");
+      expect(output).toHaveValue(
+        "Testing URL-safe variant with special characters >>",
+      );
     });
   });
 
@@ -110,7 +127,9 @@ describe("Base64Converter", () => {
     fireEvent.mouseDown(decodeTab);
     fireEvent.click(decodeTab);
 
-    const input = await screen.findByPlaceholderText("Enter Base64 string here...");
+    const input = await screen.findByPlaceholderText(
+      "Enter Base64 string here...",
+    );
     fireEvent.change(input, { target: { value: "!!!" } });
 
     await waitFor(() => {
@@ -124,13 +143,17 @@ describe("Base64Converter", () => {
     fireEvent.change(input, { target: { value: "Hello" } });
 
     await waitFor(() => {
-        expect(screen.getByPlaceholderText("Result will appear here...")).toHaveValue("SGVsbG8=");
+      expect(
+        screen.getByPlaceholderText("Result will appear here..."),
+      ).toHaveValue("SGVsbG8=");
     });
 
     fireEvent.click(screen.getByTitle("Clear All"));
 
     expect(input).toHaveValue("");
-    expect(screen.getByPlaceholderText("Result will appear here...")).toHaveValue("");
+    expect(
+      screen.getByPlaceholderText("Result will appear here..."),
+    ).toHaveValue("");
   });
 
   it("swaps input and output", async () => {
@@ -139,17 +162,24 @@ describe("Base64Converter", () => {
     fireEvent.change(input, { target: { value: "Hello" } });
 
     await waitFor(() => {
-        expect(screen.getByPlaceholderText("Result will appear here...")).toHaveValue("SGVsbG8=");
+      expect(
+        screen.getByPlaceholderText("Result will appear here..."),
+      ).toHaveValue("SGVsbG8=");
     });
 
     fireEvent.click(screen.getByTitle("Swap Input/Output"));
 
     await waitFor(() => {
-      expect(screen.getByRole("tab", { name: /Decode/i })).toHaveAttribute("data-state", "active");
+      expect(screen.getByRole("tab", { name: /Decode/i })).toHaveAttribute(
+        "data-state",
+        "active",
+      );
     });
     expect(input).toHaveValue("SGVsbG8=");
     await waitFor(() => {
-        expect(screen.getByPlaceholderText("Result will appear here...")).toHaveValue("Hello");
+      expect(
+        screen.getByPlaceholderText("Result will appear here..."),
+      ).toHaveValue("Hello");
     });
   });
 });

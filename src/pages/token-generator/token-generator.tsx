@@ -73,8 +73,8 @@ export default csr(function TokenGenerator() {
     if (includeSymbols) charset += symbols;
 
     if (charset === "") {
-        setGeneratedPassword("");
-        return;
+      setGeneratedPassword("");
+      return;
     }
 
     let password = "";
@@ -87,11 +87,11 @@ export default csr(function TokenGenerator() {
 
     setGeneratedPassword(password);
     gtag.event({
-        action: "generate",
-        category: "engagement",
-        label: "password",
-        value: 1,
-      });
+      action: "generate",
+      category: "engagement",
+      label: "password",
+      value: 1,
+    });
   };
 
   const generateUUIDs = () => {
@@ -101,11 +101,11 @@ export default csr(function TokenGenerator() {
     }
     setGeneratedUUIDs(uuids);
     gtag.event({
-        action: "generate",
-        category: "engagement",
-        label: "uuid",
-        value: uuidQuantity,
-      });
+      action: "generate",
+      category: "engagement",
+      label: "uuid",
+      value: uuidQuantity,
+    });
   };
 
   useEffect(() => {
@@ -130,13 +130,20 @@ export default csr(function TokenGenerator() {
         <BackLink />
         <Card>
           <CardHeader>
-            <CardTitle className="text-3xl font-bold text-center">Token Generator</CardTitle>
+            <CardTitle className="text-3xl font-bold text-center">
+              Token Generator
+            </CardTitle>
             <CardDescription className="text-center text-lg mt-2">
               Generate secure random passwords, UUIDs, and Base64 strings.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="password" value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs
+              defaultValue="password"
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
               <TabsList className="grid w-full grid-cols-3 mb-8">
                 <TabsTrigger value="password">Password</TabsTrigger>
                 <TabsTrigger value="uuid">UUID</TabsTrigger>
@@ -148,7 +155,9 @@ export default csr(function TokenGenerator() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="length" className="text-base">Length: {passwordLength}</Label>
+                      <Label htmlFor="length" className="text-base">
+                        Length: {passwordLength}
+                      </Label>
                       <Input
                         id="length"
                         type="number"
@@ -160,46 +169,68 @@ export default csr(function TokenGenerator() {
                       />
                     </div>
                     <div className="space-y-3">
-                        <Label className="text-base">Character Types</Label>
-                        <div className="flex items-center space-x-2">
-                            <Checkbox id="uppercase" checked={includeUppercase} onCheckedChange={(c) => setIncludeUppercase(!!c)} />
-                            <Label htmlFor="uppercase">Uppercase (A-Z)</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <Checkbox id="lowercase" checked={includeLowercase} onCheckedChange={(c) => setIncludeLowercase(!!c)} />
-                            <Label htmlFor="lowercase">Lowercase (a-z)</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <Checkbox id="numbers" checked={includeNumbers} onCheckedChange={(c) => setIncludeNumbers(!!c)} />
-                            <Label htmlFor="numbers">Numbers (0-9)</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <Checkbox id="symbols" checked={includeSymbols} onCheckedChange={(c) => setIncludeSymbols(!!c)} />
-                            <Label htmlFor="symbols">Symbols (!@#$)</Label>
-                        </div>
+                      <Label className="text-base">Character Types</Label>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="uppercase"
+                          checked={includeUppercase}
+                          onCheckedChange={(c) => setIncludeUppercase(!!c)}
+                        />
+                        <Label htmlFor="uppercase">Uppercase (A-Z)</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="lowercase"
+                          checked={includeLowercase}
+                          onCheckedChange={(c) => setIncludeLowercase(!!c)}
+                        />
+                        <Label htmlFor="lowercase">Lowercase (a-z)</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="numbers"
+                          checked={includeNumbers}
+                          onCheckedChange={(c) => setIncludeNumbers(!!c)}
+                        />
+                        <Label htmlFor="numbers">Numbers (0-9)</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="symbols"
+                          checked={includeSymbols}
+                          onCheckedChange={(c) => setIncludeSymbols(!!c)}
+                        />
+                        <Label htmlFor="symbols">Symbols (!@#$)</Label>
+                      </div>
                     </div>
                     <Button onClick={generatePassword} className="w-full mt-4">
-                        <RefreshCw className="mr-2 h-4 w-4" /> Generate Password
+                      <RefreshCw className="mr-2 h-4 w-4" /> Generate Password
                     </Button>
                   </div>
                   <div className="flex flex-col justify-center space-y-4">
-                     <Label className="text-base">Generated Password</Label>
-                     <div className="relative">
-                        <Textarea
-                            readOnly
-                            value={generatedPassword}
-                            className="min-h-[120px] font-mono text-lg resize-none p-4"
-                        />
-                        <Button
-                            variant="secondary"
-                            size="icon"
-                            className="absolute top-2 right-2"
-                            onClick={() => handleCopy(generatedPassword, "password")}
-                            disabled={!generatedPassword}
-                        >
-                            {copiedState === "password" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                        </Button>
-                     </div>
+                    <Label className="text-base">Generated Password</Label>
+                    <div className="relative">
+                      <Textarea
+                        readOnly
+                        value={generatedPassword}
+                        className="min-h-[120px] font-mono text-lg resize-none p-4"
+                      />
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className="absolute top-2 right-2"
+                        onClick={() =>
+                          handleCopy(generatedPassword, "password")
+                        }
+                        disabled={!generatedPassword}
+                      >
+                        {copiedState === "password" ? (
+                          <Check className="h-4 w-4" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </TabsContent>
@@ -207,107 +238,140 @@ export default csr(function TokenGenerator() {
               {/* UUID Mode */}
               <TabsContent value="uuid" className="space-y-6">
                 <div className="flex items-end gap-4">
-                    <div className="flex-1">
-                        <Label htmlFor="quantity" className="text-base">Quantity (Max 100)</Label>
-                        <Input
-                            id="quantity"
-                            type="number"
-                            min={1}
-                            max={100}
-                            value={uuidQuantity}
-                            onChange={(val) => setUuidQuantity(Math.min(100, Math.max(1, Number(val))))}
-                            className="mt-2"
-                        />
-                    </div>
-                    <Button onClick={generateUUIDs} className="mb-0.5">
-                        <RefreshCw className="mr-2 h-4 w-4" /> Generate UUIDs
-                    </Button>
+                  <div className="flex-1">
+                    <Label htmlFor="quantity" className="text-base">
+                      Quantity (Max 100)
+                    </Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={uuidQuantity}
+                      onChange={(val) =>
+                        setUuidQuantity(Math.min(100, Math.max(1, Number(val))))
+                      }
+                      className="mt-2"
+                    />
+                  </div>
+                  <Button onClick={generateUUIDs} className="mb-0.5">
+                    <RefreshCw className="mr-2 h-4 w-4" /> Generate UUIDs
+                  </Button>
                 </div>
                 <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                        <Label className="text-base">Generated UUIDs</Label>
+                  <div className="flex justify-between items-center">
+                    <Label className="text-base">Generated UUIDs</Label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        handleCopy(generatedUUIDs.join("\n"), "uuids-all")
+                      }
+                      disabled={generatedUUIDs.length === 0}
+                    >
+                      {copiedState === "uuids-all" ? (
+                        <Check className="mr-2 h-4 w-4" />
+                      ) : (
+                        <Copy className="mr-2 h-4 w-4" />
+                      )}
+                      Copy All
+                    </Button>
+                  </div>
+                  <div className="border rounded-md divide-y max-h-[400px] overflow-y-auto bg-card">
+                    {generatedUUIDs.map((uuid, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-3 group hover:bg-muted/50 transition-colors"
+                      >
+                        <code className="font-mono text-sm">{uuid}</code>
                         <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleCopy(generatedUUIDs.join("\n"), "uuids-all")}
-                            disabled={generatedUUIDs.length === 0}
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleCopy(uuid, `uuid-${idx}`)}
                         >
-                            {copiedState === "uuids-all" ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
-                            Copy All
+                          {copiedState === `uuid-${idx}` ? (
+                            <Check className="h-4 w-4" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
                         </Button>
-                    </div>
-                    <div className="border rounded-md divide-y max-h-[400px] overflow-y-auto bg-card">
-                        {generatedUUIDs.map((uuid, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-3 group hover:bg-muted/50 transition-colors">
-                                <code className="font-mono text-sm">{uuid}</code>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={() => handleCopy(uuid, `uuid-${idx}`)}
-                                >
-                                    {copiedState === `uuid-${idx}` ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                                </Button>
-                            </div>
-                        ))}
-                        {generatedUUIDs.length === 0 && (
-                            <div className="p-8 text-center text-muted-foreground">
-                                Click Generate to create UUIDs
-                            </div>
-                        )}
-                    </div>
+                      </div>
+                    ))}
+                    {generatedUUIDs.length === 0 && (
+                      <div className="p-8 text-center text-muted-foreground">
+                        Click Generate to create UUIDs
+                      </div>
+                    )}
+                  </div>
                 </div>
               </TabsContent>
 
               {/* Base64 Mode */}
               <TabsContent value="base64" className="space-y-6">
                 <div className="flex justify-center mb-6">
-                    <div className="bg-muted p-1 rounded-lg inline-flex">
-                        <Button
-                            variant={base64Mode === "encode" ? "default" : "ghost"}
-                            onClick={() => setBase64Mode("encode")}
-                            size="sm"
-                        >
-                            Encode
-                        </Button>
-                        <Button
-                            variant={base64Mode === "decode" ? "default" : "ghost"}
-                            onClick={() => setBase64Mode("decode")}
-                            size="sm"
-                        >
-                            Decode
-                        </Button>
-                    </div>
+                  <div className="bg-muted p-1 rounded-lg inline-flex">
+                    <Button
+                      variant={base64Mode === "encode" ? "default" : "ghost"}
+                      onClick={() => setBase64Mode("encode")}
+                      size="sm"
+                    >
+                      Encode
+                    </Button>
+                    <Button
+                      variant={base64Mode === "decode" ? "default" : "ghost"}
+                      onClick={() => setBase64Mode("decode")}
+                      size="sm"
+                    >
+                      Decode
+                    </Button>
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                        <Label>Input ({base64Mode === "encode" ? "Plain Text" : "Base64"})</Label>
-                        <Textarea
-                            value={base64Input}
-                            onChange={(e) => setBase64Input(e.target.value)}
-                            placeholder={base64Mode === "encode" ? "Type text to encode..." : "Paste Base64 to decode..."}
-                            className="min-h-[200px] font-mono"
-                        />
+                  <div className="space-y-2">
+                    <Label>
+                      Input ({base64Mode === "encode" ? "Plain Text" : "Base64"}
+                      )
+                    </Label>
+                    <Textarea
+                      value={base64Input}
+                      onChange={(e) => setBase64Input(e.target.value)}
+                      placeholder={
+                        base64Mode === "encode"
+                          ? "Type text to encode..."
+                          : "Paste Base64 to decode..."
+                      }
+                      className="min-h-[200px] font-mono"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <Label>
+                        Output (
+                        {base64Mode === "encode" ? "Base64" : "Plain Text"})
+                      </Label>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          handleCopy(base64Output, "base64-output")
+                        }
+                        disabled={!base64Output}
+                      >
+                        {copiedState === "base64-output" ? (
+                          <Check className="mr-2 h-4 w-4" />
+                        ) : (
+                          <Copy className="mr-2 h-4 w-4" />
+                        )}
+                        Copy
+                      </Button>
                     </div>
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                            <Label>Output ({base64Mode === "encode" ? "Base64" : "Plain Text"})</Label>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleCopy(base64Output, "base64-output")}
-                                disabled={!base64Output}
-                            >
-                                {copiedState === "base64-output" ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
-                                Copy
-                            </Button>
-                        </div>
-                        <Textarea
-                            readOnly
-                            value={base64Output}
-                            className="min-h-[200px] font-mono bg-muted/30"
-                        />
-                    </div>
+                    <Textarea
+                      readOnly
+                      value={base64Output}
+                      className="min-h-[200px] font-mono bg-muted/30"
+                    />
+                  </div>
                 </div>
               </TabsContent>
             </Tabs>

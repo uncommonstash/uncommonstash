@@ -23,20 +23,34 @@ import HtmlFormatterPage from "@/pages/html-formatter/html-formatter";
 import { BillSplitterView } from "@/pages/bill-splitter/bill-splitter-view";
 import { ColorPickerView } from "@/pages/color-picker/color-picker-view";
 import AudioCutter from "@/pages/audio/cut/audio-cutter";
-import AudioCombinerDefault, { AudioCombiner } from "@/pages/audio/combine/audio-combiner";
-import AudioConverterDefault, { AudioConverter } from "@/pages/audio/convert/audio-converter";
+import AudioCombinerDefault, {
+  AudioCombiner,
+} from "@/pages/audio/combine/audio-combiner";
+import AudioConverterDefault, {
+  AudioConverter,
+} from "@/pages/audio/convert/audio-converter";
 import AudioRecorderDefault from "@/pages/audio/recorder/audio-recorder";
 import TextToCronPage from "@/pages/text-to-cron/text-to-cron";
 import ImageConvertPage from "@/pages/images/convert/image-convert";
 
 // Lazy (heavy WASM) pages — responsiveness MVP
-const CodeScreenshot = React.lazy(() => import("@/pages/code-screenshot/client"));
+const CodeScreenshot = React.lazy(
+  () => import("@/pages/code-screenshot/client"),
+);
 const HtmlEditor = React.lazy(() => import("@/pages/html-editor/client"));
-const ImageResizerClient = React.lazy(() => import("@/pages/image-resizer/client"));
-const ImageCompressorClient = React.lazy(() => import("@/pages/images/compress/client"));
+const ImageResizerClient = React.lazy(
+  () => import("@/pages/image-resizer/client"),
+);
+const ImageCompressorClient = React.lazy(
+  () => import("@/pages/images/compress/client"),
+);
 const ImageToPdfPage = React.lazy(() => import("@/pages/images/to-pdf/client"));
-const MarkdownConverter = React.lazy(() => import("@/pages/markdown-to-html/client"));
-const VideoConverterClient = React.lazy(() => import("@/pages/videos/convert/client"));
+const MarkdownConverter = React.lazy(
+  () => import("@/pages/markdown-to-html/client"),
+);
+const VideoConverterClient = React.lazy(
+  () => import("@/pages/videos/convert/client"),
+);
 
 void AudioCombiner;
 void AudioConverter;
@@ -174,7 +188,10 @@ export default function App() {
             <Route
               path="/audio/combine"
               element={
-                <RouteWithMeta title="Audio Combiner" description="Combine multiple audio files in the browser.">
+                <RouteWithMeta
+                  title="Audio Combiner"
+                  description="Combine multiple audio files in the browser."
+                >
                   <AudioCombinerDefault ssr={true} />
                 </RouteWithMeta>
               }
@@ -252,7 +269,10 @@ export default function App() {
             <Route
               path="/html-editor"
               element={
-                <RouteWithMeta title="Realtime HTML Editor" description="Live preview editor for HTML/CSS.">
+                <RouteWithMeta
+                  title="Realtime HTML Editor"
+                  description="Live preview editor for HTML/CSS."
+                >
                   <HtmlEditor ssr={true} />
                 </RouteWithMeta>
               }
@@ -293,7 +313,10 @@ export default function App() {
             <Route
               path="/images/convert"
               element={
-                <RouteWithMeta title="Image Converter" description="Convert images between formats in the browser.">
+                <RouteWithMeta
+                  title="Image Converter"
+                  description="Convert images between formats in the browser."
+                >
                   <ImageConvertPage ssr={true} />
                 </RouteWithMeta>
               }

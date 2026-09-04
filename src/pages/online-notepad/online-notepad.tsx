@@ -48,7 +48,9 @@ export default csr(function OnlineNotepadPage() {
     });
   };
 
-  const wordCount = text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0;
+  const wordCount = text.trim()
+    ? text.trim().split(/\s+/).filter(Boolean).length
+    : 0;
   const charCount = text.length;
 
   return (

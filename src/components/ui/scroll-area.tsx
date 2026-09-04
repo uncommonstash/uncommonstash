@@ -7,7 +7,9 @@ const ScrollArea = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root> & {
     orientation?: "vertical" | "horizontal" | "both";
     viewportClassName?: string;
-    viewportRef?: React.Ref<React.ElementRef<typeof ScrollAreaPrimitive.Viewport>>;
+    viewportRef?: React.Ref<
+      React.ElementRef<typeof ScrollAreaPrimitive.Viewport>
+    >;
   }
 >(
   (
@@ -21,23 +23,23 @@ const ScrollArea = React.forwardRef<
     },
     ref,
   ) => (
-  <ScrollAreaPrimitive.Root
-    ref={ref}
-    className={cn("relative overflow-hidden", className)}
-    {...props}
-  >
-    <ScrollAreaPrimitive.Viewport
-      ref={viewportRef}
-      className={cn("h-full w-full rounded-[inherit]", viewportClassName)}
+    <ScrollAreaPrimitive.Root
+      ref={ref}
+      className={cn("relative overflow-hidden", className)}
+      {...props}
     >
-      {children}
-    </ScrollAreaPrimitive.Viewport>
-    {(orientation === "vertical" || orientation === "both") && <ScrollBar />}
-    {(orientation === "horizontal" || orientation === "both") && (
-      <ScrollBar orientation="horizontal" />
-    )}
-    <ScrollAreaPrimitive.Corner />
-  </ScrollAreaPrimitive.Root>
+      <ScrollAreaPrimitive.Viewport
+        ref={viewportRef}
+        className={cn("h-full w-full rounded-[inherit]", viewportClassName)}
+      >
+        {children}
+      </ScrollAreaPrimitive.Viewport>
+      {(orientation === "vertical" || orientation === "both") && <ScrollBar />}
+      {(orientation === "horizontal" || orientation === "both") && (
+        <ScrollBar orientation="horizontal" />
+      )}
+      <ScrollAreaPrimitive.Corner />
+    </ScrollAreaPrimitive.Root>
   ),
 );
 ScrollArea.displayName = ScrollAreaPrimitive.Root.displayName;

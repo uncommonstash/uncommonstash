@@ -120,7 +120,9 @@ export const BillSplitterView = csr(function BillSplitterPage() {
         try {
           ImageMagick.read(data, (img) => {
             img.write(MagickFormat.Png, (convertedData) => {
-              pngBlob = new Blob([convertedData as unknown as BlobPart], { type: "image/png" });
+              pngBlob = new Blob([convertedData as unknown as BlobPart], {
+                type: "image/png",
+              });
               resolve();
             });
           });
@@ -163,8 +165,8 @@ export const BillSplitterView = csr(function BillSplitterPage() {
   const handleCheckboxChange = (id: number) => {
     setLineItems((prevItems) =>
       prevItems.map((item) =>
-        item.id === id ? { ...item, selected: !item.selected } : item
-      )
+        item.id === id ? { ...item, selected: !item.selected } : item,
+      ),
     );
   };
 
@@ -174,7 +176,6 @@ export const BillSplitterView = csr(function BillSplitterPage() {
       .reduce((acc, item) => acc + item.price, 0);
     setTotal(selectedItemsTotal + tip);
   }, [lineItems, tip]);
-
 
   return (
     <div className="min-h-screen bg-background">
@@ -190,14 +191,17 @@ export const BillSplitterView = csr(function BillSplitterPage() {
           </Link>
 
           <div>
-            <h1 className="text-4xl font-bold tracking-tight mb-3">Bill Splitter</h1>
-            <p className="text-muted-foreground text-lg">Upload a receipt to split expenses with friends.</p>
+            <h1 className="text-4xl font-bold tracking-tight mb-3">
+              Bill Splitter
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Upload a receipt to split expenses with friends.
+            </p>
           </div>
         </div>
 
         {/* Main Content */}
         <div className="flex flex-col md:flex-row items-start gap-8">
-
           {/* Input Section */}
           <div className="w-full md:w-1/3 flex flex-col gap-6">
             <div className="rounded-lg border border-dashed border-border p-8 text-center hover:bg-secondary/50 transition-colors relative">
@@ -214,10 +218,14 @@ export const BillSplitterView = csr(function BillSplitterPage() {
                 </div>
                 <div>
                   <p className="font-medium">Click to upload receipt</p>
-                  <p className="text-sm text-muted-foreground">JPG, PNG, or AVIF</p>
+                  <p className="text-sm text-muted-foreground">
+                    JPG, PNG, or AVIF
+                  </p>
                 </div>
                 {image && (
-                  <p className="text-sm font-medium text-primary mt-2">Selected: {image.name}</p>
+                  <p className="text-sm font-medium text-primary mt-2">
+                    Selected: {image.name}
+                  </p>
                 )}
               </div>
             </div>
@@ -232,7 +240,9 @@ export const BillSplitterView = csr(function BillSplitterPage() {
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Processing {Math.round(progress * 100)}%
                 </>
-              ) : "Scan Receipt"}
+              ) : (
+                "Scan Receipt"
+              )}
             </Button>
 
             {error && (
@@ -249,7 +259,8 @@ export const BillSplitterView = csr(function BillSplitterPage() {
                 <div className="p-6 border-b border-border flex justify-between items-center">
                   <h2 className="text-xl font-semibold">Parsed Items</h2>
                   <div className="text-lg font-mono">
-                    Total: <span className="font-bold">${total.toFixed(2)}</span>
+                    Total:{" "}
+                    <span className="font-bold">${total.toFixed(2)}</span>
                   </div>
                 </div>
                 <div className="overflow-x-auto">
@@ -268,12 +279,20 @@ export const BillSplitterView = csr(function BillSplitterPage() {
                           <TableCell>
                             <Checkbox
                               checked={item.selected}
-                              onCheckedChange={() => handleCheckboxChange(item.id)}
+                              onCheckedChange={() =>
+                                handleCheckboxChange(item.id)
+                              }
                             />
                           </TableCell>
-                          <TableCell className="font-medium">{item.name}</TableCell>
-                          <TableCell className="text-right">{item.quantity}</TableCell>
-                          <TableCell className="text-right font-mono">${item.price.toFixed(2)}</TableCell>
+                          <TableCell className="font-medium">
+                            {item.name}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {item.quantity}
+                          </TableCell>
+                          <TableCell className="text-right font-mono">
+                            ${item.price.toFixed(2)}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -282,14 +301,19 @@ export const BillSplitterView = csr(function BillSplitterPage() {
                 <div className="p-6 bg-secondary/20 border-t border-border">
                   <div className="flex justify-between items-center text-sm text-muted-foreground">
                     <span>Tip detected: ${tip.toFixed(2)}</span>
-                    <span>{lineItems.filter(i => i.selected).length} items selected</span>
+                    <span>
+                      {lineItems.filter((i) => i.selected).length} items
+                      selected
+                    </span>
                   </div>
                 </div>
               </div>
             ) : hasScanned ? (
               <div className="h-64 flex flex-col items-center justify-center rounded-lg border border-dashed border-destructive/50 text-destructive bg-destructive/10 gap-2">
                 <p className="font-semibold">No items found</p>
-                <p className="text-sm opacity-80">Make sure the receipt is clear and well-lit.</p>
+                <p className="text-sm opacity-80">
+                  Make sure the receipt is clear and well-lit.
+                </p>
               </div>
             ) : (
               <div className="h-64 flex items-center justify-center rounded-lg border border-dashed border-border text-muted-foreground bg-secondary/10">

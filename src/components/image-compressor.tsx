@@ -8,7 +8,11 @@ import {
 } from "@imagemagick/magick-wasm";
 import JSZip from "jszip";
 import * as gtag from "@/lib/gtag";
-import { ConverterLayout, InputPanel, OutputPanel } from "@/components/converter/layout";
+import {
+  ConverterLayout,
+  InputPanel,
+  OutputPanel,
+} from "@/components/converter/layout";
 import {
   Header,
   FileSelector,
@@ -37,7 +41,9 @@ interface CompressedImage {
 export const ImageCompressor = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [compressionLevel, setCompressionLevel] = useState(80);
-  const [compressedImages, setCompressedImages] = useState<CompressedImage[]>([]);
+  const [compressedImages, setCompressedImages] = useState<CompressedImage[]>(
+    [],
+  );
   const [isCompressing, setIsCompressing] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -104,9 +110,12 @@ export const ImageCompressor = () => {
           ImageMagick.read(data, (image) => {
             image.quality = compressionLevel;
             image.write(format, (compressedData) => {
-              const resultBlob = new Blob([compressedData as unknown as BlobPart], {
-                type: file.type,
-              });
+              const resultBlob = new Blob(
+                [compressedData as unknown as BlobPart],
+                {
+                  type: file.type,
+                },
+              );
               const compressedUrl = URL.createObjectURL(resultBlob);
               const originalUrl = URL.createObjectURL(file);
 
@@ -231,40 +240,69 @@ export const ImageCompressor = () => {
         {compressedImages.length > 0 ? (
           <div className="grid gap-6">
             {compressedImages.map((img, i) => {
-              const reduction = ((img.originalSize - img.compressedSize) / img.originalSize) * 100;
+              const reduction =
+                ((img.originalSize - img.compressedSize) / img.originalSize) *
+                100;
               const isReduction = reduction > 0;
 
               return (
-                <div key={i} className="bg-card border rounded-xl overflow-hidden shadow-sm">
+                <div
+                  key={i}
+                  className="bg-card border rounded-xl overflow-hidden shadow-sm"
+                >
                   <div className="p-4 grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Original</p>
-                       <div className="aspect-[4/3] bg-muted/30 rounded-lg flex items-center justify-center overflow-hidden border">
-                                                  <img src={img.originalUrl} alt="Original" className="max-w-full max-h-full object-contain" />
-                       </div>
-                       <p className="text-sm font-medium text-center">{formatBytes(img.originalSize)}</p>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Original
+                      </p>
+                      <div className="aspect-[4/3] bg-muted/30 rounded-lg flex items-center justify-center overflow-hidden border">
+                        <img
+                          src={img.originalUrl}
+                          alt="Original"
+                          className="max-w-full max-h-full object-contain"
+                        />
+                      </div>
+                      <p className="text-sm font-medium text-center">
+                        {formatBytes(img.originalSize)}
+                      </p>
                     </div>
 
                     <div className="space-y-2">
-                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Compressed</p>
-                       <div className="aspect-[4/3] bg-muted/30 rounded-lg flex items-center justify-center overflow-hidden border relative">
-                                                  <img src={img.compressedUrl} alt="Compressed" className="max-w-full max-h-full object-contain" />
-                         {isReduction && (
-                           <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm">
-                             -{reduction.toFixed(1)}%
-                           </div>
-                         )}
-                       </div>
-                       <div className="flex items-center justify-center gap-2">
-                         <p className="text-sm font-medium">{formatBytes(img.compressedSize)}</p>
-                       </div>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Compressed
+                      </p>
+                      <div className="aspect-[4/3] bg-muted/30 rounded-lg flex items-center justify-center overflow-hidden border relative">
+                        <img
+                          src={img.compressedUrl}
+                          alt="Compressed"
+                          className="max-w-full max-h-full object-contain"
+                        />
+                        {isReduction && (
+                          <div className="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-sm">
+                            -{reduction.toFixed(1)}%
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-center gap-2">
+                        <p className="text-sm font-medium">
+                          {formatBytes(img.compressedSize)}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
                   <div className="bg-muted/30 p-4 flex justify-between items-center border-t">
-                    <p className="text-sm font-medium truncate max-w-[200px]" title={img.name}>{img.name}</p>
+                    <p
+                      className="text-sm font-medium truncate max-w-[200px]"
+                      title={img.name}
+                    >
+                      {img.name}
+                    </p>
                     <Button asChild size="sm">
-                      <a href={img.compressedUrl} download={`compressed_${img.name}`}>
+                      <a
+                        href={img.compressedUrl}
+                        download={`compressed_${img.name}`}
+                      >
                         <Download className="w-4 h-4 mr-2" />
                         Download
                       </a>

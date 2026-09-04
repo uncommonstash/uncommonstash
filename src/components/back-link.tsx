@@ -9,7 +9,11 @@ interface BackLinkProps {
 }
 
 /** Standard back-to-home navigation link used on all tool pages. */
-export function BackLink({ to = "/", label = "UncommonStash", className = "" }: BackLinkProps) {
+export function BackLink({
+  to = "/",
+  label = "UncommonStash",
+  className = "",
+}: BackLinkProps) {
   return (
     <Link
       to={to}

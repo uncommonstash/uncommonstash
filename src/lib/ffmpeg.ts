@@ -65,14 +65,17 @@ export async function convertVideo(
   file: File,
   outputFormat: string,
   outputMimeType: string,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
 ): Promise<{ url: string; name: string }> {
   const ffmpeg = await getFFmpeg();
-  
-  let progressHandler: (({ progress }: { progress: number }) => void) | undefined;
+
+  let progressHandler:
+    | (({ progress }: { progress: number }) => void)
+    | undefined;
   if (onProgress) {
-      progressHandler = ({ progress }: { progress: number }) => onProgress(progress);
-      ffmpeg.on("progress", progressHandler);
+    progressHandler = ({ progress }: { progress: number }) =>
+      onProgress(progress);
+    ffmpeg.on("progress", progressHandler);
   }
 
   try {
@@ -90,11 +93,21 @@ export async function convertVideo(
     // mp4->webm(vp8) all return exit code 0.
     const args =
       outputFormat === "webm"
-        ? ["-i", file.name, "-c:v", "libvpx", "-crf", "30", "-b:v", "0", outputName]
+        ? [
+            "-i",
+            file.name,
+            "-c:v",
+            "libvpx",
+            "-crf",
+            "30",
+            "-b:v",
+            "0",
+            outputName,
+          ]
         : ["-i", file.name, outputName];
     await ffmpeg.exec(args);
     const data = await ffmpeg.readFile(outputName);
-    
+
     const blob = new Blob([data as any], { type: outputMimeType });
     const url = URL.createObjectURL(blob);
     await ffmpeg.deleteFile(outputName);
@@ -102,29 +115,31 @@ export async function convertVideo(
 
     return { url, name: outputName };
   } finally {
-      if (progressHandler) {
-          ffmpeg.off("progress", progressHandler);
-      }
+    if (progressHandler) {
+      ffmpeg.off("progress", progressHandler);
+    }
   }
 }
 
 export async function combineAudio(files: File[]): Promise<Blob> {
   const ffmpeg = await getFFmpeg();
   const internalFileNames: string[] = [];
-  
+
   try {
     // Write files with safe internal names to avoid issues with special characters or duplicates
     for (let i = 0; i < files.length; i++) {
-      const internalName = `input_${i}_${files[i].name.split('.').pop() || 'tmp'}`;
+      const internalName = `input_${i}_${files[i].name.split(".").pop() || "tmp"}`;
       await ffmpeg.writeFile(internalName, await fetchFile(files[i]));
       internalFileNames.push(internalName);
     }
 
-    const concatList = internalFileNames.map((name) => `file '${name}'`).join("\n");
+    const concatList = internalFileNames
+      .map((name) => `file '${name}'`)
+      .join("\n");
     await ffmpeg.writeFile("concat_list.txt", concatList);
 
-    // We remove "-c", "copy" to force re-encoding. 
-    // This is necessary because the concat demuxer with "copy" requires 
+    // We remove "-c", "copy" to force re-encoding.
+    // This is necessary because the concat demuxer with "copy" requires
     // all input files to have identical stream parameters (sample rate, channels, codec).
     // Re-encoding ensures the output is a single consistent stream.
     await ffmpeg.exec([
@@ -139,13 +154,19 @@ export async function combineAudio(files: File[]): Promise<Blob> {
 
     const data = await ffmpeg.readFile("output.mp3");
     const blob = new Blob([data as any], { type: "audio/mpeg" });
-    
+
     // Cleanup internal files
     for (const name of internalFileNames) {
-      try { await ffmpeg.deleteFile(name); } catch (_e) {}
+      try {
+        await ffmpeg.deleteFile(name);
+      } catch (_e) {}
     }
-    try { await ffmpeg.deleteFile("concat_list.txt"); } catch (_e) {}
-    try { await ffmpeg.deleteFile("output.mp3"); } catch (_e) {}
+    try {
+      await ffmpeg.deleteFile("concat_list.txt");
+    } catch (_e) {}
+    try {
+      await ffmpeg.deleteFile("output.mp3");
+    } catch (_e) {}
 
     return blob;
   } catch (error) {

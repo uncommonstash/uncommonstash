@@ -19,8 +19,12 @@ describe("EncryptTextPage", () => {
     expect(screen.getByText("Encrypt / Decrypt Text")).toBeInTheDocument();
     expect(screen.getByLabelText("Input Text")).toBeInTheDocument();
     expect(screen.getByLabelText("Secret Key")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /encrypt/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /decrypt/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /encrypt/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /decrypt/i }),
+    ).toBeInTheDocument();
   });
 
   it("handles encryption correctly", async () => {
@@ -67,6 +71,8 @@ describe("EncryptTextPage", () => {
     const encryptBtn = screen.getByRole("button", { name: /encrypt/i });
     fireEvent.click(encryptBtn);
 
-    expect(screen.getByText("Please enter text to encrypt.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Please enter text to encrypt."),
+    ).toBeInTheDocument();
   });
 });

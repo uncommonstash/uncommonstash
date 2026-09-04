@@ -10,7 +10,7 @@ jest.mock("@/lib/ffmpeg", () => ({
 }));
 
 // Mock URL.createObjectURL
-global.URL.createObjectURL = jest.fn(() => 'blob:mock-url');
+global.URL.createObjectURL = jest.fn(() => "blob:mock-url");
 global.URL.revokeObjectURL = jest.fn();
 
 describe("AudioConverterPage", () => {

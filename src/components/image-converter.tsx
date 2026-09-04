@@ -14,7 +14,11 @@ import {
 } from "@imagemagick/magick-wasm";
 import JSZip from "jszip";
 import * as gtag from "@/lib/gtag";
-import { ConverterLayout, InputPanel, OutputPanel } from "@/components/converter/layout";
+import {
+  ConverterLayout,
+  InputPanel,
+  OutputPanel,
+} from "@/components/converter/layout";
 import {
   Header,
   FileSelector,
@@ -378,8 +382,8 @@ export const ImageConverter = ({
           </div>
         ) : (
           <EmptyState
-             title="No converted images yet"
-             description="Upload images on the left and click convert to see them here."
+            title="No converted images yet"
+            description="Upload images on the left and click convert to see them here."
           />
         )}
       </OutputPanel>

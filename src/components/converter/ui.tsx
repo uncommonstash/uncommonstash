@@ -11,7 +11,12 @@ interface HeaderProps {
   badge?: string;
 }
 
-export function Header({ title, description, backLink = "/", badge = "OFFLINE" }: HeaderProps) {
+export function Header({
+  title,
+  description,
+  backLink = "/",
+  badge = "OFFLINE",
+}: HeaderProps) {
   return (
     <>
       <Link
@@ -136,7 +141,7 @@ export function FileSelector({
             className="relative w-40 h-40 rounded-xl overflow-hidden border group bg-gray-50 flex items-center justify-center p-4 shadow-sm"
           >
             {file.type.startsWith("image/") ? (
-                          <img
+              <img
                 src={URL.createObjectURL(file)}
                 alt={`Preview ${index}`}
                 className="object-contain w-full h-full"
@@ -189,7 +194,7 @@ export function ResultItem({
         {isVideo ? (
           <video src={url} controls className="w-full h-full object-contain" />
         ) : type === "image" ? (
-                  <img src={url} alt={name} className="w-full h-full object-contain" />
+          <img src={url} alt={name} className="w-full h-full object-contain" />
         ) : (
           <div className="flex flex-col items-center w-full">
             <FileAudio className="w-12 h-12 text-gray-400 mb-2" />
@@ -198,17 +203,10 @@ export function ResultItem({
         )}
       </div>
       <div className="p-4 border-t bg-background/50 backdrop-blur-sm">
-        <p
-          className="text-sm font-medium truncate mb-3"
-          title={name}
-        >
+        <p className="text-sm font-medium truncate mb-3" title={name}>
           {name}
         </p>
-        <Button
-          asChild
-          size="sm"
-          className="w-full"
-        >
+        <Button asChild size="sm" className="w-full">
           <a href={url} download={name}>
             Download
           </a>
@@ -220,81 +218,85 @@ export function ResultItem({
 
 // EmptyState Component
 interface EmptyStateProps {
-    title?: string;
-    description?: string;
+  title?: string;
+  description?: string;
 }
 
-export function EmptyState({ title = "No converted files yet", description = "Upload files on the left and click convert to see them here." }: EmptyStateProps) {
-    return (
-        <div className="grow flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-xl border-muted-foreground/10 bg-muted/20">
-              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-muted-foreground"
-                >
-                  <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <polyline points="21 15 16 10 5 21" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-medium mb-1">
-                {title}
-              </h3>
-              <p className="text-sm text-muted-foreground max-w-xs">
-                {description}
-              </p>
-            </div>
-    )
+export function EmptyState({
+  title = "No converted files yet",
+  description = "Upload files on the left and click convert to see them here.",
+}: EmptyStateProps) {
+  return (
+    <div className="grow flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-xl border-muted-foreground/10 bg-muted/20">
+      <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-muted-foreground"
+        >
+          <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+          <circle cx="8.5" cy="8.5" r="1.5" />
+          <polyline points="21 15 16 10 5 21" />
+        </svg>
+      </div>
+      <h3 className="text-lg font-medium mb-1">{title}</h3>
+      <p className="text-sm text-muted-foreground max-w-xs">{description}</p>
+    </div>
+  );
 }
 
 // OutputHeader Component
 interface OutputHeaderProps {
-    count: number;
-    onClear: () => void;
-    onDownloadAll?: () => void;
-    title?: string;
+  count: number;
+  onClear: () => void;
+  onDownloadAll?: () => void;
+  title?: string;
 }
 
-export function OutputHeader({ count, onClear, onDownloadAll, title = "Processed Files" }: OutputHeaderProps) {
-    return (
-        <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden -ml-2"
-                onClick={onClear}
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-              <h2 className="text-xl font-semibold flex items-center gap-2 tracking-tight">
-                {title}
-                {count > 0 && (
-                  <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full border">
-                    {count}
-                  </span>
-                )}
-              </h2>
-            </div>
-            {count > 0 && onDownloadAll && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onDownloadAll}
-                className="gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Download All
-              </Button>
-            )}
-          </div>
-    )
+export function OutputHeader({
+  count,
+  onClear,
+  onDownloadAll,
+  title = "Processed Files",
+}: OutputHeaderProps) {
+  return (
+    <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden -ml-2"
+          onClick={onClear}
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </Button>
+        <h2 className="text-xl font-semibold flex items-center gap-2 tracking-tight">
+          {title}
+          {count > 0 && (
+            <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full border">
+              {count}
+            </span>
+          )}
+        </h2>
+      </div>
+      {count > 0 && onDownloadAll && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onDownloadAll}
+          className="gap-2"
+        >
+          <Download className="w-4 h-4" />
+          Download All
+        </Button>
+      )}
+    </div>
+  );
 }

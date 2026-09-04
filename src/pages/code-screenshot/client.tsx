@@ -101,7 +101,9 @@ export default csr(function CodeScreenshot() {
         {/* Controls & Input */}
         <div className="w-full md:w-1/3 flex flex-col gap-4">
           <h1 className="text-2xl font-bold">Code Screenshot</h1>
-          <p className="text-muted-foreground">Create aesthetic code snippets.</p>
+          <p className="text-muted-foreground">
+            Create aesthetic code snippets.
+          </p>
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Language</label>
@@ -110,8 +112,10 @@ export default csr(function CodeScreenshot() {
                 <SelectValue placeholder="Select Language" />
               </SelectTrigger>
               <SelectContent>
-                {LANGUAGES.map(lang => (
-                  <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                {LANGUAGES.map((lang) => (
+                  <SelectItem key={lang} value={lang}>
+                    {lang}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -124,8 +128,10 @@ export default csr(function CodeScreenshot() {
                 <SelectValue placeholder="Select Background" />
               </SelectTrigger>
               <SelectContent>
-                {BACKGROUNDS.map(bg => (
-                  <SelectItem key={bg.name} value={bg.value}>{bg.name}</SelectItem>
+                {BACKGROUNDS.map((bg) => (
+                  <SelectItem key={bg.name} value={bg.value}>
+                    {bg.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -152,7 +158,9 @@ export default csr(function CodeScreenshot() {
               placeholder="Paste your code here..."
             />
           </div>
-          <Button onClick={handleExport} className="w-full">Export to PNG</Button>
+          <Button onClick={handleExport} className="w-full">
+            Export to PNG
+          </Button>
         </div>
 
         {/* Preview */}
@@ -173,7 +181,11 @@ export default csr(function CodeScreenshot() {
               <SyntaxHighlighter
                 language={language}
                 style={vscDarkPlus}
-                customStyle={{ margin: 0, padding: '1rem', background: 'transparent' }}
+                customStyle={{
+                  margin: 0,
+                  padding: "1rem",
+                  background: "transparent",
+                }}
                 showLineNumbers={false}
                 wrapLines={true}
               >

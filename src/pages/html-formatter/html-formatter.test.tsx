@@ -38,9 +38,9 @@ describe("HTML Formatter", () => {
     });
 
     it("should remove comments", () => {
-        const input = "<div><!-- comment --></div>";
-        const expected = "<div></div>";
-        expect(minifyHtml(input)).toBe(expected);
+      const input = "<div><!-- comment --></div>";
+      const expected = "<div></div>";
+      expect(minifyHtml(input)).toBe(expected);
     });
   });
 });

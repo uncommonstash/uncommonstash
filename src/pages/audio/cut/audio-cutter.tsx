@@ -3,7 +3,14 @@ import { Link } from "react-router-dom";
 import { cutAudio } from "@/lib/ffmpeg";
 import { DualRangeSlider } from "@/components/ui/dual-range-slider";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, FileAudio, X, Music, Scissors } from "lucide-react";
+import {
+  ArrowLeft,
+  Download,
+  FileAudio,
+  X,
+  Music,
+  Scissors,
+} from "lucide-react";
 import * as gtag from "@/lib/gtag";
 import { csr } from "@/lib/compat";
 
@@ -31,7 +38,7 @@ function InputPanel({
       className={`w-full md:w-1/2 p-6 md:p-12 flex flex-col bg-background border-b md:border-b-0 md:border-r ${show ? "flex" : "hidden md:flex"} ${className}`}
     >
       <div className="flex-1 flex flex-col max-w-2xl mx-auto w-full">
-         {children}
+        {children}
       </div>
     </div>
   );
@@ -47,15 +54,25 @@ function OutputPanel({
   show?: boolean;
 }) {
   return (
-     <div className={`w-full md:w-1/2 bg-muted/30 p-6 md:p-12 overflow-y-auto min-h-[50vh] md:min-h-auto flex-col ${show ? "flex" : "hidden md:flex"} ${className}`}>
-        <div className="flex flex-col max-w-2xl mx-auto w-full flex-1">
-          {children}
-        </div>
-     </div>
+    <div
+      className={`w-full md:w-1/2 bg-muted/30 p-6 md:p-12 overflow-y-auto min-h-[50vh] md:min-h-auto flex-col ${show ? "flex" : "hidden md:flex"} ${className}`}
+    >
+      <div className="flex flex-col max-w-2xl mx-auto w-full flex-1">
+        {children}
+      </div>
+    </div>
   );
 }
 
-function Header({ title, description, backLink = "/" }: { title: string; description: string; backLink?: string }) {
+function Header({
+  title,
+  description,
+  backLink = "/",
+}: {
+  title: string;
+  description: string;
+  backLink?: string;
+}) {
   return (
     <>
       <Link
@@ -91,7 +108,7 @@ function FileSelector({
   return (
     <div className="space-y-4 w-full py-2">
       {!file ? (
-         <label className="w-full h-40 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors border-muted-foreground/25 hover:border-muted-foreground/50 shrink-0">
+        <label className="w-full h-40 border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors border-muted-foreground/25 hover:border-muted-foreground/50 shrink-0">
           <input
             type="file"
             accept={accept}
@@ -107,23 +124,27 @@ function FileSelector({
           </span>
         </label>
       ) : (
-          <div className="relative w-full h-32 rounded-xl overflow-hidden border bg-gray-50 flex items-center p-4 shadow-sm gap-4">
-            <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center shrink-0">
-               <FileAudio className="w-8 h-8 text-gray-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-               <p className="font-medium truncate" title={file.name}>{file.name}</p>
-               <p className="text-sm text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-            </div>
-            <button
-              type="button"
-              className="bg-black/10 hover:bg-black/20 text-black rounded-full p-2 transition-all"
-              onClick={onRemoveFile}
-              disabled={disabled}
-            >
-              <X className="w-4 h-4" />
-            </button>
+        <div className="relative w-full h-32 rounded-xl overflow-hidden border bg-gray-50 flex items-center p-4 shadow-sm gap-4">
+          <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center shrink-0">
+            <FileAudio className="w-8 h-8 text-gray-400" />
           </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium truncate" title={file.name}>
+              {file.name}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {(file.size / 1024 / 1024).toFixed(2)} MB
+            </p>
+          </div>
+          <button
+            type="button"
+            className="bg-black/10 hover:bg-black/20 text-black rounded-full p-2 transition-all"
+            onClick={onRemoveFile}
+            disabled={disabled}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       )}
     </div>
   );
@@ -151,46 +172,58 @@ function ResultItem({ url, name }: { url: string; name: string }) {
   );
 }
 
-function EmptyState({ title, description }: { title: string; description: string }) {
+function EmptyState({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
   return (
     <div className="grow flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-xl border-muted-foreground/10 bg-muted/20 h-full min-h-[300px]">
-       <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-         <Scissors className="w-8 h-8 text-muted-foreground" />
-       </div>
-       <h3 className="text-lg font-medium mb-1">{title}</h3>
-       <p className="text-sm text-muted-foreground max-w-xs">{description}</p>
+      <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+        <Scissors className="w-8 h-8 text-muted-foreground" />
+      </div>
+      <h3 className="text-lg font-medium mb-1">{title}</h3>
+      <p className="text-sm text-muted-foreground max-w-xs">{description}</p>
     </div>
   );
 }
 
-function OutputHeader({ count, onClear }: { count: number; onClear: () => void }) {
-    return (
-        <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold flex items-center gap-2 tracking-tight">
-                Processed Files
-                {count > 0 && (
-                  <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full border">
-                    {count}
-                  </span>
-                )}
-            </h2>
-             {count > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClear}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                Clear All
-              </Button>
-            )}
-        </div>
-    )
+function OutputHeader({
+  count,
+  onClear,
+}: {
+  count: number;
+  onClear: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between mb-6">
+      <h2 className="text-xl font-semibold flex items-center gap-2 tracking-tight">
+        Processed Files
+        {count > 0 && (
+          <span className="text-sm font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full border">
+            {count}
+          </span>
+        )}
+      </h2>
+      {count > 0 && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onClear}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          Clear All
+        </Button>
+      )}
+    </div>
+  );
 }
 
 interface ProcessedFile {
-    url: string;
-    name: string;
+  url: string;
+  name: string;
 }
 
 export default csr(function AudioCutter() {
@@ -210,7 +243,7 @@ export default csr(function AudioCutter() {
   useEffect(() => {
     // Cleanup function to revoke URLs on unmount
     return () => {
-      processedFilesRef.current.forEach(file => {
+      processedFilesRef.current.forEach((file) => {
         URL.revokeObjectURL(file.url);
       });
     };
@@ -228,9 +261,9 @@ export default csr(function AudioCutter() {
         URL.revokeObjectURL(url);
       };
     } else {
-        setDuration(0);
-        setStartTime(0);
-        setEndTime(0);
+      setDuration(0);
+      setStartTime(0);
+      setEndTime(0);
     }
   }, [file]);
 
@@ -244,29 +277,29 @@ export default csr(function AudioCutter() {
     });
     setLoading(true);
     try {
-        const outputBlob = await cutAudio(file, startTime, endTime);
-        const url = URL.createObjectURL(outputBlob);
-        const name = `cut_${startTime.toFixed(1)}_${endTime.toFixed(1)}_${file.name}`;
-        setProcessedFiles(prev => [{ url, name }, ...prev]);
+      const outputBlob = await cutAudio(file, startTime, endTime);
+      const url = URL.createObjectURL(outputBlob);
+      const name = `cut_${startTime.toFixed(1)}_${endTime.toFixed(1)}_${file.name}`;
+      setProcessedFiles((prev) => [{ url, name }, ...prev]);
     } catch (e) {
-        console.error("Failed to cut audio", e);
+      console.error("Failed to cut audio", e);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
   const handleClearAll = () => {
     // Revoke all current URLs before clearing
-    processedFiles.forEach(file => {
+    processedFiles.forEach((file) => {
       URL.revokeObjectURL(file.url);
     });
     setProcessedFiles([]);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target.files?.[0]) {
-          setFile(e.target.files[0]);
-      }
+    if (e.target.files?.[0]) {
+      setFile(e.target.files[0]);
+    }
   };
 
   return (
@@ -278,65 +311,65 @@ export default csr(function AudioCutter() {
         />
 
         <FileSelector
-            file={file}
-            onFileSelected={handleFileChange}
-            onRemoveFile={() => setFile(null)}
-            accept="audio/*"
-            disabled={loading}
+          file={file}
+          onFileSelected={handleFileChange}
+          onRemoveFile={() => setFile(null)}
+          accept="audio/*"
+          disabled={loading}
         />
 
         {file && (
-             <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="bg-muted/30 p-6 rounded-xl border space-y-6">
-                    <div className="flex justify-between items-center text-sm font-medium">
-                        <span>Start: {startTime.toFixed(2)}s</span>
-                        <span>End: {endTime.toFixed(2)}s</span>
-                    </div>
+          <div className="mt-8 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="bg-muted/30 p-6 rounded-xl border space-y-6">
+              <div className="flex justify-between items-center text-sm font-medium">
+                <span>Start: {startTime.toFixed(2)}s</span>
+                <span>End: {endTime.toFixed(2)}s</span>
+              </div>
 
-                    <DualRangeSlider
-                      min={0}
-                      max={duration}
-                      step={0.1}
-                      value={[startTime, endTime]}
-                      onValueChange={(values) => {
-                        setStartTime(values[0]);
-                        setEndTime(values[1]);
-                      }}
-                      className="py-4"
-                    />
+              <DualRangeSlider
+                min={0}
+                max={duration}
+                step={0.1}
+                value={[startTime, endTime]}
+                onValueChange={(values) => {
+                  setStartTime(values[0]);
+                  setEndTime(values[1]);
+                }}
+                className="py-4"
+              />
 
-                    <div className="text-xs text-muted-foreground text-center">
-                        Duration: {(endTime - startTime).toFixed(2)}s
-                    </div>
-                </div>
+              <div className="text-xs text-muted-foreground text-center">
+                Duration: {(endTime - startTime).toFixed(2)}s
+              </div>
+            </div>
 
-                <Button
-                    onClick={handleCut}
-                    disabled={loading}
-                    size="lg"
-                    className="w-full"
-                >
-                    {loading ? "Cutting..." : "Cut Audio"}
-                </Button>
-             </div>
+            <Button
+              onClick={handleCut}
+              disabled={loading}
+              size="lg"
+              className="w-full"
+            >
+              {loading ? "Cutting..." : "Cut Audio"}
+            </Button>
+          </div>
         )}
       </InputPanel>
 
       <OutputPanel show={processedFiles.length > 0 || !!file}>
-         <OutputHeader count={processedFiles.length} onClear={handleClearAll} />
+        <OutputHeader count={processedFiles.length} onClear={handleClearAll} />
 
-         {processedFiles.length > 0 ? (
-             <div className="space-y-4">
-                 {processedFiles.map((pf, i) => (
-                     <ResultItem key={i} url={pf.url} name={pf.name} />
-                 ))}
-             </div>
-         ) : (
-             <EmptyState
-                title="No clips yet"
-                description="Your cut audio clips will appear here."
-             />
-         )}
+        {processedFiles.length > 0 ? (
+          <div className="space-y-4">
+            {processedFiles.map((pf, i) => (
+              <ResultItem key={i} url={pf.url} name={pf.name} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="No clips yet"
+            description="Your cut audio clips will appear here."
+          />
+        )}
       </OutputPanel>
     </AudioCutterLayout>
   );

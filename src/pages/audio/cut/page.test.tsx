@@ -75,7 +75,10 @@ describe("AudioCutter", () => {
       });
       expect(downloadLink).toHaveAttribute("href", "mock-url");
       // The filename is dynamically generated in the new component
-      expect(downloadLink).toHaveAttribute("download", expect.stringContaining("test.mp3"));
+      expect(downloadLink).toHaveAttribute(
+        "download",
+        expect.stringContaining("test.mp3"),
+      );
     });
   });
 });
