@@ -10,15 +10,50 @@ const CORE_VERSION = "0.12.10";
 // doesn't exist and the core is loaded via `await import(coreURL).default`.
 // The UMD build has no default export (and its side-effect global gets
 // clobbered), so it fails with "failed to import ffmpeg-core.js".
-const CORE_URL = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VERSION}/dist/esm/ffmpeg-core.js`;
-const WASM_URL = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VERSION}/dist/esm/ffmpeg-core.wasm`;
+const singleThread = {
+  coreURL: `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VERSION}/dist/esm/ffmpeg-core.js`,
+  wasmURL: `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VERSION}/dist/esm/ffmpeg-core.wasm`,
+};
+// Multithreaded core needs SharedArrayBuffer, i.e. a cross-origin-isolated
+// document (see public/coi-serviceworker.js). Same version, plus worker.
+// Self-hosted under /engine (see scripts/prebuild-engine.mjs): the core
+// spawns its pthread worker from a URL relative to itself, and classic
+// workers cannot be constructed cross-origin, so the CDN build can't work.
+const multiThread = {
+  coreURL: "/engine/ffmpeg-core.js",
+  wasmURL: "/engine/ffmpeg-core.wasm",
+};
+
+function engineUrls() {
+  if (typeof window !== "undefined" && window.crossOriginIsolated) {
+    return { ...multiThread, threads: "multi" as const };
+  }
+  return { ...singleThread, threads: "single" as const };
+}
+
+let multiThreaded = false;
+
+/** True once the multithreaded engine has been loaded. */
+export function isMultiThreaded() {
+  return multiThreaded;
+}
+
+// The MT build deadlocks when the encoder fans out to hardwareConcurrency
+// threads inside 32-bit wasm (reproduced: hangs at 18, fine at 2-4), so cap
+// re-encodes. Single-threaded core ignores the flag; it is only added for MT.
+function threadArgs(): string[] {
+  return multiThreaded ? ["-threads", "4"] : [];
+}
 
 export async function getFFmpeg() {
   if (!ffmpeg) {
+    const engine = engineUrls();
+    multiThreaded = engine.threads === "multi";
+    console.info(`[ffmpeg] loading ${engine.threads}-thread core`);
     ffmpeg = new FFmpeg();
     await ffmpeg.load({
-      coreURL: CORE_URL,
-      wasmURL: WASM_URL,
+      coreURL: engine.coreURL,
+      wasmURL: engine.wasmURL,
     });
   }
   return ffmpeg;
@@ -56,7 +91,7 @@ export async function convertAudio(
   await ffmpeg.writeFile(file.name, await fetchFile(file));
 
   const outputFilename = `output.${outputFormat}`;
-  await ffmpeg.exec(["-i", file.name, outputFilename]);
+  await ffmpeg.exec(["-i", file.name, ...threadArgs(), outputFilename]);
 
   const data = await ffmpeg.readFile(outputFilename);
   return new Blob([toBlobPart(data)], { type: `audio/${outputFormat}` });
@@ -97,6 +132,7 @@ export async function convertVideo(
         ? [
             "-i",
             file.name,
+            ...threadArgs(),
             "-c:v",
             "libvpx",
             "-crf",
@@ -105,7 +141,7 @@ export async function convertVideo(
             "0",
             outputName,
           ]
-        : ["-i", file.name, outputName];
+        : ["-i", file.name, ...threadArgs(), outputName];
     await ffmpeg.exec(args);
     const data = await ffmpeg.readFile(outputName);
 
@@ -150,6 +186,7 @@ export async function combineAudio(files: File[]): Promise<Blob> {
       "0",
       "-i",
       "concat_list.txt",
+      ...threadArgs(),
       "output.mp3",
     ]);
 

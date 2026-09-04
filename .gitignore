@@ -54,3 +54,6 @@ src/lib/blog-data.ts
 src/lib/tools.json
 /lib/blog-data.ts
 /lib/tools.json
+
+# downloaded FFmpeg MT engine (rebuilt via scripts/prebuild-engine.mjs)
+/public/engine/
