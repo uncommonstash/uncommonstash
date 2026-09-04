@@ -37,7 +37,8 @@ jest.mock("@radix-ui/react-slider", () => {
   }) => (
     <div {...props}>
       {children}
-      {value && value.map((v, i) => <div key={i} role="slider" aria-valuenow={v} />)}
+      {value &&
+        value.map((v, i) => <div key={i} role="slider" aria-valuenow={v} />)}
     </div>
   );
   return {

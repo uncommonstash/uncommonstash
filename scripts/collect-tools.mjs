@@ -52,22 +52,38 @@ async function collectTools() {
     const { name, description, ready, icon } = data;
 
     if (typeof name !== "string" || name.trim().length === 0) {
-      fail(file, 'missing or empty required field "name" (must be a non-empty string)');
+      fail(
+        file,
+        'missing or empty required field "name" (must be a non-empty string)',
+      );
     }
     if (typeof description !== "string" || description.trim().length === 0) {
-      fail(file, 'missing or empty required field "description" (must be a non-empty string)');
+      fail(
+        file,
+        'missing or empty required field "description" (must be a non-empty string)',
+      );
     }
     if (typeof ready !== "boolean") {
-      fail(file, 'missing or invalid required field "ready" (must be a boolean)');
+      fail(
+        file,
+        'missing or invalid required field "ready" (must be a boolean)',
+      );
     }
     if (typeof icon !== "string" || icon.trim().length === 0) {
-      fail(file, 'missing or empty required field "icon" (must be a non-empty string)');
+      fail(
+        file,
+        'missing or empty required field "icon" (must be a non-empty string)',
+      );
     }
     if (!(icon in RadixIcons)) {
-      fail(file, `unknown icon "${icon}" (not exported by @radix-ui/react-icons)`);
+      fail(
+        file,
+        `unknown icon "${icon}" (not exported by @radix-ui/react-icons)`,
+      );
     }
 
-    const slug = path.dirname(file).replace(toolsDir, "").replace(/\\/g, "/") || "/";
+    const slug =
+      path.dirname(file).replace(toolsDir, "").replace(/\\/g, "/") || "/";
     if (seenSlugs.has(slug)) {
       console.error(
         `collect-tools: duplicate slug "${slug}" from ${file} and ${seenSlugs.get(slug)}`,

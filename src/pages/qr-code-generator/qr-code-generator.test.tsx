@@ -12,10 +12,7 @@ jest.mock("@/components/ui/button", () => ({
 }));
 jest.mock("@/components/ui/input", () => ({
   Input: (props: any) => (
-    <input
-      {...props}
-      onChange={(e) => props.onChange?.(e.target.value)}
-    />
+    <input {...props} onChange={(e) => props.onChange?.(e.target.value)} />
   ),
 }));
 jest.mock("@/components/ui/label", () => ({
@@ -37,7 +34,7 @@ describe("QRCodeGeneratorPage", () => {
     renderPage(<QRCodeGeneratorPage />);
     expect(screen.getByText("QR Code Generator")).toBeInTheDocument();
     expect(screen.getByTestId("qrcode-canvas")).toHaveTextContent(
-      "https://leveled.com"
+      "https://leveled.com",
     );
   });
 
@@ -46,7 +43,7 @@ describe("QRCodeGeneratorPage", () => {
     const input = screen.getByPlaceholderText("Enter URL or text");
     fireEvent.change(input, { target: { value: "https://example.com" } });
     expect(screen.getByTestId("qrcode-canvas")).toHaveTextContent(
-      "https://example.com"
+      "https://example.com",
     );
   });
 
@@ -55,7 +52,7 @@ describe("QRCodeGeneratorPage", () => {
     const input = screen.getByPlaceholderText("Enter URL or text");
     fireEvent.change(input, { target: { value: "" } });
     expect(
-      screen.getByText("Enter text or URL to generate QR code")
+      screen.getByText("Enter text or URL to generate QR code"),
     ).toBeInTheDocument();
   });
 });

@@ -48,7 +48,7 @@ describe("ffmpeg", () => {
     expect(ffmpeg.writeFile).toHaveBeenCalledWith(
       "concat_list.txt",
       `file 'input_0_mp3'
-file 'input_1_mp3'`
+file 'input_1_mp3'`,
     );
     expect(ffmpeg.exec).toHaveBeenCalledWith([
       "-f",

@@ -67,7 +67,9 @@ export const AudioRecorder = () => {
           video: true,
           audio: true,
         });
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const audioContext = new (
+          window.AudioContext || window.webkitAudioContext
+        )();
         const destination = audioContext.createMediaStreamDestination();
 
         const userAudio = audioContext.createMediaStreamSource(stream);

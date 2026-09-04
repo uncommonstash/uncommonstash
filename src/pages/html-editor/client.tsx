@@ -7,7 +7,7 @@ import { BackLink } from "@/components/back-link";
 
 export default csr(function HtmlEditor() {
   const [html, setHtml] = useState(
-    "<h1>Hello World</h1>\n<style>\n  h1 { color: red; }\n</style>"
+    "<h1>Hello World</h1>\n<style>\n  h1 { color: red; }\n</style>",
   );
   const [debouncedHtml] = useDebounce(html, 500);
 

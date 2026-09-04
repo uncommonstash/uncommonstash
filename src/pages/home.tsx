@@ -97,7 +97,11 @@ export default csr(function HomePage() {
                 </button>
               )}
             </div>
-            <p role="status" aria-live="polite" className="text-center text-sm text-muted-foreground mt-3">
+            <p
+              role="status"
+              aria-live="polite"
+              className="text-center text-sm text-muted-foreground mt-3"
+            >
               {search
                 ? `${filteredTools.length} ${filteredTools.length === 1 ? "result" : "results"} for "${search}"`
                 : `${filteredTools.length} ${filteredTools.length === 1 ? "tool" : "tools"} available`}
@@ -105,7 +109,9 @@ export default csr(function HomePage() {
           </div>
           {filteredTools.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground mb-4">No tools found for &lsquo;{search}&rsquo;</p>
+              <p className="text-muted-foreground mb-4">
+                No tools found for &lsquo;{search}&rsquo;
+              </p>
               <button
                 type="button"
                 onClick={() => setSearch("")}
@@ -115,26 +121,33 @@ export default csr(function HomePage() {
               </button>
             </div>
           ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 bg-border" style={{/*tailwind doesn't work*/gap:1}}>
-            {filteredTools.map((tool) => (
-              <Link
-                to={tool.slug}
-                key={tool.slug}
-                className="bg-card p-8 hover:bg-muted/50 transition-colors text-center group block h-full"
-              >
-                <Icon name={tool.icon} className="w-8 h-8 mx-auto mb-4" />
-                <h3 className="text-card-foreground text-2xl font-semibold mb-2">
-                  {tool.name}
-                </h3>
-                <p className="text-muted-foreground">{tool.description}</p>
-              </Link>
-            ))}
-            {Array.from({
-              length: (columns - (filteredTools.length % columns)) % columns,
-            }).map((_, i) => (
-              <div key={`empty-${i}`} className="bg-card h-full" aria-hidden="true" />
-            ))}
-          </div>
+            <div
+              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 bg-border"
+              style={{ /*tailwind doesn't work*/ gap: 1 }}
+            >
+              {filteredTools.map((tool) => (
+                <Link
+                  to={tool.slug}
+                  key={tool.slug}
+                  className="bg-card p-8 hover:bg-muted/50 transition-colors text-center group block h-full"
+                >
+                  <Icon name={tool.icon} className="w-8 h-8 mx-auto mb-4" />
+                  <h3 className="text-card-foreground text-2xl font-semibold mb-2">
+                    {tool.name}
+                  </h3>
+                  <p className="text-muted-foreground">{tool.description}</p>
+                </Link>
+              ))}
+              {Array.from({
+                length: (columns - (filteredTools.length % columns)) % columns,
+              }).map((_, i) => (
+                <div
+                  key={`empty-${i}`}
+                  className="bg-card h-full"
+                  aria-hidden="true"
+                />
+              ))}
+            </div>
           )}
         </div>
       </section>

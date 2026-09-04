@@ -75,8 +75,10 @@ export default csr(function RandomNumberGeneratorPage() {
       }
 
       if (set.size < countVal) {
-          setError("Failed to generate unique numbers within reasonable time. Try a smaller count or larger range.");
-          return;
+        setError(
+          "Failed to generate unique numbers within reasonable time. Try a smaller count or larger range.",
+        );
+        return;
       }
 
       newResults = Array.from(set);
@@ -106,7 +108,9 @@ export default csr(function RandomNumberGeneratorPage() {
           <ArrowLeft className="w-4 h-4" />
           Back to Tools
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight">Random Number Generator</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          Random Number Generator
+        </h1>
         <p className="text-muted-foreground mt-2">
           Generate random integers within a specific range.
         </p>

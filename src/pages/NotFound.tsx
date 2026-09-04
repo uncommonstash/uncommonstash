@@ -19,11 +19,16 @@ export function NotFoundPage() {
         <p className="text-muted-foreground mb-6">
           Sorry, the page you are looking for doesn&apos;t exist.
         </p>
-        <Link to="/" className="text-sm font-medium underline underline-offset-4">
+        <Link
+          to="/"
+          className="text-sm font-medium underline underline-offset-4"
+        >
           Go home
         </Link>
         <div className="mt-8 text-left">
-          <h2 className="text-sm font-semibold mb-3 text-center">Popular tools</h2>
+          <h2 className="text-sm font-semibold mb-3 text-center">
+            Popular tools
+          </h2>
           <ul className="space-y-2 text-center">
             {popularTools.map((tool) => (
               <li key={tool.to}>

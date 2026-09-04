@@ -3,9 +3,24 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui";
 import { csr } from "@/lib/compat";
 import { combineAudio } from "@/lib/ffmpeg";
-import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautiful-dnd";
-import { ConverterLayout, InputPanel, OutputPanel } from "@/components/converter/layout";
-import { Header, FileSelector, ResultItem, EmptyState, OutputHeader } from "@/components/converter/ui";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+  DropResult,
+} from "react-beautiful-dnd";
+import {
+  ConverterLayout,
+  InputPanel,
+  OutputPanel,
+} from "@/components/converter/layout";
+import {
+  Header,
+  FileSelector,
+  ResultItem,
+  EmptyState,
+  OutputHeader,
+} from "@/components/converter/ui";
 import { GripVertical, X } from "lucide-react";
 
 export function AudioCombiner() {
@@ -58,7 +73,7 @@ export function AudioCombiner() {
             <FileSelector
               files={[]} // We handle our own list for reordering
               onFilesSelected={handleFilesSelected}
-              onRemoveFile={() => { }}
+              onRemoveFile={() => {}}
               accept="audio/*"
               label="Add Audio Files"
               disabled={loading}
@@ -74,23 +89,40 @@ export function AudioCombiner() {
                   <DragDropContext onDragEnd={onDragEnd}>
                     <Droppable droppableId="audio-files">
                       {(provided) => (
-                        <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
+                        <div
+                          {...provided.droppableProps}
+                          ref={provided.innerRef}
+                          className="space-y-2"
+                        >
                           {files.map((file, index) => (
-                            <Draggable key={`${file.name}-${index}`} draggableId={`${file.name}-${index}`} index={index}>
+                            <Draggable
+                              key={`${file.name}-${index}`}
+                              draggableId={`${file.name}-${index}`}
+                              index={index}
+                            >
                               {(provided, snapshot) => (
                                 <div
                                   ref={provided.innerRef}
                                   {...provided.draggableProps}
-                                  className={`flex items-center gap-3 p-3 bg-muted/40 border rounded-lg group transition-all ${snapshot.isDragging ? "bg-muted shadow-md border-primary/50" : "hover:bg-muted/60"
-                                    }`}
+                                  className={`flex items-center gap-3 p-3 bg-muted/40 border rounded-lg group transition-all ${
+                                    snapshot.isDragging
+                                      ? "bg-muted shadow-md border-primary/50"
+                                      : "hover:bg-muted/60"
+                                  }`}
                                 >
-                                  <div {...provided.dragHandleProps} className="text-muted-foreground/50 hover:text-muted-foreground cursor-grab active:cursor-grabbing">
+                                  <div
+                                    {...provided.dragHandleProps}
+                                    className="text-muted-foreground/50 hover:text-muted-foreground cursor-grab active:cursor-grabbing"
+                                  >
                                     <GripVertical className="w-4 h-4" />
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">{file.name}</p>
+                                    <p className="text-sm font-medium truncate">
+                                      {file.name}
+                                    </p>
                                     <p className="text-xs text-muted-foreground">
-                                      {(file.size / (1024 * 1024)).toFixed(2)} MB
+                                      {(file.size / (1024 * 1024)).toFixed(2)}{" "}
+                                      MB
                                     </p>
                                   </div>
                                   <Button
@@ -143,11 +175,7 @@ export function AudioCombiner() {
 
           {outputUrl ? (
             <div className="max-w-md">
-              <ResultItem
-                url={outputUrl}
-                name="combined.mp3"
-                type="audio"
-              />
+              <ResultItem url={outputUrl} name="combined.mp3" type="audio" />
             </div>
           ) : (
             <EmptyState

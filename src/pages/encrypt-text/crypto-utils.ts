@@ -8,7 +8,7 @@ export async function encrypt(text: string, password: string): Promise<string> {
     enc.encode(password),
     { name: "PBKDF2" },
     false,
-    ["deriveKey"]
+    ["deriveKey"],
   );
 
   const key = await window.crypto.subtle.deriveKey(
@@ -21,7 +21,7 @@ export async function encrypt(text: string, password: string): Promise<string> {
     keyMaterial,
     { name: "AES-GCM", length: 256 },
     false,
-    ["encrypt"]
+    ["encrypt"],
   );
 
   const encryptedContent = await window.crypto.subtle.encrypt(
@@ -30,11 +30,13 @@ export async function encrypt(text: string, password: string): Promise<string> {
       iv: iv,
     },
     key,
-    enc.encode(text)
+    enc.encode(text),
   );
 
   const encryptedBytes = new Uint8Array(encryptedContent);
-  const buffer = new Uint8Array(salt.byteLength + iv.byteLength + encryptedBytes.byteLength);
+  const buffer = new Uint8Array(
+    salt.byteLength + iv.byteLength + encryptedBytes.byteLength,
+  );
   buffer.set(salt, 0);
   buffer.set(iv, salt.byteLength);
   buffer.set(encryptedBytes, salt.byteLength + iv.byteLength);
@@ -42,7 +44,10 @@ export async function encrypt(text: string, password: string): Promise<string> {
   return arrayBufferToBase64(buffer);
 }
 
-export async function decrypt(encryptedText: string, password: string): Promise<string> {
+export async function decrypt(
+  encryptedText: string,
+  password: string,
+): Promise<string> {
   const enc = new TextEncoder();
   const encryptedData = base64ToArrayBuffer(encryptedText);
 
@@ -55,7 +60,7 @@ export async function decrypt(encryptedText: string, password: string): Promise<
     enc.encode(password),
     { name: "PBKDF2" },
     false,
-    ["deriveKey"]
+    ["deriveKey"],
   );
 
   const key = await window.crypto.subtle.deriveKey(
@@ -68,7 +73,7 @@ export async function decrypt(encryptedText: string, password: string): Promise<
     keyMaterial,
     { name: "AES-GCM", length: 256 },
     false,
-    ["decrypt"]
+    ["decrypt"],
   );
 
   const decryptedContent = await window.crypto.subtle.decrypt(
@@ -77,7 +82,7 @@ export async function decrypt(encryptedText: string, password: string): Promise<
       iv: iv,
     },
     key,
-    data
+    data,
   );
 
   const dec = new TextDecoder();

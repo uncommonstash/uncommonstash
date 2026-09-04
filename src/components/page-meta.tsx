@@ -20,7 +20,9 @@ export function PageMeta({ title, description, jsonLd }: PageMetaProps) {
         <title>{fullTitle}</title>
         {description && <meta name="description" content={description} />}
         {title && <meta property="og:title" content={fullTitle} />}
-        {description && <meta property="og:description" content={description} />}
+        {description && (
+          <meta property="og:description" content={description} />
+        )}
       </Helmet>
       {jsonLd && (
         <script

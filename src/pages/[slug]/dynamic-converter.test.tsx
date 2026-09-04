@@ -7,10 +7,14 @@ import DynamicConverterClient from "../DynamicConverter";
 // Mock dependencies
 jest.mock("@imagemagick/magick-wasm");
 jest.mock("@/components/image-converter", () => ({
-  ImageConverter: ({ title }: { title: string }) => <div>ImageConverter: {title}</div>,
+  ImageConverter: ({ title }: { title: string }) => (
+    <div>ImageConverter: {title}</div>
+  ),
 }));
 jest.mock("@/pages/audio/convert/audio-converter", () => ({
-  AudioConverter: ({ title }: { title: string }) => <div>AudioConverter: {title}</div>,
+  AudioConverter: ({ title }: { title: string }) => (
+    <div>AudioConverter: {title}</div>
+  ),
 }));
 
 function renderAtSlug(slug: string) {
@@ -33,17 +37,23 @@ describe("Dynamic Converter Page", () => {
 
   it("renders ImageConverter for valid image permutation", async () => {
     renderAtSlug("webp-to-avif");
-    expect(await screen.findByText("ImageConverter: Convert WEBP to AVIF")).toBeInTheDocument();
+    expect(
+      await screen.findByText("ImageConverter: Convert WEBP to AVIF"),
+    ).toBeInTheDocument();
   });
 
   it("renders AudioConverter for valid audio permutation", async () => {
     renderAtSlug("mp3-to-ogg");
-    expect(await screen.findByText("AudioConverter: Convert MP3 to OGG")).toBeInTheDocument();
+    expect(
+      await screen.findByText("AudioConverter: Convert MP3 to OGG"),
+    ).toBeInTheDocument();
   });
 
   it("serves retired alias routes with JPEG/PNG presets", async () => {
     renderAtSlug("jpeg-to-png");
-    expect(await screen.findByText("ImageConverter: Convert JPEG to PNG")).toBeInTheDocument();
+    expect(
+      await screen.findByText("ImageConverter: Convert JPEG to PNG"),
+    ).toBeInTheDocument();
   });
 
   it("navigates to 404 for invalid slug format", async () => {

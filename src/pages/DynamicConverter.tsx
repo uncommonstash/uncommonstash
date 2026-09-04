@@ -69,7 +69,9 @@ export default function DynamicConverterClient() {
     return <Navigate to="/404" replace />;
   }
 
-  const [inputSlug, outputSlug] = slug.split("-to-").map((s) => s.toLowerCase().trim());
+  const [inputSlug, outputSlug] = slug
+    .split("-to-")
+    .map((s) => s.toLowerCase().trim());
 
   if (!inputSlug || !outputSlug) {
     return <Navigate to="/404" replace />;
@@ -93,10 +95,7 @@ export default function DynamicConverterClient() {
             operatingSystem: "Web",
           }}
         />
-        <AudioConverter
-          title={title}
-          defaultOutputFormat={outputSlug}
-        />
+        <AudioConverter title={title} defaultOutputFormat={outputSlug} />
       </div>
     );
   }
@@ -105,7 +104,9 @@ export default function DynamicConverterClient() {
   if (imageInputs[inputSlug] && imageOutputs[outputSlug]) {
     const inputName = imageInputs[inputSlug];
     const outputInfo = imageOutputs[outputSlug];
-    const format = (MagickFormat as unknown as Record<string, unknown>)[outputInfo.enum];
+    const format = (MagickFormat as unknown as Record<string, unknown>)[
+      outputInfo.enum
+    ];
     const title = `Convert ${inputName} to ${outputInfo.name}`;
     const description = `Convert ${inputName} to ${outputInfo.name} online. Free image converter in the browser.`;
 
@@ -123,10 +124,7 @@ export default function DynamicConverterClient() {
             operatingSystem: "Web",
           }}
         />
-        <ImageConverter
-          title={title}
-          defaultOutputFormat={format as never}
-        />
+        <ImageConverter title={title} defaultOutputFormat={format as never} />
       </div>
     );
   }

@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { ConverterLayout, InputPanel, OutputPanel } from "@/components/converter/layout";
+import {
+  ConverterLayout,
+  InputPanel,
+  OutputPanel,
+} from "@/components/converter/layout";
 import { Header, FileSelector, OutputHeader } from "@/components/converter/ui";
 import { jsPDF } from "jspdf";
 import { ArrowUp, ArrowDown, X, FileText, Download, Plus } from "lucide-react";
@@ -154,23 +158,23 @@ export const ImageToPdf = () => {
           />
         ) : (
           <div className="flex flex-col gap-4 w-full flex-1 overflow-hidden">
-             <div className="flex justify-end">
-                 <label className="cursor-pointer inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80">
-                    <Plus className="w-4 h-4" />
-                    Add more images
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                            if (e.target.files && e.target.files.length > 0) {
-                                handleFilesSelected(Array.from(e.target.files));
-                            }
-                        }}
-                        className="hidden"
-                        multiple
-                    />
-                 </label>
-             </div>
+            <div className="flex justify-end">
+              <label className="cursor-pointer inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80">
+                <Plus className="w-4 h-4" />
+                Add more images
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      handleFilesSelected(Array.from(e.target.files));
+                    }
+                  }}
+                  className="hidden"
+                  multiple
+                />
+              </label>
+            </div>
 
             <div className="flex-1 overflow-y-auto space-y-2 pr-2">
               {files.map((file, index) => (
@@ -179,7 +183,7 @@ export const ImageToPdf = () => {
                   className="flex items-center gap-4 p-3 bg-card border rounded-lg group"
                 >
                   <div className="w-16 h-16 shrink-0 bg-muted rounded overflow-hidden flex items-center justify-center">
-                                        <img
+                    <img
                       src={file.previewUrl}
                       alt={file.file.name}
                       className="w-full h-full object-cover"
@@ -187,7 +191,10 @@ export const ImageToPdf = () => {
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate" title={file.file.name}>
+                    <p
+                      className="text-sm font-medium truncate"
+                      title={file.file.name}
+                    >
                       {file.file.name}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -253,32 +260,32 @@ export const ImageToPdf = () => {
         {pdfUrl ? (
           <div className="flex flex-col items-center justify-center h-full gap-6 p-8 border rounded-xl bg-card">
             <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                <FileText className="w-10 h-10" />
+              <FileText className="w-10 h-10" />
             </div>
 
             <div className="text-center space-y-2">
-                <h3 className="text-xl font-semibold">Conversion Complete!</h3>
-                <p className="text-muted-foreground">
-                    Your PDF containing {files.length} images is ready for download.
-                </p>
+              <h3 className="text-xl font-semibold">Conversion Complete!</h3>
+              <p className="text-muted-foreground">
+                Your PDF containing {files.length} images is ready for download.
+              </p>
             </div>
 
             <Button size="lg" className="gap-2 min-w-[200px]" asChild>
-                <a href={pdfUrl} download="images.pdf">
-                    <Download className="w-4 h-4" />
-                    Download PDF
-                </a>
+              <a href={pdfUrl} download="images.pdf">
+                <Download className="w-4 h-4" />
+                Download PDF
+              </a>
             </Button>
 
             <Button variant="ghost" onClick={() => setPdfUrl(null)}>
-                Convert more images
+              Convert more images
             </Button>
           </div>
         ) : (
-            <div className="flex flex-col items-center justify-center h-full text-center p-8 text-muted-foreground">
-                <FileText className="w-16 h-16 mb-4 opacity-20" />
-                <p>Generate a PDF to see the result here</p>
-            </div>
+          <div className="flex flex-col items-center justify-center h-full text-center p-8 text-muted-foreground">
+            <FileText className="w-16 h-16 mb-4 opacity-20" />
+            <p>Generate a PDF to see the result here</p>
+          </div>
         )}
       </OutputPanel>
     </ConverterLayout>

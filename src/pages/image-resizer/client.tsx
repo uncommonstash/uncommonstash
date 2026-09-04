@@ -5,9 +5,7 @@ import { ImageResizer } from "@/components/image-resizer";
 export default csr(function ImageResizerClient() {
   return (
     <div className="h-full bg-background">
-      <ImageResizer
-        title="Image Resizer"
-      />
+      <ImageResizer title="Image Resizer" />
     </div>
   );
 });

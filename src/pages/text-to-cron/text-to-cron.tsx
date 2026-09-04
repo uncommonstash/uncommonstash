@@ -70,12 +70,15 @@ const getCronDescription = (cron: string): string => {
   }
 };
 
-const getNextRuns = (cron: string, count: number = 5): { runs: string[]; timezone: string } => {
+const getNextRuns = (
+  cron: string,
+  count: number = 5,
+): { runs: string[]; timezone: string } => {
   try {
     const interval = (parser as any).parseExpression(cron);
     const runs: string[] = [];
     let timezone = "";
-    
+
     for (let i = 0; i < count; i++) {
       const date = interval.next().toDate();
       if (i === 0) {
@@ -104,7 +107,7 @@ const getNextRuns = (cron: string, count: number = 5): { runs: string[]; timezon
  */
 export function NextRuns({ cron, count = 5 }: NextRunsProps) {
   const { runs, timezone } = getNextRuns(cron, count);
-  
+
   if (runs.length === 0) return null;
 
   return (
@@ -127,10 +130,10 @@ export function NextRuns({ cron, count = 5 }: NextRunsProps) {
 
 /**
  * A cron input component with dropdown suggestions.
- * 
+ *
  * @example
  * ```tsx
- * <CronInput 
+ * <CronInput
  *   apiEndpoint="/api/cron"
  *   onCronSelected={(cron) => console.log('Selected:', cron)}
  * />
@@ -147,7 +150,11 @@ export function CronInput({
 }: CronInputProps) {
   const [prompt, setPrompt] = useState("");
   // Throttle (leading) + debounce (trailing) for responsive feel
-  const [debouncedPrompt] = useDebounce(prompt, debounceMs, { leading: true, trailing: true, maxWait: 1000 });
+  const [debouncedPrompt] = useDebounce(prompt, debounceMs, {
+    leading: true,
+    trailing: true,
+    maxWait: 1000,
+  });
   const [choices, setChoices] = useState<CronChoice[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
@@ -163,37 +170,42 @@ export function CronInput({
     }
   }, [value]);
 
-  const fetchCron = useCallback(async (text: string) => {
-    if (!text) {
-      setChoices([]);
-      setIsOpen(false);
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const response = await fetch(apiEndpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: text, k: numChoices }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to convert to cron expression");
+  const fetchCron = useCallback(
+    async (text: string) => {
+      if (!text) {
+        setChoices([]);
+        setIsOpen(false);
+        return;
       }
 
-      const data: CronResult = await response.json();
-      const newChoices = data.choices ?? [{ cron: data.cron, probability: 1.0 }];
-      setChoices(newChoices);
-      setIsOpen(newChoices.length > 0);
-    } catch {
-      setChoices([]);
-      setIsOpen(false);
-    } finally {
-      setLoading(false);
-    }
-  }, [apiEndpoint, numChoices]);
+      setLoading(true);
+
+      try {
+        const response = await fetch(apiEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: text, k: numChoices }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to convert to cron expression");
+        }
+
+        const data: CronResult = await response.json();
+        const newChoices = data.choices ?? [
+          { cron: data.cron, probability: 1.0 },
+        ];
+        setChoices(newChoices);
+        setIsOpen(newChoices.length > 0);
+      } catch {
+        setChoices([]);
+        setIsOpen(false);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [apiEndpoint, numChoices],
+  );
 
   useEffect(() => {
     fetchCron(debouncedPrompt);
@@ -202,7 +214,10 @@ export function CronInput({
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -277,7 +292,9 @@ export function CronInput({
                 className="w-full px-4 py-3 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none border-b border-gray-100 last:border-b-0"
                 onClick={() => handleSelect(choice.cron)}
               >
-                <div className="font-mono text-base font-medium">{choice.cron}</div>
+                <div className="font-mono text-base font-medium">
+                  {choice.cron}
+                </div>
                 {desc && (
                   <div className="text-sm text-gray-500 truncate">{desc}</div>
                 )}
@@ -288,15 +305,19 @@ export function CronInput({
       )}
 
       {/* Selected Cron Display - fixed space reserved, opacity transition only */}
-      <div 
+      <div
         className={`mt-4 p-4 bg-gray-100 rounded-lg transition-opacity duration-300 ease-out ${
-          showExplanation ? 'opacity-100' : 'opacity-0'
+          showExplanation ? "opacity-100" : "opacity-0"
         }`}
       >
         <div className="flex justify-between items-start gap-2">
           <div className="flex-1 min-w-0">
-            <p className="text-lg font-mono font-bold">{selectedCron || '\u00A0'}</p>
-            <p className="text-base text-gray-600 mt-1">{description || '\u00A0'}</p>
+            <p className="text-lg font-mono font-bold">
+              {selectedCron || "\u00A0"}
+            </p>
+            <p className="text-base text-gray-600 mt-1">
+              {description || "\u00A0"}
+            </p>
           </div>
           <Button
             variant="ghost"
@@ -336,19 +357,18 @@ export default csr(function TextToCronPage() {
           <ArrowLeft className="w-4 h-4" />
           UncommonStash
         </Link>
-        
+
         <div className="mb-4">
-          <h1 className="text-3xl font-bold tracking-tight mb-2">Text to Cron</h1>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">
+            Text to Cron
+          </h1>
         </div>
       </div>
 
       {/* Form - centered on screen */}
       <div className="min-h-screen flex items-center justify-center px-6 md:px-12">
         <div className="w-full max-w-lg">
-          <CronInput
-            onCronSelected={setSelectedCron}
-            value={selectedCron}
-          />
+          <CronInput onCronSelected={setSelectedCron} value={selectedCron} />
         </div>
       </div>
     </div>

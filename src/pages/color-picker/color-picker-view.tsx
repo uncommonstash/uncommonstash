@@ -5,12 +5,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Copy, Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
-import {
-  hexToRgb,
-  rgbToHex,
-  rgbToHsl,
-  hslToRgb,
-} from "../../lib/color-utils";
+import { hexToRgb, rgbToHex, rgbToHsl, hslToRgb } from "../../lib/color-utils";
 
 export const ColorPickerView = csr(function ColorPickerPage() {
   // State for the color picker (HTML input expects hex)
@@ -25,16 +20,21 @@ export const ColorPickerView = csr(function ColorPickerPage() {
   const [copied, setCopied] = useState<string | null>(null);
 
   // Update all inputs from a validated RGB color
-  const updateAll = (r: number, g: number, b: number, source: 'picker' | 'hex' | 'rgb' | 'hsl') => {
+  const updateAll = (
+    r: number,
+    g: number,
+    b: number,
+    source: "picker" | "hex" | "rgb" | "hsl",
+  ) => {
     const hex = rgbToHex(r, g, b);
     const hsl = rgbToHsl(r, g, b);
     const rgbStr = `${r}, ${g}, ${b}`;
     const hslStr = `${hsl.h}, ${hsl.s}%, ${hsl.l}%`;
 
-    if (source !== 'picker') setPickerValue(hex);
-    if (source !== 'hex') setHexInput(hex);
-    if (source !== 'rgb') setRgbInput(rgbStr);
-    if (source !== 'hsl') setHslInput(hslStr);
+    if (source !== "picker") setPickerValue(hex);
+    if (source !== "hex") setHexInput(hex);
+    if (source !== "rgb") setRgbInput(rgbStr);
+    if (source !== "hsl") setHslInput(hslStr);
   };
 
   const handlePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,7 +42,7 @@ export const ColorPickerView = csr(function ColorPickerPage() {
     setPickerValue(hex);
     const rgb = hexToRgb(hex);
     if (rgb) {
-      updateAll(rgb.r, rgb.g, rgb.b, 'picker');
+      updateAll(rgb.r, rgb.g, rgb.b, "picker");
     }
   };
 
@@ -50,18 +50,21 @@ export const ColorPickerView = csr(function ColorPickerPage() {
     setHexInput(val);
     const rgb = hexToRgb(val);
     if (rgb) {
-      updateAll(rgb.r, rgb.g, rgb.b, 'hex');
+      updateAll(rgb.r, rgb.g, rgb.b, "hex");
     }
   };
 
   const handleRgbChange = (val: string) => {
     setRgbInput(val);
     // Parse "r, g, b" or "r g b"
-    const parts = val.split(/[,\s]+/).map(Number).filter(n => !isNaN(n));
+    const parts = val
+      .split(/[,\s]+/)
+      .map(Number)
+      .filter((n) => !isNaN(n));
     if (parts.length === 3) {
       const [r, g, b] = parts;
       if (r >= 0 && r <= 255 && g >= 0 && g <= 255 && b >= 0 && b <= 255) {
-        updateAll(r, g, b, 'rgb');
+        updateAll(r, g, b, "rgb");
       }
     }
   };
@@ -70,12 +73,16 @@ export const ColorPickerView = csr(function ColorPickerPage() {
     setHslInput(val);
     // Parse "h, s%, l%" or "h s l"
     // Remove % and split
-    const parts = val.replace(/%/g, '').split(/[,\s]+/).map(Number).filter(n => !isNaN(n));
+    const parts = val
+      .replace(/%/g, "")
+      .split(/[,\s]+/)
+      .map(Number)
+      .filter((n) => !isNaN(n));
     if (parts.length === 3) {
       const [h, s, l] = parts;
       if (h >= 0 && h <= 360 && s >= 0 && s <= 100 && l >= 0 && l <= 100) {
         const rgb = hslToRgb(h, s, l);
-        updateAll(rgb.r, rgb.g, rgb.b, 'hsl');
+        updateAll(rgb.r, rgb.g, rgb.b, "hsl");
       }
     }
   };
@@ -100,8 +107,12 @@ export const ColorPickerView = csr(function ColorPickerPage() {
           </Link>
 
           <div>
-            <h1 className="text-4xl font-bold tracking-tight mb-3">Color Picker</h1>
-            <p className="text-muted-foreground text-lg">Pick colors and convert between HEX, RGB, and HSL values.</p>
+            <h1 className="text-4xl font-bold tracking-tight mb-3">
+              Color Picker
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Pick colors and convert between HEX, RGB, and HSL values.
+            </p>
           </div>
         </div>
 
@@ -114,7 +125,7 @@ export const ColorPickerView = csr(function ColorPickerPage() {
                 value={pickerValue}
                 onChange={handlePickerChange}
                 className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] p-0 m-0 border-0 cursor-pointer"
-                style={{ background: 'none' }}
+                style={{ background: "none" }}
               />
             </div>
             <div className="text-center text-sm text-muted-foreground">
@@ -137,9 +148,13 @@ export const ColorPickerView = csr(function ColorPickerPage() {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => copyToClipboard(hexInput, 'hex')}
+                  onClick={() => copyToClipboard(hexInput, "hex")}
                 >
-                  {copied === 'hex' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  {copied === "hex" ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
                 </Button>
               </div>
             </div>
@@ -157,9 +172,13 @@ export const ColorPickerView = csr(function ColorPickerPage() {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => copyToClipboard(rgbInput, 'rgb')}
+                  onClick={() => copyToClipboard(rgbInput, "rgb")}
                 >
-                  {copied === 'rgb' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  {copied === "rgb" ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
                 </Button>
               </div>
             </div>
@@ -177,9 +196,13 @@ export const ColorPickerView = csr(function ColorPickerPage() {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => copyToClipboard(hslInput, 'hsl')}
+                  onClick={() => copyToClipboard(hslInput, "hsl")}
                 >
-                  {copied === 'hsl' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  {copied === "hsl" ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
                 </Button>
               </div>
             </div>

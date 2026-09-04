@@ -30,7 +30,9 @@ describe("UTMBuilderPage", () => {
     render(<UTMBuilderPage ssr={true} />);
 
     const websiteInput = screen.getByLabelText("Website URL (required)");
-    fireEvent.change(websiteInput, { target: { value: "https://example.com" } });
+    fireEvent.change(websiteInput, {
+      target: { value: "https://example.com" },
+    });
 
     const sourceInput = screen.getByLabelText("Campaign Source");
     fireEvent.change(sourceInput, { target: { value: "google" } });
@@ -45,7 +47,11 @@ describe("UTMBuilderPage", () => {
     // It's inside a div, so getting by text might need exact match or regex
     // The div has class "break-all" and contains the URL text.
     // URL toString() might add trailing slash if path is empty.
-    expect(screen.getByText("https://example.com/?utm_source=google&utm_medium=cpc&utm_campaign=summer_sale")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "https://example.com/?utm_source=google&utm_medium=cpc&utm_campaign=summer_sale",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("adds protocol if missing", () => {
@@ -62,12 +68,16 @@ describe("UTMBuilderPage", () => {
     render(<UTMBuilderPage ssr={true} />);
 
     const websiteInput = screen.getByLabelText("Website URL (required)");
-    fireEvent.change(websiteInput, { target: { value: "https://example.com" } });
+    fireEvent.change(websiteInput, {
+      target: { value: "https://example.com" },
+    });
 
     const copyButton = screen.getByText("Copy URL");
     fireEvent.click(copyButton);
 
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith("https://example.com/");
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      "https://example.com/",
+    );
     // Wait for "Copied!" to appear? It appears immediately.
     // But button text changes.
     // screen.getByText("Copied!") matches the text content inside the button.
