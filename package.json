@@ -16,6 +16,7 @@
     "build:blog": "node scripts/prebuild-blog.mjs",
     "preview": "vite preview --port 3000",
     "lint": "eslint",
+    "lint:biome": "biome check .",
     "test": "jest"
   },
   "dependencies": {
@@ -52,6 +53,7 @@
     "use-debounce": "^10.0.6"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.12",
     "@eslint/eslintrc": "^3",
     "@playwright/test": "^1.56.1",
     "@swc/core": "^1.7.5",
