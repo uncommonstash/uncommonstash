@@ -25,10 +25,9 @@ export function PageMeta({ title, description, jsonLd }: PageMetaProps) {
         )}
       </Helmet>
       {jsonLd && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
+        <script type="application/ld+json">
+          {JSON.stringify(jsonLd).replace(/</g, "\\u003c")}
+        </script>
       )}
     </>
   );

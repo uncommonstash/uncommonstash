@@ -1,19 +1,19 @@
-import type React from "react";
-import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
-import { cutAudio } from "@/lib/ffmpeg";
-import { DualRangeSlider } from "@/components/ui/dual-range-slider";
-import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   Download,
   FileAudio,
-  X,
   Music,
   Scissors,
+  X,
 } from "lucide-react";
-import * as gtag from "@/lib/gtag";
+import type React from "react";
+import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { DualRangeSlider } from "@/components/ui/dual-range-slider";
 import { csr } from "@/lib/compat";
+import { cutAudio } from "@/lib/ffmpeg";
+import * as gtag from "@/lib/gtag";
 
 // Helper Components (Locally defined to avoid code sharing as requested)
 
@@ -361,8 +361,8 @@ export default csr(function AudioCutter() {
 
         {processedFiles.length > 0 ? (
           <div className="space-y-4">
-            {processedFiles.map((pf, i) => (
-              <ResultItem key={i} url={pf.url} name={pf.name} />
+            {processedFiles.map((pf) => (
+              <ResultItem key={pf.url} url={pf.url} name={pf.name} />
             ))}
           </div>
         ) : (

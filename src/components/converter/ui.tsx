@@ -1,7 +1,7 @@
+import { ArrowLeft, Download, FileAudio, FileVideo, X } from "lucide-react";
 import React from "react";
-import { Button } from "@/components/ui/button";
-import { X, ArrowLeft, Download, FileAudio, FileVideo } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 // Header Component
 interface HeaderProps {
@@ -137,7 +137,7 @@ export function FileSelector({
         </label>
         {files.map((file, index) => (
           <div
-            key={index}
+            key={`${file.name}-${file.size}-${file.lastModified}`}
             className="relative w-40 h-40 rounded-xl overflow-hidden border group bg-gray-50 flex items-center justify-center p-4 shadow-sm"
           >
             {file.type.startsWith("image/") ? (

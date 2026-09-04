@@ -1,3 +1,7 @@
+import { CheckIcon, CopyIcon, TrashIcon } from "@radix-ui/react-icons";
+import { useState } from "react";
+import { BackLink } from "@/components/back-link";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -6,12 +10,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
 import { csr } from "@/lib/compat";
 import * as gtag from "@/lib/gtag";
-import { CopyIcon, TrashIcon, CheckIcon } from "@radix-ui/react-icons";
-import { BackLink } from "@/components/back-link";
 
 // Helper functions for text transformation
 const splitWords = (str: string) => {

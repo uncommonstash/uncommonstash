@@ -1,3 +1,12 @@
+import {
+  ImageMagick,
+  initializeImageMagick,
+  MagickFormat,
+} from "@imagemagick/magick-wasm";
+import { ArrowLeft, Loader2, Upload } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import Tesseract from "tesseract.js";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -8,16 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useEffect, useState } from "react";
-import Tesseract from "tesseract.js";
-import {
-  initializeImageMagick,
-  ImageMagick,
-  MagickFormat,
-} from "@imagemagick/magick-wasm";
 import { csr } from "@/lib/compat";
-import { Link } from "react-router-dom";
-import { ArrowLeft, Loader2, Upload } from "lucide-react";
 
 interface LineItem {
   id: number;

@@ -1,5 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
-import { csr } from "@/lib/compat";
+import {
+  CheckIcon,
+  CopyIcon,
+  TrashIcon,
+  UpdateIcon,
+} from "@radix-ui/react-icons";
+import { useCallback, useEffect, useState } from "react";
+import { BackLink } from "@/components/back-link";
+import { Label, Switch, Tabs, TabsList, TabsTrigger } from "@/components/ui";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -7,17 +15,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch, Label, Tabs, TabsList, TabsTrigger } from "@/components/ui";
-import {
-  CopyIcon,
-  TrashIcon,
-  CheckIcon,
-  UpdateIcon,
-} from "@radix-ui/react-icons";
+import { csr } from "@/lib/compat";
 import * as gtag from "@/lib/gtag";
-import { BackLink } from "@/components/back-link";
 
 type Variant = "standard" | "url-safe";
 

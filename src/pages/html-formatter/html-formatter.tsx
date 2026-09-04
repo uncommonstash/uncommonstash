@@ -1,11 +1,10 @@
+import { Copy } from "lucide-react";
+import { useMemo, useState } from "react";
+import { BackLink } from "@/components/back-link";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useState, useMemo, useEffect } from "react";
 import { csr } from "@/lib/compat";
 import * as gtag from "@/lib/gtag";
-import { Copy } from "lucide-react";
-import { useDebounce } from "use-debounce";
-import { BackLink } from "@/components/back-link";
 
 // Basic HTML formatter
 export function formatHtml(html: string) {
@@ -83,16 +82,24 @@ export function minifyHtml(html: string) {
 function HighlightHtml({ code }: { code: string }) {
   const tokens = useMemo(() => {
     if (!code) return [];
-
     // Regex to split by tags, capturing the tag parts
     // Group 1: Opening/Closing bracket + Tag Name + Attributes + End bracket
     // This simple regex won't perfectly parse attributes but is good enough for simple highlighting
 
     const result: React.ReactNode[] = [];
+    // Stable keys without array indices: identical token text recurs, so
+    // suffix each role-scoped key with its occurrence count. Deterministic
+    // per input, so keys survive re-renders of unchanged code.
+    const seen = new Map<string, number>();
+    const keyFor = (role: string, content: string) => {
+      const n = (seen.get(content) ?? 0) + 1;
+      seen.set(content, n);
+      return `${role}-${content}-${n}`;
+    };
     // Split by tags
     const parts = code.split(/(<\/?[^>]+>)/g);
 
-    parts.forEach((part, index) => {
+    parts.forEach((part) => {
       if (!part) return;
 
       if (part.startsWith("<")) {
@@ -102,7 +109,7 @@ function HighlightHtml({ code }: { code: string }) {
         if (tagMatch) {
           result.push(
             <span
-              key={index + "-1"}
+              key={keyFor("open", tagMatch[1])}
               className="text-blue-600 dark:text-blue-400"
             >
               {tagMatch[1]}
@@ -110,7 +117,7 @@ function HighlightHtml({ code }: { code: string }) {
           ); // < or </
           result.push(
             <span
-              key={index + "-2"}
+              key={keyFor("name", tagMatch[2])}
               className="text-purple-600 dark:text-purple-400 font-bold"
             >
               {tagMatch[2]}
@@ -122,7 +129,7 @@ function HighlightHtml({ code }: { code: string }) {
             // Naive attribute highlighting
             result.push(
               <span
-                key={index + "-3"}
+                key={keyFor("attrs", tagMatch[3])}
                 className="text-orange-600 dark:text-orange-400"
               >
                 {tagMatch[3]}
@@ -132,7 +139,7 @@ function HighlightHtml({ code }: { code: string }) {
 
           result.push(
             <span
-              key={index + "-4"}
+              key={keyFor("close", tagMatch[4])}
               className="text-blue-600 dark:text-blue-400"
             >
               {tagMatch[4]}
@@ -142,13 +149,19 @@ function HighlightHtml({ code }: { code: string }) {
           // Comment or malformed tag
           if (part.startsWith("<!--")) {
             result.push(
-              <span key={index} className="text-gray-500 italic">
+              <span
+                key={keyFor("comment", part)}
+                className="text-gray-500 italic"
+              >
                 {part}
               </span>,
             );
           } else {
             result.push(
-              <span key={index} className="text-blue-600 dark:text-blue-400">
+              <span
+                key={keyFor("malformed", part)}
+                className="text-blue-600 dark:text-blue-400"
+              >
                 {part}
               </span>,
             );
@@ -157,7 +170,10 @@ function HighlightHtml({ code }: { code: string }) {
       } else {
         // Text content
         result.push(
-          <span key={index} className="text-gray-800 dark:text-gray-200">
+          <span
+            key={keyFor("text", part)}
+            className="text-gray-800 dark:text-gray-200"
+          >
             {part}
           </span>,
         );
@@ -174,23 +190,13 @@ function HighlightHtml({ code }: { code: string }) {
   );
 }
 
-export default csr(function HtmlFormatterPage() {
-  const [input, setInput] = useState(
-    "<div>\n<h1>Hello World</h1>\n<p>This is a sample HTML.</p>\n</div>",
-  );
-  const [output, setOutput] = useState("");
-  const [debouncedInput] = useDebounce(input, 500);
+const INITIAL_HTML =
+  "<div>\n<h1>Hello World</h1>\n<p>This is a sample HTML.</p>\n</div>";
 
-  useEffect(() => {
-    if (debouncedInput) {
-      // Auto-format on load or just update output if we wanted live preview,
-      // but here we have explicit buttons.
-      // Let's just default output to formatted input initially.
-      if (!output && input) {
-        setOutput(formatHtml(input));
-      }
-    }
-  }, [debouncedInput]);
+export default csr(function HtmlFormatterPage() {
+  const [input, setInput] = useState(INITIAL_HTML);
+  // Initialize formatted on first render instead of syncing in an effect.
+  const [output, setOutput] = useState(() => formatHtml(INITIAL_HTML));
 
   const handleFormat = () => {
     const formatted = formatHtml(input);

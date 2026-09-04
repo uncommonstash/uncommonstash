@@ -1,5 +1,5 @@
-import { csr } from "@/lib/compat";
 import { ImageResizer } from "@/components/image-resizer";
+import { csr } from "@/lib/compat";
 
 export default csr(function ImageResizerClient() {
   return (

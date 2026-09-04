@@ -1,4 +1,8 @@
-import { useState, useEffect } from "react";
+import { CheckIcon, CopyIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useDebounce } from "use-debounce";
+import { BackLink } from "@/components/back-link";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -8,12 +12,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { csr } from "@/lib/compat";
 import * as gtag from "@/lib/gtag";
-import { CopyIcon, CheckIcon } from "lucide-react";
-import { useDebounce } from "use-debounce";
-import { BackLink } from "@/components/back-link";
 
 export default csr(function UTMBuilderPage() {
   const [websiteUrl, setWebsiteUrl] = useState("");

@@ -1,6 +1,6 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { decrypt, encrypt } from "./crypto-utils";
 import EncryptTextPage from "./encrypt-text";
-import { encrypt, decrypt } from "./crypto-utils";
 
 // Mock crypto-utils
 jest.mock("./crypto-utils", () => ({

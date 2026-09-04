@@ -1,12 +1,9 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui";
-import { csr } from "@/lib/compat";
-import { combineAudio } from "@/lib/ffmpeg";
+import { GripVertical, X } from "lucide-react";
+import { useRef, useState } from "react";
 import {
   DragDropContext,
-  Droppable,
   Draggable,
+  Droppable,
   type DropResult,
 } from "react-beautiful-dnd";
 import {
@@ -15,18 +12,34 @@ import {
   OutputPanel,
 } from "@/components/converter/layout";
 import {
-  Header,
-  FileSelector,
-  ResultItem,
   EmptyState,
+  FileSelector,
+  Header,
   OutputHeader,
+  ResultItem,
 } from "@/components/converter/ui";
-import { GripVertical, X } from "lucide-react";
+import { Spinner } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { csr } from "@/lib/compat";
+import { combineAudio } from "@/lib/ffmpeg";
 
 export function AudioCombiner() {
   const [files, setFiles] = useState<File[]>([]);
   const [outputUrl, setOutputUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Stable per-file identity for React keys and draggableIds. Index-derived
+  // ids break on reorder (the id follows the position, not the file), so ids
+  // are minted once per File object and pinned in a ref.
+  const fileIds = useRef(new Map<File, string>());
+  const idForFile = (file: File) => {
+    let id = fileIds.current.get(file);
+    if (!id) {
+      id = `${file.name}-${file.size}-${file.lastModified}-${crypto.randomUUID()}`;
+      fileIds.current.set(file, id);
+    }
+    return id;
+  };
 
   const handleCombine = async () => {
     if (files.length < 2) return;
@@ -96,8 +109,8 @@ export function AudioCombiner() {
                         >
                           {files.map((file, index) => (
                             <Draggable
-                              key={`${file.name}-${index}`}
-                              draggableId={`${file.name}-${index}`}
+                              key={idForFile(file)}
+                              draggableId={idForFile(file)}
                               index={index}
                             >
                               {(provided, snapshot) => (

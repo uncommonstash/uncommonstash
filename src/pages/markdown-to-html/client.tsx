@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import DOMPurify from "dompurify";
+import { marked } from "marked";
+import { useEffect, useState } from "react";
+import { useDebounce } from "use-debounce";
+import { BackLink } from "@/components/back-link";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { marked } from "marked";
-import { useDebounce } from "use-debounce";
-import * as gtag from "@/lib/gtag";
 import { csr } from "@/lib/compat";
-import { BackLink } from "@/components/back-link";
+import * as gtag from "@/lib/gtag";
 
 export default csr(function MarkdownConverter() {
   const [markdown, setMarkdown] = useState("# Hello, world!");
@@ -17,7 +18,7 @@ export default csr(function MarkdownConverter() {
   useEffect(() => {
     const convertMarkdown = async () => {
       const convertedHtml = await marked(markdown);
-      setHtml(convertedHtml);
+      setHtml(DOMPurify.sanitize(convertedHtml));
     };
     convertMarkdown();
   }, [markdown]);
@@ -95,7 +96,10 @@ export default csr(function MarkdownConverter() {
             {showRawHtml ? (
               <pre className="whitespace-pre-wrap break-all">{html}</pre>
             ) : (
-              <div dangerouslySetInnerHTML={{ __html: html }} />
+              <>
+                {/* biome-ignore lint/security/noDangerouslySetInnerHtml: `html` is DOMPurify-sanitized at the data layer above; never raw user input. */}
+                <div dangerouslySetInnerHTML={{ __html: html }} />
+              </>
             )}
           </div>
         </div>

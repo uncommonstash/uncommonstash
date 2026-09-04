@@ -1,5 +1,5 @@
-import * as React from "react";
 import * as SliderPrimitive from "@radix-ui/react-slider";
+import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -17,6 +17,14 @@ const DualRangeSlider = React.forwardRef<
     ? props.value
     : [props.min, props.max];
 
+  // Stable per-thumb identity: thumb positions never reorder, so
+  // position-derived keys stay constant while values change freely.
+  // (This also sidesteps duplicate keys when both thumbs share a value.)
+  const thumbs = initialValue.map((value, position) => ({
+    key: `thumb-${position}`,
+    value,
+  }));
+
   return (
     <SliderPrimitive.Root
       ref={ref}
@@ -29,8 +37,8 @@ const DualRangeSlider = React.forwardRef<
       <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden rounded-full bg-secondary">
         <SliderPrimitive.Range className="absolute h-full bg-primary" />
       </SliderPrimitive.Track>
-      {initialValue.map((value, index) => (
-        <React.Fragment key={index}>
+      {thumbs.map((thumb) => (
+        <React.Fragment key={thumb.key}>
           <SliderPrimitive.Thumb className="relative block h-4 w-4 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
             {label && (
               <span
@@ -40,7 +48,7 @@ const DualRangeSlider = React.forwardRef<
                   labelPosition === "bottom" && "top-4",
                 )}
               >
-                {label(value)}
+                {label(thumb.value)}
               </span>
             )}
           </SliderPrimitive.Thumb>

@@ -1,3 +1,8 @@
+import { AlertCircle, ArrowLeft, Check, Copy, Shuffle } from "lucide-react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Switch } from "@/components/ui";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -6,20 +11,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui";
 import { csr } from "@/lib/compat";
-import { useState } from "react";
-import { Copy, Check, Shuffle, AlertCircle, ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
 
 export default csr(function RandomNumberGeneratorPage() {
   const [min, setMin] = useState<number | "">(1);
   const [max, setMax] = useState<number | "">(100);
   const [count, setCount] = useState<number | "">(10);
   const [unique, setUnique] = useState(false);
-  const [results, setResults] = useState<number[]>([]);
+  const [results, setResults] = useState<{ id: string; value: number }[]>([]);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,7 +57,7 @@ export default csr(function RandomNumberGeneratorPage() {
       return;
     }
 
-    let newResults: number[] = [];
+    let newResults: { id: string; value: number }[] = [];
     if (unique) {
       // Use Set for uniqueness.
       // If range is large and count is close to range, this might be slow (coupon collector problem).
@@ -81,10 +81,16 @@ export default csr(function RandomNumberGeneratorPage() {
         return;
       }
 
-      newResults = Array.from(set);
+      newResults = Array.from(set, (value) => ({
+        id: crypto.randomUUID(),
+        value,
+      }));
     } else {
       for (let i = 0; i < countVal; i++) {
-        newResults.push(Math.floor(Math.random() * range) + minVal);
+        newResults.push({
+          id: crypto.randomUUID(),
+          value: Math.floor(Math.random() * range) + minVal,
+        });
       }
     }
     setResults(newResults);
@@ -92,7 +98,7 @@ export default csr(function RandomNumberGeneratorPage() {
 
   const copyToClipboard = () => {
     if (results.length === 0) return;
-    const text = results.join(", ");
+    const text = results.map((result) => result.value).join(", ");
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -217,12 +223,12 @@ export default csr(function RandomNumberGeneratorPage() {
             <div className="h-full overflow-y-auto pr-2 pb-2">
               {results.length > 0 ? (
                 <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2">
-                  {results.map((num, i) => (
+                  {results.map((result) => (
                     <div
-                      key={i}
+                      key={result.id}
                       className="flex items-center justify-center p-2 bg-muted rounded-md font-mono text-lg font-medium select-all"
                     >
-                      {num}
+                      {result.value}
                     </div>
                   ))}
                 </div>

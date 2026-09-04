@@ -1,6 +1,23 @@
+import {
+  ImageMagick,
+  initializeImageMagick,
+  MagickFormat,
+} from "@imagemagick/magick-wasm";
+import JSZip from "jszip";
 import type React from "react";
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import {
+  ConverterLayout,
+  InputPanel,
+  OutputPanel,
+} from "@/components/converter/layout";
+import {
+  EmptyState,
+  FileSelector,
+  Header,
+  OutputHeader,
+  ResultItem,
+} from "@/components/converter/ui";
 import {
   Select,
   SelectContent,
@@ -8,26 +25,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui";
-import {
-  initializeImageMagick,
-  ImageMagick,
-  MagickFormat,
-} from "@imagemagick/magick-wasm";
-import JSZip from "jszip";
+import { Button } from "@/components/ui/button";
 import * as gtag from "@/lib/gtag";
 import { toBlobPart } from "@/lib/utils";
-import {
-  ConverterLayout,
-  InputPanel,
-  OutputPanel,
-} from "@/components/converter/layout";
-import {
-  Header,
-  FileSelector,
-  ResultItem,
-  EmptyState,
-  OutputHeader,
-} from "@/components/converter/ui";
 
 const SUPPORTED_EXTENSIONS = [
   "jpg",
@@ -378,8 +378,8 @@ export const ImageConverter = ({
 
         {convertedImages.length > 0 ? (
           <div className="grid grid-cols-2 gap-6">
-            {convertedImages.map((img, i) => (
-              <ResultItem key={i} url={img.url} name={img.name} />
+            {convertedImages.map((img) => (
+              <ResultItem key={img.url} url={img.url} name={img.name} />
             ))}
           </div>
         ) : (

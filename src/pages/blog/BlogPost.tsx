@@ -1,8 +1,9 @@
+import DOMPurify from "dompurify";
 import { useEffect, useState } from "react";
-import { useParams, Navigate } from "react-router-dom";
-import { getPost, type BlogPost } from "@/lib/blog";
-import { PageMeta } from "@/components/page-meta";
+import { Navigate, useParams } from "react-router-dom";
 import { BackLink } from "@/components/back-link";
+import { PageMeta } from "@/components/page-meta";
+import { type BlogPost, getPost } from "@/lib/blog";
 
 export default function BlogPostPage() {
   const { slug } = useParams();
@@ -18,6 +19,9 @@ export default function BlogPostPage() {
 
   if (post === undefined) return null;
   if (post === null) return <Navigate to="/404" replace />;
+
+  // Author-controlled markdown, sanitized once so the render site below is safe.
+  const safeHtml = DOMPurify.sanitize(post.contentHtml);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -46,7 +50,7 @@ export default function BlogPostPage() {
         description={post.description}
         jsonLd={jsonLd}
       />
-      <article className="max-w-none">
+      <article className="prose dark:prose-invert max-w-none">
         <header className="mb-8">
           <h1 className="text-4xl font-bold tracking-tight mb-2">
             {post.title}
@@ -68,10 +72,8 @@ export default function BlogPostPage() {
             )}
           </div>
         </header>
-        <div
-          className="prose dark:prose-invert max-w-none"
-          dangerouslySetInnerHTML={{ __html: post.contentHtml }}
-        />
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: `safeHtml` is DOMPurify-sanitized above; never raw user HTML. */}
+        <div dangerouslySetInnerHTML={{ __html: safeHtml }} />
       </article>
     </div>
   );

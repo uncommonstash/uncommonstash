@@ -1,3 +1,6 @@
+import { useEffect, useMemo, useState } from "react";
+import { useDebounce } from "use-debounce";
+import { BackLink } from "@/components/back-link";
 import {
   Card,
   CardContent,
@@ -6,12 +9,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { useState, useMemo, useEffect } from "react";
 import { csr } from "@/lib/compat";
-import { stopWords } from "./stop-words";
-import { useDebounce } from "use-debounce";
 import * as gtag from "@/lib/gtag";
-import { BackLink } from "@/components/back-link";
+import { stopWords } from "./stop-words";
 
 export default csr(function WordCounterPage() {
   const [text, setText] = useState("");

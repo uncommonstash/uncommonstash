@@ -1,12 +1,12 @@
-import { useState, useRef } from "react";
+import { DownloadIcon } from "@radix-ui/react-icons";
 import { QRCodeCanvas } from "qrcode.react";
+import { useRef, useState } from "react";
+import { BackLink } from "@/components/back-link";
+import { PageMeta } from "@/components/page-meta";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DownloadIcon } from "@radix-ui/react-icons";
 import { Slider } from "@/components/ui/slider";
-import { PageMeta } from "@/components/page-meta";
-import { BackLink } from "@/components/back-link";
 
 export default function QRCodeGeneratorPage() {
   const [value, setValue] = useState("https://leveled.com");

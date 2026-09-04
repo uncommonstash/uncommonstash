@@ -1,3 +1,7 @@
+import { Check, Copy } from "lucide-react";
+import { useState } from "react";
+import AppBar from "@/components/app-bar";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -6,15 +10,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
 import { csr } from "@/lib/compat";
-import AppBar from "@/components/app-bar";
-import { Check, Copy } from "lucide-react";
 
 export default csr(function DisclaimerGeneratorPage() {
   const [companyName, setCompanyName] = useState("");

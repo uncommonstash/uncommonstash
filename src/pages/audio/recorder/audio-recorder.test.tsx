@@ -1,4 +1,4 @@
-import { render, fireEvent, screen, act } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { AudioRecorder } from "./audio-recorder";
 
 // Mock MediaRecorder and related APIs

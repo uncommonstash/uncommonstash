@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
-import { Textarea } from "@/components/ui/textarea";
+import { useEffect, useState } from "react";
 import { useDebounce } from "use-debounce";
-import * as gtag from "@/lib/gtag";
-import { csr } from "@/lib/compat";
 import { BackLink } from "@/components/back-link";
+import { Textarea } from "@/components/ui/textarea";
+import { csr } from "@/lib/compat";
+import * as gtag from "@/lib/gtag";
 
 export default csr(function HtmlEditor() {
   const [html, setHtml] = useState(

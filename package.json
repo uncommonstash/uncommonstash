@@ -38,6 +38,7 @@
     "cron-parser": "^4.9.0",
     "cronstrue": "^3.9.0",
     "date-fns": "^4.1.0",
+    "dompurify": "^3.4.14",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "jszip": "^3.10.1",
