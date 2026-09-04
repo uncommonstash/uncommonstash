@@ -5,7 +5,12 @@ import { HelmetProvider } from "react-helmet-async";
 import "./index.css";
 import App from "./App";
 
-createRoot(document.getElementById("root")!).render(
+const rootElement = document.getElementById("root");
+if (!rootElement) {
+  throw new Error("Missing #root element");
+}
+
+createRoot(rootElement).render(
   <StrictMode>
     <HelmetProvider>
       <BrowserRouter>

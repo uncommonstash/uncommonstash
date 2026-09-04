@@ -2,14 +2,15 @@ import React from "react";
 import { printProlog } from "./prolog";
 
 /** Vite compat: identity wrapper (no server/client split). */
-export function csr(Page: React.ComponentType<any>) {
-  return function ClientSideRender(props: any) {
-    const { ssr, ...rest } = props ?? {};
+export function csr<P extends object>(
+  Page: React.ComponentType<P & { ssr?: boolean }>,
+) {
+  return function ClientSideRender(props: P & { ssr?: boolean }) {
     React.useEffect(() => {
       if (typeof window !== "undefined") printProlog();
     }, []);
-    if (ssr === false) return null;
-    return <Page {...rest} ssr={ssr} />;
+    if (props.ssr === false) return null;
+    return <Page {...props} />;
   };
 }
 

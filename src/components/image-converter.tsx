@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import type React from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -14,6 +15,7 @@ import {
 } from "@imagemagick/magick-wasm";
 import JSZip from "jszip";
 import * as gtag from "@/lib/gtag";
+import { toBlobPart } from "@/lib/utils";
 import {
   ConverterLayout,
   InputPanel,
@@ -206,7 +208,7 @@ export const ImageConverter = ({
             await new Promise<void>((resolve) => {
               ImageMagick.read(data, (image) => {
                 image.write(outputFormat, (convertedData) => {
-                  const resultBlob = new Blob([convertedData as any], {
+                  const resultBlob = new Blob([toBlobPart(convertedData)], {
                     type: `image/${outputFormat}`,
                   });
                   const url = URL.createObjectURL(resultBlob);
@@ -229,7 +231,7 @@ export const ImageConverter = ({
           await new Promise<void>((resolve) => {
             ImageMagick.read(data, (image) => {
               image.write(outputFormat, (convertedData) => {
-                const resultBlob = new Blob([convertedData as any], {
+                const resultBlob = new Blob([toBlobPart(convertedData)], {
                   type: `image/${outputFormat}`,
                 });
                 const url = URL.createObjectURL(resultBlob);

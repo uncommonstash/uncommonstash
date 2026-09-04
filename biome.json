@@ -26,7 +26,8 @@
         "useExhaustiveDependencies": "error"
       },
       "style": {
-        "useImportType": "error"
+        "useImportType": "error",
+        "noNonNullAssertion": "error"
       },
       "suspicious": {
         "noExplicitAny": "error",

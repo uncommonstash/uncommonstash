@@ -1,4 +1,3 @@
-import React from "react";
 import { csr } from "@/lib/compat";
 import { ImageConverter } from "../../../components/image-converter";
 

@@ -8,7 +8,12 @@ module.exports = {
     "^@ffmpeg/ffmpeg$": "<rootDir>/__mocks__/ffmpeg.js",
   },
   transform: {
-    "^.+\\.(js|jsx|ts|tsx)$": "@swc/jest",
+    // Automatic JSX runtime to match tsconfig.json ("jsx": "react-jsx")
+    // and Vite — components must not need `import React` in scope.
+    "^.+\\.(js|jsx|ts|tsx)$": [
+      "@swc/jest",
+      { jsc: { transform: { react: { runtime: "automatic" } } } },
+    ],
   },
   testPathIgnorePatterns: [
     "<rootDir>/e2e/",

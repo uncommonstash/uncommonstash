@@ -1,4 +1,3 @@
-import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import ImageConvertPage from "./image-convert";
 import { ImageMagick, initializeImageMagick } from "@imagemagick/magick-wasm";

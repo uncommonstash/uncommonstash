@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { csr } from "@/lib/compat";
 import { useDebounce } from "use-debounce";
 import cronstrue from "cronstrue";
-import parser from "cron-parser";
+import { parseExpression } from "cron-parser";
 import { format } from "date-fns";
 import { Check, Copy, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -75,7 +75,7 @@ const getNextRuns = (
   count: number = 5,
 ): { runs: string[]; timezone: string } => {
   try {
-    const interval = (parser as any).parseExpression(cron);
+    const interval = parseExpression(cron);
     const runs: string[] = [];
     let timezone = "";
 

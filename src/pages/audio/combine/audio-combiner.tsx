@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui";
 import { csr } from "@/lib/compat";
@@ -7,7 +7,7 @@ import {
   DragDropContext,
   Droppable,
   Draggable,
-  DropResult,
+  type DropResult,
 } from "react-beautiful-dnd";
 import {
   ConverterLayout,

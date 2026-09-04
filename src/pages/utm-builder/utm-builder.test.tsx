@@ -1,4 +1,3 @@
-import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import UTMBuilderPage from "./utm-builder";
 
@@ -16,7 +15,7 @@ jest.mock("@/lib/gtag", () => ({
 
 // Mock use-debounce to return value immediately
 jest.mock("use-debounce", () => ({
-  useDebounce: (val: any) => [val],
+  useDebounce: (val: string) => [val],
 }));
 
 describe("UTMBuilderPage", () => {

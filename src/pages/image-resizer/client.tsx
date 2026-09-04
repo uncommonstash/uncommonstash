@@ -1,4 +1,3 @@
-import React from "react";
 import { csr } from "@/lib/compat";
 import { ImageResizer } from "@/components/image-resizer";
 

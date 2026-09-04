@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { csr } from "@/lib/compat";
 import {
   Card,
@@ -104,7 +104,7 @@ export default csr(function EncryptTextPage() {
               type="password"
               placeholder="Enter your secret key"
               value={password}
-              onChange={(val: any) => setPassword(val)}
+              onChange={(val: string) => setPassword(val)}
             />
           </div>
 
