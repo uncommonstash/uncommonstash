@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 test("Image converter page has all formats", async ({ page }) => {
   await page.goto("/images/convert");

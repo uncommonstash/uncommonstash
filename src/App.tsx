@@ -1,37 +1,36 @@
 import React, { Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
-import * as gtag from "@/lib/gtag";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { PageMeta } from "@/components/page-meta";
-import HomePage from "@/pages/home";
-import BlogIndex from "@/pages/blog/BlogIndex";
-import BlogPostPage from "@/pages/blog/BlogPost";
-import DynamicConverterClient from "@/pages/DynamicConverter";
-import { NotFoundPage } from "@/pages/NotFound";
-
-// Eager (small) pages
-import Base64ConverterPage from "@/pages/base64-converter/base64-converter";
-import CaseConverterPage from "@/pages/case-converter/case-converter";
-import DisclaimerGeneratorPage from "@/pages/disclaimer-generator/disclaimer-generator";
-import EncryptTextPage from "@/pages/encrypt-text/encrypt-text";
-import OnlineNotepadPage from "@/pages/online-notepad/online-notepad";
-import QRCodeGeneratorPage from "@/pages/qr-code-generator/qr-code-generator";
-import RandomNumberGeneratorPage from "@/pages/random-number-generator/random-number-generator";
-import TokenGenerator from "@/pages/token-generator/token-generator";
-import UTMBuilderPage from "@/pages/utm-builder/utm-builder";
-import WordCounterPage from "@/pages/word-counter/word-counter";
-import HtmlFormatterPage from "@/pages/html-formatter/html-formatter";
-import { BillSplitterView } from "@/pages/bill-splitter/bill-splitter-view";
-import { ColorPickerView } from "@/pages/color-picker/color-picker-view";
-import AudioCutter from "@/pages/audio/cut/audio-cutter";
+import * as gtag from "@/lib/gtag";
 import AudioCombinerDefault, {
   AudioCombiner,
 } from "@/pages/audio/combine/audio-combiner";
 import AudioConverterDefault, {
   AudioConverter,
 } from "@/pages/audio/convert/audio-converter";
+import AudioCutter from "@/pages/audio/cut/audio-cutter";
 import AudioRecorderDefault from "@/pages/audio/recorder/audio-recorder";
-import TextToCronPage from "@/pages/text-to-cron/text-to-cron";
+// Eager (small) pages
+import Base64ConverterPage from "@/pages/base64-converter/base64-converter";
+import { BillSplitterView } from "@/pages/bill-splitter/bill-splitter-view";
+import BlogIndex from "@/pages/blog/BlogIndex";
+import BlogPostPage from "@/pages/blog/BlogPost";
+import CaseConverterPage from "@/pages/case-converter/case-converter";
+import { ColorPickerView } from "@/pages/color-picker/color-picker-view";
+import DynamicConverterClient from "@/pages/DynamicConverter";
+import DisclaimerGeneratorPage from "@/pages/disclaimer-generator/disclaimer-generator";
+import EncryptTextPage from "@/pages/encrypt-text/encrypt-text";
+import HomePage from "@/pages/home";
+import HtmlFormatterPage from "@/pages/html-formatter/html-formatter";
 import ImageConvertPage from "@/pages/images/convert/image-convert";
+import { NotFoundPage } from "@/pages/NotFound";
+import OnlineNotepadPage from "@/pages/online-notepad/online-notepad";
+import QRCodeGeneratorPage from "@/pages/qr-code-generator/qr-code-generator";
+import RandomNumberGeneratorPage from "@/pages/random-number-generator/random-number-generator";
+import TextToCronPage from "@/pages/text-to-cron/text-to-cron";
+import TokenGenerator from "@/pages/token-generator/token-generator";
+import UTMBuilderPage from "@/pages/utm-builder/utm-builder";
+import WordCounterPage from "@/pages/word-counter/word-counter";
 
 // Lazy (heavy WASM) pages — responsiveness MVP
 const CodeScreenshot = React.lazy(

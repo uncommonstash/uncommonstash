@@ -1,29 +1,29 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { DualRangeSlider } from "@/components/ui/dual-range-slider";
 import {
-  initializeImageMagick,
   ImageMagick,
+  initializeImageMagick,
   MagickGeometry,
 } from "@imagemagick/magick-wasm";
 import JSZip from "jszip";
-import * as gtag from "@/lib/gtag";
-import { toBlobPart } from "@/lib/utils";
+import { useEffect, useState } from "react";
 import {
   ConverterLayout,
   InputPanel,
   OutputPanel,
 } from "@/components/converter/layout";
 import {
-  Header,
-  FileSelector,
-  ResultItem,
   EmptyState,
+  FileSelector,
+  Header,
   OutputHeader,
+  ResultItem,
 } from "@/components/converter/ui";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DualRangeSlider } from "@/components/ui/dual-range-slider";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import * as gtag from "@/lib/gtag";
+import { toBlobPart } from "@/lib/utils";
 
 interface ImageResizerProps {
   title?: string;
@@ -414,8 +414,8 @@ export const ImageResizer = ({
 
         {convertedImages.length > 0 ? (
           <div className="grid grid-cols-2 gap-6">
-            {convertedImages.map((img, i) => (
-              <ResultItem key={i} url={img.url} name={img.name} />
+            {convertedImages.map((img) => (
+              <ResultItem key={img.url} url={img.url} name={img.name} />
             ))}
           </div>
         ) : (

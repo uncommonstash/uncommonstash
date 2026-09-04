@@ -1,6 +1,17 @@
+import JSZip from "jszip";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { convertVideo } from "@/lib/ffmpeg";
+import {
+  ConverterLayout,
+  InputPanel,
+  OutputPanel,
+} from "@/components/converter/layout";
+import {
+  EmptyState,
+  FileSelector,
+  Header,
+  OutputHeader,
+  ResultItem,
+} from "@/components/converter/ui";
 import {
   Select,
   SelectContent,
@@ -8,20 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui";
-import JSZip from "jszip";
+import { Button } from "@/components/ui/button";
+import { convertVideo } from "@/lib/ffmpeg";
 import * as gtag from "@/lib/gtag";
-import {
-  ConverterLayout,
-  InputPanel,
-  OutputPanel,
-} from "@/components/converter/layout";
-import {
-  Header,
-  FileSelector,
-  ResultItem,
-  EmptyState,
-  OutputHeader,
-} from "@/components/converter/ui";
 
 interface ConvertedVideo {
   url: string;
@@ -184,8 +184,8 @@ export const VideoConverter = () => {
 
         {convertedVideos.length > 0 ? (
           <div className="grid grid-cols-2 gap-6">
-            {convertedVideos.map((vid, i) => (
-              <ResultItem key={i} url={vid.url} name={vid.name} isVideo />
+            {convertedVideos.map((vid) => (
+              <ResultItem key={vid.url} url={vid.url} name={vid.name} isVideo />
             ))}
           </div>
         ) : (

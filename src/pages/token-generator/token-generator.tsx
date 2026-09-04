@@ -1,5 +1,8 @@
-import { useState, useEffect } from "react";
-import { csr } from "@/lib/compat";
+import { Check, Copy, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { BackLink } from "@/components/back-link";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -7,15 +10,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, RefreshCw, Check } from "lucide-react";
+import { csr } from "@/lib/compat";
 import * as gtag from "@/lib/gtag";
-import { BackLink } from "@/components/back-link";
 
 export default csr(function TokenGenerator() {
   const [activeTab, setActiveTab] = useState("password");
@@ -40,14 +40,6 @@ export default csr(function TokenGenerator() {
   // Copy Feedback State
   const [copiedState, setCopiedState] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (activeTab === "password" && !generatedPassword) {
-      generatePassword();
-    } else if (activeTab === "uuid" && generatedUUIDs.length === 0) {
-      generateUUIDs();
-    }
-  }, [activeTab]);
-
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedState(id);
@@ -60,7 +52,7 @@ export default csr(function TokenGenerator() {
     });
   };
 
-  const generatePassword = () => {
+  const generatePassword = useCallback(() => {
     const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const lowercase = "abcdefghijklmnopqrstuvwxyz";
     const numbers = "0123456789";
@@ -92,10 +84,16 @@ export default csr(function TokenGenerator() {
       label: "password",
       value: 1,
     });
-  };
+  }, [
+    passwordLength,
+    includeUppercase,
+    includeLowercase,
+    includeNumbers,
+    includeSymbols,
+  ]);
 
-  const generateUUIDs = () => {
-    const uuids = [];
+  const generateUUIDs = useCallback(() => {
+    const uuids: string[] = [];
     for (let i = 0; i < uuidQuantity; i++) {
       uuids.push(crypto.randomUUID());
     }
@@ -106,7 +104,21 @@ export default csr(function TokenGenerator() {
       label: "uuid",
       value: uuidQuantity,
     });
-  };
+  }, [uuidQuantity]);
+
+  useEffect(() => {
+    if (activeTab === "password" && !generatedPassword) {
+      generatePassword();
+    } else if (activeTab === "uuid" && generatedUUIDs.length === 0) {
+      generateUUIDs();
+    }
+  }, [
+    activeTab,
+    generatedPassword,
+    generatedUUIDs.length,
+    generatePassword,
+    generateUUIDs,
+  ]);
 
   useEffect(() => {
     if (base64Mode === "encode") {
@@ -278,9 +290,9 @@ export default csr(function TokenGenerator() {
                     </Button>
                   </div>
                   <div className="border rounded-md divide-y max-h-[400px] overflow-y-auto bg-card">
-                    {generatedUUIDs.map((uuid, idx) => (
+                    {generatedUUIDs.map((uuid) => (
                       <div
-                        key={idx}
+                        key={uuid}
                         className="flex items-center justify-between p-3 group hover:bg-muted/50 transition-colors"
                       >
                         <code className="font-mono text-sm">{uuid}</code>
@@ -288,9 +300,9 @@ export default csr(function TokenGenerator() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => handleCopy(uuid, `uuid-${idx}`)}
+                          onClick={() => handleCopy(uuid, uuid)}
                         >
-                          {copiedState === `uuid-${idx}` ? (
+                          {copiedState === uuid ? (
                             <Check className="h-4 w-4" />
                           ) : (
                             <Copy className="h-4 w-4" />

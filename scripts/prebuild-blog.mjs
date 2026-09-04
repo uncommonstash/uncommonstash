@@ -1,7 +1,7 @@
 import fs from "fs";
-import path from "path";
 import matter from "gray-matter";
 import { marked } from "marked";
+import path from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);

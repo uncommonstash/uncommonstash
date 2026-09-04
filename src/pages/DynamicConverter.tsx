@@ -1,10 +1,10 @@
-import React from "react";
-import { useParams, Navigate } from "react-router-dom";
-import { ImageConverter } from "@/components/image-converter";
-import { AudioConverter } from "@/pages/audio/convert/audio-converter";
-import { PageMeta } from "@/components/page-meta";
 import { MagickFormat } from "@imagemagick/magick-wasm";
+import React from "react";
+import { Navigate, useParams } from "react-router-dom";
+import { ImageConverter } from "@/components/image-converter";
+import { PageMeta } from "@/components/page-meta";
 import { printProlog } from "@/lib/prolog";
+import { AudioConverter } from "@/pages/audio/convert/audio-converter";
 
 // Define supported formats
 const audioFormats = ["mp3", "wav", "ogg", "flac"];

@@ -1,5 +1,7 @@
+import { LockClosedIcon, LockOpen1Icon } from "@radix-ui/react-icons";
 import { useState } from "react";
-import { csr } from "@/lib/compat";
+import { BackLink } from "@/components/back-link";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -7,12 +9,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { encrypt, decrypt } from "./crypto-utils";
-import { LockClosedIcon, LockOpen1Icon } from "@radix-ui/react-icons";
-import { BackLink } from "@/components/back-link";
+import { csr } from "@/lib/compat";
+import { decrypt, encrypt } from "./crypto-utils";
 
 export default csr(function EncryptTextPage() {
   const [inputText, setInputText] = useState("");

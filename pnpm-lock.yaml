@@ -62,6 +62,9 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.4.0
+      dompurify:
+        specifier: ^3.4.14
+        version: 3.4.14
       html2canvas:
         specifier: ^1.4.1
         version: 1.4.1
@@ -6105,7 +6108,6 @@ snapshots:
   dompurify@3.4.14:
     optionalDependencies:
       '@types/trusted-types': 2.0.7
-    optional: true
 
   eastasianwidth@0.2.0: {}
 

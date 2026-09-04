@@ -1,11 +1,11 @@
-import { csr } from "@/lib/compat";
+import { ArrowLeft, Check, Copy } from "lucide-react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Copy, Check } from "lucide-react";
-import { Link } from "react-router-dom";
-import { useState } from "react";
-import { hexToRgb, rgbToHex, rgbToHsl, hslToRgb } from "../../lib/color-utils";
+import { csr } from "@/lib/compat";
+import { hexToRgb, hslToRgb, rgbToHex, rgbToHsl } from "../../lib/color-utils";
 
 export const ColorPickerView = csr(function ColorPickerPage() {
   // State for the color picker (HTML input expects hex)

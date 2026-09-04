@@ -1,13 +1,13 @@
 import {
+  act,
+  fireEvent,
   render,
   screen,
-  fireEvent,
   waitFor,
-  act,
 } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import AudioCutter from "./audio-cutter";
 import * as ffmpeg from "@/lib/ffmpeg";
+import AudioCutter from "./audio-cutter";
 
 // Mock the cutAudio function
 jest.mock("@/lib/ffmpeg", () => ({

@@ -1,7 +1,7 @@
 import type React from "react";
 import "@testing-library/jest-dom";
 import "jest-canvas-mock";
-import { TextEncoder, TextDecoder } from "util";
+import { TextDecoder, TextEncoder } from "util";
 
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder as never;
@@ -38,7 +38,14 @@ jest.mock("@radix-ui/react-slider", () => {
     <div {...props}>
       {children}
       {value &&
-        value.map((v, i) => <div key={i} role="slider" aria-valuenow={v} />)}
+        value
+          .map((v, position) => ({
+            key: `mock-thumb-${position}`,
+            value: v,
+          }))
+          .map((thumb) => (
+            <div key={thumb.key} role="slider" aria-valuenow={thumb.value} />
+          ))}
     </div>
   );
   return {

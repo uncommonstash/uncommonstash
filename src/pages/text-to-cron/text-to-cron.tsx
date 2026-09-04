@@ -1,13 +1,13 @@
+import { parseExpression } from "cron-parser";
+import cronstrue from "cronstrue";
+import { format } from "date-fns";
+import { ArrowLeft, Check, Copy } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { useDebounce } from "use-debounce";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useEffect, useState, useCallback, useRef } from "react";
 import { csr } from "@/lib/compat";
-import { useDebounce } from "use-debounce";
-import cronstrue from "cronstrue";
-import { parseExpression } from "cron-parser";
-import { format } from "date-fns";
-import { Check, Copy, ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
 
 // ============================================================================
 // Types
@@ -116,8 +116,8 @@ export function NextRuns({ cron, count = 5 }: NextRunsProps) {
         Next scheduled runs{timezone ? ` (${timezone})` : ""}:
       </p>
       <ul className="list-disc pl-5 space-y-2 text-gray-600">
-        {runs.map((run, index) => (
-          <li key={index}>{run}</li>
+        {runs.map((run) => (
+          <li key={run}>{run}</li>
         ))}
       </ul>
     </div>
@@ -284,11 +284,11 @@ export function CronInput({
       {/* Dropdown */}
       {isOpen && choices.length > 0 && (
         <div className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-auto">
-          {choices.map((choice, index) => {
+          {choices.map((choice) => {
             const desc = getCronDescription(choice.cron);
             return (
               <button
-                key={`${choice.cron}-${index}`}
+                key={choice.cron}
                 className="w-full px-4 py-3 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none border-b border-gray-100 last:border-b-0"
                 onClick={() => handleSelect(choice.cron)}
               >

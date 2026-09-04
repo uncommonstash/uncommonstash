@@ -1,5 +1,5 @@
-import { csr } from "@/lib/compat";
 import { ImageCompressor } from "@/components/image-compressor";
+import { csr } from "@/lib/compat";
 
 export default csr(function ImageCompressorClient() {
   return (

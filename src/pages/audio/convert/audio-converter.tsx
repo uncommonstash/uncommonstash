@@ -1,5 +1,17 @@
+import JSZip from "jszip";
 import { useState } from "react";
-import { convertAudio } from "@/lib/ffmpeg";
+import {
+  ConverterLayout,
+  InputPanel,
+  OutputPanel,
+} from "@/components/converter/layout";
+import {
+  EmptyState,
+  FileSelector,
+  Header,
+  OutputHeader,
+  ResultItem,
+} from "@/components/converter/ui";
 import {
   Button,
   Select,
@@ -9,20 +21,8 @@ import {
   SelectValue,
 } from "@/components/ui";
 import { csr } from "@/lib/compat";
+import { convertAudio } from "@/lib/ffmpeg";
 import * as gtag from "@/lib/gtag";
-import {
-  ConverterLayout,
-  InputPanel,
-  OutputPanel,
-} from "@/components/converter/layout";
-import {
-  Header,
-  FileSelector,
-  ResultItem,
-  EmptyState,
-  OutputHeader,
-} from "@/components/converter/ui";
-import JSZip from "jszip";
 
 interface ConvertedFile {
   url: string;
@@ -169,9 +169,9 @@ export function AudioConverter({
 
         {convertedFiles.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {convertedFiles.map((file, i) => (
+            {convertedFiles.map((file) => (
               <ResultItem
-                key={i}
+                key={file.url}
                 url={file.url}
                 name={file.name}
                 type="audio"

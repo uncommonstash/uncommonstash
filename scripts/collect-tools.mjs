@@ -1,8 +1,8 @@
-import fs from "fs/promises";
-import path from "path";
-import * as yaml from "js-yaml";
-import { existsSync } from "fs";
 import * as RadixIcons from "@radix-ui/react-icons";
+import { existsSync } from "fs";
+import fs from "fs/promises";
+import * as yaml from "js-yaml";
+import path from "path";
 
 const candidates = [
   path.resolve(process.cwd(), "src/pages"),

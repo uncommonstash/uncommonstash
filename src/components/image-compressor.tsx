@@ -1,25 +1,25 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import {
-  initializeImageMagick,
   ImageMagick,
+  initializeImageMagick,
   MagickFormat,
 } from "@imagemagick/magick-wasm";
 import JSZip from "jszip";
-import * as gtag from "@/lib/gtag";
+import { Download } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
   ConverterLayout,
   InputPanel,
   OutputPanel,
 } from "@/components/converter/layout";
 import {
-  Header,
-  FileSelector,
-  OutputHeader,
   EmptyState,
+  FileSelector,
+  Header,
+  OutputHeader,
 } from "@/components/converter/ui";
-import { Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import * as gtag from "@/lib/gtag";
 
 const formatBytes = (bytes: number, decimals = 2) => {
   if (bytes === 0) return "0 Bytes";
@@ -239,7 +239,7 @@ export const ImageCompressor = () => {
 
         {compressedImages.length > 0 ? (
           <div className="grid gap-6">
-            {compressedImages.map((img, i) => {
+            {compressedImages.map((img) => {
               const reduction =
                 ((img.originalSize - img.compressedSize) / img.originalSize) *
                 100;
@@ -247,7 +247,7 @@ export const ImageCompressor = () => {
 
               return (
                 <div
-                  key={i}
+                  key={img.compressedUrl}
                   className="bg-card border rounded-xl overflow-hidden shadow-sm"
                 >
                   <div className="p-4 grid md:grid-cols-2 gap-4">

@@ -1,3 +1,7 @@
+import { DownloadIcon } from "@radix-ui/react-icons";
+import { useEffect, useState } from "react";
+import { BackLink } from "@/components/back-link";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -6,12 +10,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
 import { csr } from "@/lib/compat";
 import * as gtag from "@/lib/gtag";
-import { DownloadIcon } from "@radix-ui/react-icons";
-import { BackLink } from "@/components/back-link";
 
 export default csr(function OnlineNotepadPage() {
   const [text, setText] = useState("");

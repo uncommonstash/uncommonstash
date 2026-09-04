@@ -1,6 +1,6 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import ImageConvertPage from "./image-convert";
 import { ImageMagick, initializeImageMagick } from "@imagemagick/magick-wasm";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import ImageConvertPage from "./image-convert";
 
 jest.mock("@imagemagick/magick-wasm");
 

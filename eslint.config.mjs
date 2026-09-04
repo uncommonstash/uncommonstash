@@ -1,7 +1,7 @@
-import prettierConfig from "eslint-config-prettier";
-import reactHooksPlugin from "eslint-plugin-react-hooks";
 import typescriptEslint from "@typescript-eslint/eslint-plugin";
 import typescriptParser from "@typescript-eslint/parser";
+import prettierConfig from "eslint-config-prettier";
+import reactHooksPlugin from "eslint-plugin-react-hooks";
 
 export default [
   {

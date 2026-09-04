@@ -1,12 +1,12 @@
+import * as Icons from "@radix-ui/react-icons";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { useDebounce } from "use-debounce";
+import AppBar from "@/components/app-bar";
+import { Input } from "@/components/ui";
 import { csr } from "@/lib/compat";
 import * as gtag from "@/lib/gtag";
 import tools from "../lib/tools.json";
-import { Input } from "@/components/ui";
-import { useState, useEffect, useMemo } from "react";
-import { useDebounce } from "use-debounce";
-import { Link } from "react-router-dom";
-import * as Icons from "@radix-ui/react-icons";
-import AppBar from "@/components/app-bar";
 
 const Icon = ({ name, ...props }: { name: string; className?: string }) => {
   const IconComponent = (Icons[name as keyof typeof Icons] ??
@@ -66,6 +66,15 @@ export default csr(function HomePage() {
             tool.description.toLowerCase().includes(search.toLowerCase())),
       ),
     [search],
+  );
+
+  // Grid filler cells have no data identity; derive stable ids from the
+  // layout (count + position) outside the render loop instead of index keys.
+  const fillerCount = (columns - (filteredTools.length % columns)) % columns;
+  const fillerIds = useMemo(
+    () =>
+      Array.from({ length: fillerCount }, (_, position) => `empty-${position}`),
+    [fillerCount],
   );
 
   return (
@@ -138,14 +147,8 @@ export default csr(function HomePage() {
                   <p className="text-muted-foreground">{tool.description}</p>
                 </Link>
               ))}
-              {Array.from({
-                length: (columns - (filteredTools.length % columns)) % columns,
-              }).map((_, i) => (
-                <div
-                  key={`empty-${i}`}
-                  className="bg-card h-full"
-                  aria-hidden="true"
-                />
+              {fillerIds.map((id) => (
+                <div key={id} className="bg-card h-full" aria-hidden="true" />
               ))}
             </div>
           )}

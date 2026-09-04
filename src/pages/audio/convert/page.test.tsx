@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { AudioConverter } from "./audio-converter";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import * as ffmpeg from "@/lib/ffmpeg";
+import { AudioConverter } from "./audio-converter";
 
 jest.mock("@/lib/ffmpeg", () => ({
   ...jest.requireActual("@/lib/ffmpeg"),

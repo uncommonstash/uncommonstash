@@ -1,5 +1,5 @@
-import { csr } from "@/lib/compat";
 import { VideoConverter } from "@/components/video-converter";
+import { csr } from "@/lib/compat";
 
 export default csr(function VideoConverterClient() {
   return (

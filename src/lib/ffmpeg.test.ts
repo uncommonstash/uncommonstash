@@ -1,4 +1,4 @@
-import { convertAudio, cutAudio, getFFmpeg, combineAudio } from "./ffmpeg";
+import { combineAudio, convertAudio, cutAudio, getFFmpeg } from "./ffmpeg";
 
 jest.mock("@ffmpeg/ffmpeg", () => ({
   FFmpeg: jest.fn().mockImplementation(() => ({
