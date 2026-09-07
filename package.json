@@ -43,7 +43,7 @@
     "jszip": "^3.10.1",
     "lucide-react": "^1.41.0",
     "qrcode.react": "^4.2.0",
-    "react": "19.2.3",
+    "react": "19.2.8",
     "react-beautiful-dnd": "^13.1.1",
     "react-dom": "19.2.3",
     "react-helmet-async": "^2.0.5",
