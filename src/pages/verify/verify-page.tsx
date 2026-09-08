@@ -69,9 +69,9 @@ export default csr(function VerifyPage() {
       <p className="mt-3 text-muted-foreground">
         Every tool here runs entirely in your browser. Your files never leave
         your device — no uploads, no accounts, no server processing. And you
-        don&apos;t have to take our word for it: below is the exact
-        open-source code this deployment runs, plus everything you need to
-        confirm it yourself.
+        don&apos;t have to take our word for it: below is the exact open-source
+        code this deployment runs, plus everything you need to confirm it
+        yourself.
       </p>
 
       {info ? (
@@ -81,8 +81,8 @@ export default csr(function VerifyPage() {
               The code behind your privacy
             </h2>
             <p className="mt-2 text-muted-foreground">
-              The privacy you get here comes from open code, not promises.
-              This deployment runs source{" "}
+              The privacy you get here comes from open code, not promises. This
+              deployment runs source{" "}
               <a
                 className="font-mono underline underline-offset-4"
                 href={info.commitUrl}
@@ -91,9 +91,8 @@ export default csr(function VerifyPage() {
               >
                 {info.commit.slice(0, 12)}
               </a>
-              , published {info.commitTime.slice(0, 10)} — public for anyone
-              to audit. The full code is open, the dependency list is
-              published{" "}
+              , published {info.commitTime.slice(0, 10)} — public for anyone to
+              audit. The full code is open, the dependency list is published{" "}
               <a className="underline underline-offset-4" href={info.sbom}>
                 here
               </a>
@@ -129,9 +128,9 @@ export default csr(function VerifyPage() {
           <section>
             <h2 className="text-lg font-semibold">Trust, verified</h2>
             <p className="mt-2 text-muted-foreground">
-              The strongest proof needs no trust at all: rebuild from the
-              public source and compare. Matching hashes mean this site runs
-              exactly the open code that keeps your files on your device.
+              The strongest proof needs no trust at all: rebuild from the public
+              source and compare. Matching hashes mean this site runs exactly
+              the open code that keeps your files on your device.
             </p>
             <div className="mt-4 space-y-4">
               <div>
