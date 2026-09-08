@@ -735,11 +735,12 @@ export default csr(function SysdiagnosePage() {
           <div className="w-44 ml-auto">
             <BackLink className="mb-0" />
             <Button
-              className="mt-6 w-full justify-start gap-2"
+              size="sm"
+              className="mt-6 w-full justify-start gap-2 rounded-full px-3"
               onClick={resetEntries}
             >
               <Upload className="h-4 w-4" />
-              Load another
+              Upload
             </Button>
             <nav className="mt-5 space-y-1">
               {(
@@ -892,7 +893,7 @@ export default csr(function SysdiagnosePage() {
                                   closeDelay={100}
                                 >
                                   <HoverCard.Trigger asChild>
-                                    <span className="cursor-default text-xs font-medium underline decoration-dotted decoration-muted-foreground/50 underline-offset-4">
+                                    <span className="cursor-default text-sm font-medium underline decoration-dotted decoration-muted-foreground/50 underline-offset-4">
                                       {a.name}
                                     </span>
                                   </HoverCard.Trigger>
@@ -974,7 +975,11 @@ export default csr(function SysdiagnosePage() {
                         : ""}
                     </span>
                   </div>
-                  <div className="max-h-[calc(100vh-9rem)] overflow-auto border-y font-mono text-xs">
+                  <ScrollArea
+                    type="always"
+                    className="h-[calc(100vh-9rem)] border-y"
+                    viewportClassName="font-mono text-xs"
+                  >
                     {logLines.slice(0, 500).map((l) => (
                       <details
                         key={`${l.source}:${l.ts}:${l.process}:${l.level}:${l.message}`}
@@ -992,11 +997,7 @@ export default csr(function SysdiagnosePage() {
                         </pre>
                       </details>
                     ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Note: .logarchive binary decoding is partial — showing
-                    extractable strings; use Mac Console for full decode.
-                  </p>
+                  </ScrollArea>
                 </section>
               </TabsContent>
               <TabsContent value="files" className="w-full">
