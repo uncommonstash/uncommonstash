@@ -10,18 +10,85 @@ const CORE_VERSION = "0.12.10";
 // doesn't exist and the core is loaded via `await import(coreURL).default`.
 // The UMD build has no default export (and its side-effect global gets
 // clobbered), so it fails with "failed to import ffmpeg-core.js".
-const CORE_URL = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VERSION}/dist/esm/ffmpeg-core.js`;
-const WASM_URL = `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VERSION}/dist/esm/ffmpeg-core.wasm`;
+const singleThread = {
+  coreURL: `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VERSION}/dist/esm/ffmpeg-core.js`,
+  wasmURL: `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${CORE_VERSION}/dist/esm/ffmpeg-core.wasm`,
+};
+// Multithreaded core needs SharedArrayBuffer, i.e. a cross-origin-isolated
+// document (see public/coi-serviceworker.js). Same version, plus worker.
+// Self-hosted under /engine (see scripts/prebuild-engine.mjs): the core
+// spawns its pthread worker from a URL relative to itself, and classic
+// workers cannot be constructed cross-origin, so the CDN build can't work.
+const multiThread = {
+  coreURL: "/engine/ffmpeg-core.js",
+  wasmURL: "/engine/ffmpeg-core.wasm",
+};
+
+function engineUrls() {
+  if (typeof window !== "undefined" && window.crossOriginIsolated) {
+    return { ...multiThread, threads: "multi" as const };
+  }
+  return { ...singleThread, threads: "single" as const };
+}
+
+let multiThreaded = false;
+
+/** True once the multithreaded engine has been loaded. */
+export function isMultiThreaded() {
+  return multiThreaded;
+}
+
+// The MT build deadlocks when the encoder fans out too far inside 32-bit
+// wasm (reproduced: hangs at 6+ threads, healthy at <=4 — while x264's own
+// auto-selection stays clear of the zone). Scale with the machine but never
+// exceed the proven-safe ceiling, and never drop below 2.
+function threadCount(): number {
+  const cores =
+    typeof navigator !== "undefined" && navigator.hardwareConcurrency > 0
+      ? navigator.hardwareConcurrency
+      : 4;
+  return Math.max(2, Math.min(Math.floor(cores / 2), 4));
+}
+
+function threadArgs(): string[] {
+  return multiThreaded ? ["-threads", String(threadCount())] : [];
+}
 
 export async function getFFmpeg() {
   if (!ffmpeg) {
+    const engine = engineUrls();
+    multiThreaded = engine.threads === "multi";
+    console.info(`[ffmpeg] loading ${engine.threads}-thread core`);
     ffmpeg = new FFmpeg();
     await ffmpeg.load({
-      coreURL: CORE_URL,
-      wasmURL: WASM_URL,
+      coreURL: engine.coreURL,
+      wasmURL: engine.wasmURL,
     });
   }
   return ffmpeg;
+}
+
+/**
+ * Run an exec command, dropping the engine singleton if the wasm instance
+ * blows up. After an out-of-bounds trap or abort the heap/threads are left
+ * in an undefined state — without this reset, every later conversion fails
+ * identically until page reload. The next call transparently reloads fresh.
+ */
+async function runExec(args: string[]): Promise<number> {
+  const instance = await getFFmpeg();
+  try {
+    return await instance.exec(args);
+  } catch (error) {
+    try {
+      instance.terminate();
+    } catch {
+      // Already dead — just drop the reference below.
+    }
+    if (instance === ffmpeg) {
+      ffmpeg = null;
+    }
+    throw error;
+  }
 }
 
 export async function cutAudio(
@@ -32,7 +99,7 @@ export async function cutAudio(
   const ffmpeg = await getFFmpeg();
   await ffmpeg.writeFile(file.name, await fetchFile(file));
 
-  await ffmpeg.exec([
+  await runExec([
     "-i",
     file.name,
     "-ss",
@@ -56,7 +123,7 @@ export async function convertAudio(
   await ffmpeg.writeFile(file.name, await fetchFile(file));
 
   const outputFilename = `output.${outputFormat}`;
-  await ffmpeg.exec(["-i", file.name, outputFilename]);
+  await runExec(["-i", file.name, ...threadArgs(), outputFilename]);
 
   const data = await ffmpeg.readFile(outputFilename);
   return new Blob([toBlobPart(data)], { type: `audio/${outputFormat}` });
@@ -92,21 +159,30 @@ export async function convertVideo(
     // "memory access out of bounds" on the default VP9 encoder, so force
     // VP8 (libvpx) for .webm output. Verified: mp4->mp4, mp4->gif and
     // mp4->webm(vp8) all return exit code 0.
+    // Same story for audio: ffmpeg's default webm audio encoder is Opus
+    // (libopus), which OOBs on real-world 48kHz input in this build
+    // (ffmpegwasm/ffmpeg.wasm#867: undersized Emscripten stack for libopus
+    // at 48kHz; lower rates work, hence synthetic test audio never caught
+    // it — fixed upstream by PR #824, unreleased as of core 0.12.10).
+    // So force Vorbis (libvorbis) — also valid in WebM, verified ret=0.
     const args =
       outputFormat === "webm"
         ? [
             "-i",
             file.name,
+            ...threadArgs(),
             "-c:v",
             "libvpx",
             "-crf",
             "30",
             "-b:v",
             "0",
+            "-c:a",
+            "libvorbis",
             outputName,
           ]
-        : ["-i", file.name, outputName];
-    await ffmpeg.exec(args);
+        : ["-i", file.name, ...threadArgs(), outputName];
+    await runExec(args);
     const data = await ffmpeg.readFile(outputName);
 
     const blob = new Blob([toBlobPart(data)], { type: outputMimeType });
@@ -143,13 +219,14 @@ export async function combineAudio(files: File[]): Promise<Blob> {
     // This is necessary because the concat demuxer with "copy" requires
     // all input files to have identical stream parameters (sample rate, channels, codec).
     // Re-encoding ensures the output is a single consistent stream.
-    await ffmpeg.exec([
+    await runExec([
       "-f",
       "concat",
       "-safe",
       "0",
       "-i",
       "concat_list.txt",
+      ...threadArgs(),
       "output.mp3",
     ]);
 
