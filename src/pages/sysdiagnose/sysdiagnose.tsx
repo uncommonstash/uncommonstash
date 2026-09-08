@@ -4,6 +4,7 @@ import { BackLink } from "@/components/back-link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -487,30 +488,28 @@ export default csr(function SysdiagnosePage() {
   return (
     <div className="h-screen overflow-hidden bg-secondary/30 [&_*]:shadow-none">
       <div className="flex h-full">
-        <div className="flex-1 min-w-0" aria-hidden />
-        <div className="flex flex-none w-[min(72rem,100%)]">
-          <aside
-            className="w-52 shrink-0 overflow-y-auto p-4"
-            aria-label="Sections"
-          >
-            <BackLink />
-            <nav className="mt-4 space-y-1">
-              {(["battery", "logs", "wifi", "files"] as const).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  disabled={t === "wifi"}
-                  onClick={() => setTab(t === "wifi" ? tab : t)}
-                  className={`w-full text-left px-3 py-2 rounded capitalize text-sm font-medium ${tab === t ? "bg-background border" : "text-muted-foreground"} ${t === "wifi" ? "opacity-40" : ""}`}
-                >
-                  {t}
-                  {t === "wifi" ? " (soon)" : ""}
-                </button>
-              ))}
-            </nav>
-          </aside>
-          <main className="flex-1 min-w-0 bg-background overflow-y-auto">
-          <div className="w-full px-4 sm:px-6 py-4">
+        <aside
+          className="w-52 shrink-0 overflow-y-auto p-4"
+          aria-label="Sections"
+        >
+          <BackLink />
+          <nav className="mt-4 space-y-1">
+            {(["battery", "logs", "wifi", "files"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                disabled={t === "wifi"}
+                onClick={() => setTab(t === "wifi" ? tab : t)}
+                className={`w-full text-left px-3 py-2 rounded capitalize text-sm font-medium ${tab === t ? "bg-background border" : "text-muted-foreground"} ${t === "wifi" ? "opacity-40" : ""}`}
+              >
+                {t}
+                {t === "wifi" ? " (soon)" : ""}
+              </button>
+            ))}
+          </nav>
+        </aside>
+        <ScrollArea type="always" className="flex-1 min-w-0 h-full bg-background">
+          <main className="w-full max-w-5xl px-4 sm:px-6 py-4">
             <div className="flex items-center justify-between mb-4">
               <h1 className="text-xl font-semibold">Sysdiagnose</h1>
               <Button size="sm" onClick={resetEntries}>
@@ -792,10 +791,8 @@ export default csr(function SysdiagnosePage() {
                 </Card>
               </TabsContent>
             </Tabs>
-          </div>
-        </main>
-        </div>
-        <div className="flex-1 min-w-0 bg-background" aria-hidden />
+          </main>
+        </ScrollArea>
       </div>
     </div>
   );
