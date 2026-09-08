@@ -44,10 +44,11 @@ jobs:
       - name: Publish SBOM with site
         run: cp sbom.cyclonedx.json dist/sbom.cyclonedx.json
       - name: Generate checksums + tarball
+        env:
+          SOURCE_DATE_EPOCH: ${{ env.SOURCE_DATE_EPOCH }}
         run: |
-          (cd dist && sha256sum $(find . -type f | sort) > sha256sums.txt)
-          tar -czf dist.tar.gz dist
-          sha256sum dist.tar.gz | tee dist.tar.gz.sha256
+          (cd dist && LC_ALL=C find . -type f ! -name sha256sums.txt | LC_ALL=C sort | xargs sha256sum > sha256sums.txt)
+          node scripts/make-dist-tarball.mjs
       - uses: actions/attest-build-provenance@96b4a1ef7235a096b17240c259729fdd70c83d45 # v2.4.0
         with:
           subject-path: dist.tar.gz
