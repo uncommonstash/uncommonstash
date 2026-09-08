@@ -34,3 +34,15 @@ jobs:
       - run: npx tsc -b --pretty false
       - run: pnpm test --runInBand --silent
       - run: pnpm build
+      - name: Guard against absolute paths / sourcemaps in dist
+        run: |
+          if find dist -name '*.map' | grep -q .; then
+            echo "ERROR: sourcemap files found in dist/ (can embed absolute paths)"; exit 1
+          fi
+          if grep -rIl --fixed-strings "$GITHUB_WORKSPACE" dist/ | grep -q .; then
+            echo "ERROR: absolute checkout path leaked into dist/"; exit 1
+          fi
+          if grep -rIl --fixed-strings '/home/runner' dist/ | grep -q .; then
+            echo "ERROR: runner absolute path leaked into dist/"; exit 1
+          fi
+          echo "path guard: clean"
