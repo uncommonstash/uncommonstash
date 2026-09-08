@@ -26,6 +26,10 @@ export default defineConfig({
   build: {
     outDir: "dist",
     chunkSizeWarningLimit: 1200,
+    // Keep builds reproducible: no sourcemaps that can embed absolute
+    // checkout paths. If sourcemaps are ever enabled, they must strip
+    // absolute paths (sourcesContent:false + relative names).
+    sourcemap: false,
   },
   // @ffmpeg/ffmpeg resolves its class-worker script relative to its own
   // module URL. Vite's esbuild pre-bundling rewrites that URL to a bogus
