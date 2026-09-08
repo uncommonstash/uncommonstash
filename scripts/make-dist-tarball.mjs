@@ -1,9 +1,10 @@
 // Portable deterministic tarball: sorted entries, fixed mtime/uid/gid,
 // gzip without timestamp/name. Works with BSD + GNU toolchains.
-import { createGzip } from "node:zlib";
+
 import fs from "node:fs";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
+import { createGzip } from "node:zlib";
 
 const dist = path.resolve(process.cwd(), "dist");
 const outTar = path.resolve(process.cwd(), "dist.tar");
