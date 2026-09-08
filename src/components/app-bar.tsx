@@ -34,7 +34,7 @@ function BuildInfoPopover() {
           onMouseLeave={() => setOpen(false)}
           aria-label="About this deployment"
           title="About this deployment"
-          className="flex items-center text-muted-foreground hover:text-foreground transition-colors"
+          className="flex items-center text-muted-foreground hover:text-foreground transition-colors outline-none focus:outline-none focus-visible:outline-none"
         >
           <Info className="w-4 h-4" />
         </button>
@@ -47,7 +47,7 @@ function BuildInfoPopover() {
           onMouseEnter={() => setOpen(true)}
           onMouseLeave={() => setOpen(false)}
           onOpenAutoFocus={(event) => event.preventDefault()}
-          className="z-50 w-72 rounded-md border bg-card p-4 shadow-lg"
+          className="z-50 w-72 rounded-md border bg-card p-4 shadow-lg outline-none focus:outline-none focus-visible:outline-none"
         >
           <p className="text-sm text-muted-foreground">
             {info ? (
