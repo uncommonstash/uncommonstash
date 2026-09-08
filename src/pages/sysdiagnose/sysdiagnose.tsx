@@ -381,17 +381,11 @@ export default csr(function SysdiagnosePage() {
       <div className="min-h-screen bg-secondary/30 p-4 [&_*]:shadow-none">
         <div className="max-w-6xl mx-auto">
           <BackLink />
-          <Card className="max-w-2xl w-full mx-auto mt-6">
-            <CardHeader>
-              <p className="text-sm">
-                Sysdiagnose — private, in-browser iPhone analysis; files never
-                leave your device.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div className="flex min-h-[80vh] items-center justify-center">
+            <div className="w-full max-w-2xl space-y-4">
               {busy ? (
                 <div
-                  className="w-full rounded-xl border p-10 text-center"
+                  className="w-full p-10 text-center"
                   role="status"
                   aria-live="polite"
                 >
@@ -460,11 +454,13 @@ export default csr(function SysdiagnosePage() {
                 </li>
                 <li>Share via AirDrop, then drop the .tar.gz above.</li>
               </ol>
-              <Button variant="secondary" onClick={() => void loadSample()}>
-                Try with sample data
-              </Button>
-            </CardContent>
-          </Card>
+              {import.meta.env.DEV ? (
+                <Button variant="secondary" onClick={() => void loadSample()}>
+                  Try with sample data
+                </Button>
+              ) : null}
+            </div>
+          </div>
         </div>
       </div>
     );
