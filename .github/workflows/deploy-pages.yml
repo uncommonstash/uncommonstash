@@ -19,10 +19,15 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    env:
+      TZ: UTC
+      LC_ALL: C.UTF-8
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.1.7
         with:
           persist-credentials: false
+      - name: Set SOURCE_DATE_EPOCH from commit time
+        run: echo "SOURCE_DATE_EPOCH=$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
       - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4.1.0
         with:
           version: 10.17.1
