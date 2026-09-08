@@ -1,6 +1,6 @@
 import * as Popover from "@radix-ui/react-popover";
 import { Info } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 interface BuildInfoSummary {
@@ -12,6 +12,27 @@ interface BuildInfoSummary {
 function BuildInfoPopover() {
   const [open, setOpen] = useState(false);
   const [info, setInfo] = useState<BuildInfoSummary | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Grace period so the pointer can travel the gap between trigger and
+  // content without the popover dismissing mid-trip.
+  const scheduleClose = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setOpen(false), 200);
+  };
+  const cancelClose = () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+    setOpen(true);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    };
+  }, []);
 
   useEffect(() => {
     fetch("/build-info.json")
@@ -30,8 +51,8 @@ function BuildInfoPopover() {
       <Popover.Trigger asChild>
         <button
           type="button"
-          onMouseEnter={() => setOpen(true)}
-          onMouseLeave={() => setOpen(false)}
+          onMouseEnter={cancelClose}
+          onMouseLeave={scheduleClose}
           aria-label="About this deployment"
           title="About this deployment"
           className="flex items-center text-muted-foreground hover:text-foreground transition-colors outline-none focus:outline-none focus-visible:outline-none"
@@ -44,8 +65,8 @@ function BuildInfoPopover() {
           side="bottom"
           align="start"
           sideOffset={8}
-          onMouseEnter={() => setOpen(true)}
-          onMouseLeave={() => setOpen(false)}
+          onMouseEnter={cancelClose}
+          onMouseLeave={scheduleClose}
           onOpenAutoFocus={(event) => event.preventDefault()}
           className="z-50 w-72 rounded-md border bg-card p-4 shadow-lg outline-none focus:outline-none focus-visible:outline-none"
         >
