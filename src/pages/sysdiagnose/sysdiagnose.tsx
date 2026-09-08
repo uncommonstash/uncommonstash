@@ -485,11 +485,14 @@ export default csr(function SysdiagnosePage() {
   }
 
   return (
-    <div className="min-h-screen bg-secondary/30 p-4 [&_*]:shadow-none">
-      <div className="max-w-6xl mx-auto">
-        <BackLink />
-        <div className="flex gap-4 mt-2">
-          <aside className="w-44 shrink-0 space-y-1" aria-label="Sections">
+    <div className="h-screen overflow-hidden bg-secondary/30 [&_*]:shadow-none">
+      <div className="flex h-full">
+        <aside
+          className="w-52 shrink-0 overflow-y-auto p-4"
+          aria-label="Sections"
+        >
+          <BackLink />
+          <nav className="mt-4 space-y-1">
             {(["battery", "logs", "wifi", "files"] as const).map((t) => (
               <button
                 key={t}
@@ -502,8 +505,10 @@ export default csr(function SysdiagnosePage() {
                 {t === "wifi" ? " (soon)" : ""}
               </button>
             ))}
-          </aside>
-          <main className="flex-1 min-w-0 w-full bg-background border rounded-xl p-4 sm:p-6 min-h-[calc(100vh-8rem)]">
+          </nav>
+        </aside>
+        <main className="flex-1 min-w-0 bg-background overflow-y-auto">
+          <div className="max-w-5xl mx-auto w-full px-4 sm:px-6 py-4">
             <div className="flex items-center justify-between mb-4">
               <h1 className="text-xl font-semibold">Sysdiagnose</h1>
               <Button size="sm" onClick={resetEntries}>
@@ -785,8 +790,8 @@ export default csr(function SysdiagnosePage() {
                 </Card>
               </TabsContent>
             </Tabs>
-          </main>
-        </div>
+          </div>
+        </main>
       </div>
     </div>
   );
