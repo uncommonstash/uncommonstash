@@ -18,12 +18,20 @@ export default function AppBar() {
             />
             UncommonStash
           </Link>
-          <Link
-            to="/blog"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Blog
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/verify"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Verify
+            </Link>
+            <Link
+              to="/blog"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Blog
+            </Link>
+          </div>
         </div>
       </div>
     </header>

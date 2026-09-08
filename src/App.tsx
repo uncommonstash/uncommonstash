@@ -30,6 +30,7 @@ import RandomNumberGeneratorPage from "@/pages/random-number-generator/random-nu
 import TextToCronPage from "@/pages/text-to-cron/text-to-cron";
 import TokenGenerator from "@/pages/token-generator/token-generator";
 import UTMBuilderPage from "@/pages/utm-builder/utm-builder";
+import VerifyPage from "@/pages/verify/verify-page";
 import WordCounterPage from "@/pages/word-counter/word-counter";
 
 // Lazy (heavy WASM) pages — responsiveness MVP
@@ -427,6 +428,17 @@ export default function App() {
                   description="Online word counter tool. Count words, characters, and analyze text statistics."
                 >
                   <WordCounterPage ssr={true} />
+                </RouteWithMeta>
+              }
+            />
+            <Route
+              path="/verify"
+              element={
+                <RouteWithMeta
+                  title="Verify this deployment"
+                  description="Check which open-source commit this deployment was built from and how to rebuild it byte-for-byte."
+                >
+                  <VerifyPage ssr={true} />
                 </RouteWithMeta>
               }
             />
