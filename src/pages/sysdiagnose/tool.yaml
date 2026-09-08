@@ -1,4 +1,4 @@
 name: Sysdiagnose
-description: Analyze iPhone sysdiagnose archives locally — battery drain and logs.
-ready: false
+description: Analyze iPhone sysdiagnose archives locally.
+ready: true
 icon: ActivityLogIcon
