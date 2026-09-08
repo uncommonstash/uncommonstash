@@ -160,8 +160,11 @@ export async function convertVideo(
     // VP8 (libvpx) for .webm output. Verified: mp4->mp4, mp4->gif and
     // mp4->webm(vp8) all return exit code 0.
     // Same story for audio: ffmpeg's default webm audio encoder is Opus
-    // (libopus), which OOBs on real-world AAC input in this build, so force
-    // Vorbis (libvorbis) — also valid in WebM, verified ret=0.
+    // (libopus), which OOBs on real-world 48kHz input in this build
+    // (ffmpegwasm/ffmpeg.wasm#867: undersized Emscripten stack for libopus
+    // at 48kHz; lower rates work, hence synthetic test audio never caught
+    // it — fixed upstream by PR #824, unreleased as of core 0.12.10).
+    // So force Vorbis (libvorbis) — also valid in WebM, verified ret=0.
     const args =
       outputFormat === "webm"
         ? [
