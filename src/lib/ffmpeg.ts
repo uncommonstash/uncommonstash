@@ -159,6 +159,9 @@ export async function convertVideo(
     // "memory access out of bounds" on the default VP9 encoder, so force
     // VP8 (libvpx) for .webm output. Verified: mp4->mp4, mp4->gif and
     // mp4->webm(vp8) all return exit code 0.
+    // Same story for audio: ffmpeg's default webm audio encoder is Opus
+    // (libopus), which OOBs on real-world AAC input in this build, so force
+    // Vorbis (libvorbis) — also valid in WebM, verified ret=0.
     const args =
       outputFormat === "webm"
         ? [
@@ -171,6 +174,8 @@ export async function convertVideo(
             "30",
             "-b:v",
             "0",
+            "-c:a",
+            "libvorbis",
             outputName,
           ]
         : ["-i", file.name, ...threadArgs(), outputName];
