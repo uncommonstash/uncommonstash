@@ -2,12 +2,17 @@ import { parseBatteryText, parseLogText, parseTar, redact } from "./lib";
 
 describe("sysdiagnose lib", () => {
   it("parses battery csv", () => {
-    const pts = parseBatteryText("2024-05-01T10:00:00Z,92,com.a.app,5\n2024-05-01T10:10:00Z,88,com.a.app,9\n");
+    const pts = parseBatteryText(
+      "2024-05-01T10:00:00Z,92,com.a.app,5\n2024-05-01T10:10:00Z,88,com.a.app,9\n",
+    );
     expect(pts).toHaveLength(2);
     expect(pts[0].level).toBe(92);
   });
   it("parses logs", () => {
-    const lines = parseLogText("a.log", "2024-05-01T10:00:01Z [Error] SpringBoard[12]: boom\nhello");
+    const lines = parseLogText(
+      "a.log",
+      "2024-05-01T10:00:01Z [Error] SpringBoard[12]: boom\nhello",
+    );
     expect(lines.length).toBe(2);
     expect(lines[0].level).toBe("error");
   });

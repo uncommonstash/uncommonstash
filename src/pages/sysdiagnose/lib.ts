@@ -8,9 +8,15 @@ export interface ArchiveEntry {
 
 export function classifyEntry(path: string): ArchiveEntry["kind"] {
   const p = path.toLowerCase();
-  if (p.endsWith(".plsql") || p.endsWith(".sqlite") || p.endsWith(".db")) return "sqlite";
+  if (p.endsWith(".plsql") || p.endsWith(".sqlite") || p.endsWith(".db"))
+    return "sqlite";
   if (p.endsWith(".plist")) return "plist";
-  if (p.endsWith(".log") || p.endsWith(".txt") || p.endsWith(".ips") || p.includes("system_logs"))
+  if (
+    p.endsWith(".log") ||
+    p.endsWith(".txt") ||
+    p.endsWith(".ips") ||
+    p.includes("system_logs")
+  )
     return "text";
   return "binary";
 }
@@ -21,7 +27,10 @@ export function parseTar(buffer: Uint8Array): ArchiveEntry[] {
   const dec = new TextDecoder();
   let offset = 0;
   const readStr = (off: number, len: number) =>
-    dec.decode(buffer.subarray(off, off + len)).replace(/\0.*$/, "").trim();
+    dec
+      .decode(buffer.subarray(off, off + len))
+      .replace(/\0.*$/, "")
+      .trim();
   while (offset + 512 <= buffer.length) {
     const name = readStr(offset, 100);
     if (!name) break;
@@ -52,9 +61,9 @@ export async function ingestFile(file: File | Blob): Promise<ArchiveEntry[]> {
   const isGzip = bytes.length > 2 && bytes[0] === 0x1f && bytes[1] === 0x8b;
   if (isGzip && typeof DecompressionStream !== "undefined") {
     const stream = new Response(
-      new Blob([bytes as unknown as BlobPart]).stream().pipeThrough(
-        new DecompressionStream("gzip"),
-      ),
+      new Blob([bytes as unknown as BlobPart])
+        .stream()
+        .pipeThrough(new DecompressionStream("gzip")),
     );
     bytes = new Uint8Array(await (await stream.blob()).arrayBuffer());
   }
@@ -68,7 +77,14 @@ export async function ingestFile(file: File | Blob): Promise<ArchiveEntry[]> {
           `sysdiag-${e.path.replace(/[^a-z0-9]+/gi, "-").slice(-80)}`,
           { create: true },
         );
-        const w = await (h as unknown as { createWritable: () => Promise<{ write: (d: Uint8Array) => Promise<void>; close: () => Promise<void> }> }).createWritable();
+        const w = await (
+          h as unknown as {
+            createWritable: () => Promise<{
+              write: (d: Uint8Array) => Promise<void>;
+              close: () => Promise<void>;
+            }>;
+          }
+        ).createWritable();
         await w.write(e.data);
         await w.close();
       }
@@ -91,15 +107,18 @@ export function parseLogText(source: string, text: string): LogLine[] {
   const lines = text.split(/\r?\n/).slice(0, 20000);
   const out: LogLine[] = [];
   const re =
-    /^(?<ts>\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d+)?)?\s*(?:\[(?<lvl>Error|Fault|Default|Info)\])?\s*(?<proc>[\w.\-]+(?:\[\d+\])?)?:?\s*(?<msg>.*)$/;
+    /^(?<ts>\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)?\s*(?:\[(?<lvl>Error|Fault|Default|Info)\])?\s*(?<proc>[\w.\-]+(?:\[\d+\])?)?:?\s*(?<msg>.*)$/;
   for (const line of lines) {
     if (!line.trim()) continue;
     const m = re.exec(line.slice(0, 2000));
-    const lvl = (m?.groups?.lvl?.toLowerCase() ?? "default") as LogLine["level"];
+    const lvl = (m?.groups?.lvl?.toLowerCase() ??
+      "default") as LogLine["level"];
     out.push({
       ts: m?.groups?.ts ? Date.parse(m.groups.ts) || 0 : 0,
       process: m?.groups?.proc ?? "unknown",
-      level: ["error", "fault", "info", "default"].includes(lvl) ? lvl : "default",
+      level: ["error", "fault", "info", "default"].includes(lvl)
+        ? lvl
+        : "default",
       message: m?.groups?.msg ?? line.slice(0, 2000),
       source,
     });
@@ -154,7 +173,13 @@ export function aggregateBattery(points: BatteryPoint[]): ProcessAggregate[] {
   const map = new Map<string, ProcessAggregate>();
   for (const p of points) {
     const key = p.process ?? "system";
-    const cur = map.get(key) ?? { process: key, samples: 0, avgLevel: 0, wakeups: 0, energy: 0 };
+    const cur = map.get(key) ?? {
+      process: key,
+      samples: 0,
+      avgLevel: 0,
+      wakeups: 0,
+      energy: 0,
+    };
     cur.samples += 1;
     cur.avgLevel += p.level;
     cur.energy += p.energy ?? 0;
@@ -175,18 +200,32 @@ export async function queryPowerlog(
   try {
     const mod = await import("@sqlite.org/sqlite-wasm").catch(() => null);
     if (!mod) return null;
-    const sqlite3 = await (mod as unknown as { default: (opts?: object) => Promise<unknown> }).default();
-    const db = new (sqlite3 as unknown as { oo1: { DB: new (p: string, m: string) => { exec: (o: object) => void; close: () => void } } }).oo1.DB(
-      ":memory:",
-      "rw",
-    );
-    (sqlite3 as unknown as { capi: { sqlite3_deserialize: (...a: unknown[]) => number } });
+    const sqlite3 = await (
+      mod as unknown as { default: (opts?: object) => Promise<unknown> }
+    ).default();
+    const db = new (
+      sqlite3 as unknown as {
+        oo1: {
+          DB: new (
+            p: string,
+            m: string,
+          ) => { exec: (o: object) => void; close: () => void };
+        };
+      }
+    ).oo1.DB(":memory:", "rw");
+    sqlite3 as unknown as {
+      capi: { sqlite3_deserialize: (...a: unknown[]) => number };
+    };
     // Load bytes via executescript using param binding is complex across versions;
     // simplest portable path: write via OPFS/vfs not required for small fixture —
     // use exec with carray import if available, else bail to fallback.
     void data;
     const rows: Array<Record<string, unknown>> = [];
-    db.exec({ sql, rowMode: "object", callback: (r: Record<string, unknown>) => rows.push(r) });
+    db.exec({
+      sql,
+      rowMode: "object",
+      callback: (r: Record<string, unknown>) => rows.push(r),
+    });
     db.close();
     return rows;
   } catch {

@@ -33,6 +33,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-switch": "^1.1.0",
     "@radix-ui/react-tabs": "^1.1.0",
+    "@sqlite.org/sqlite-wasm": "3.53.0-build1",
     "@types/react-beautiful-dnd": "^13.1.8",
     "class-variance-authority": "^0.7.1",
     "cron-parser": "^5.10.0",
