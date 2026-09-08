@@ -37,10 +37,11 @@ const info = {
   attestations: `https://github.com/${REPO}/attestations`,
   ciRuns: `https://github.com/${REPO}/actions/workflows/deploy-pages.yml`,
   rebuild: {
-    checkout: `git clone https://github.com/${REPO}.git && cd uncommonstash && git checkout ${commit}`,
-    build: `pnpm install --frozen-lockfile && SOURCE_DATE_EPOCH=${commitTimeEpoch} pnpm build`,
-    compare:
-      "diff <(cd dist && find . -type f | LC_ALL=C sort | xargs sha256sum) <(curl -s https://uncommonstash.com/sha256sums.txt)",
+    // Intentional line breaks (backslash continuations): render readably
+    // in <pre> and still paste straight into a shell.
+    checkout: `git clone https://github.com/${REPO}.git && \\\n  cd uncommonstash && \\\n  git checkout ${commit}`,
+    build: `pnpm install --frozen-lockfile && \\\n  SOURCE_DATE_EPOCH=${commitTimeEpoch} pnpm build`,
+    compare: `diff <(cd dist && \\\n    find . -type f | LC_ALL=C sort | xargs sha256sum) \\\n  <(curl -s https://uncommonstash.com/sha256sums.txt)`,
   },
   caveats: [
     "This proves the published artifact equals the linked source commit. It does not prove what any single visitor received over the network (CDN/DNS layer).",
