@@ -103,10 +103,10 @@ function BatteryChart({
       ))}
       <path d={geom.d} fill="none" stroke="currentColor" strokeWidth={2} />
       {geom.band.map(
-        (b, i) =>
+        (b) =>
           b.x2 > b.x1 && (
             <rect
-              key={i}
+              key={`${b.x1}-${b.x2}`}
               x={b.x1}
               y={P / 2}
               width={b.x2 - b.x1}
@@ -487,29 +487,48 @@ export default csr(function SysdiagnosePage() {
 
   return (
     <div className="h-screen overflow-hidden bg-secondary/30 [&_*]:shadow-none">
-      <div className="flex h-full">
+      <div
+        className="flex h-full"
+        style={
+          {
+            // Keep the content at the former 5xl width on desktop. On smaller
+            // screens, reserve enough room for the 44-wide navigation column.
+            "--sysdiagnose-content-width": "min(64rem, calc(100vw - 22rem))",
+          } as React.CSSProperties
+        }
+      >
+        {/*
+          Formula layout: sidebar takes (100% - content) / 2, so the content
+          panel is always centered while hugging the sidebar. The unified
+          white right side (panel + gap) is whatever remains.
+        */}
         <aside
-          className="w-52 shrink-0 overflow-y-auto p-4"
+          className="w-[calc((100vw_-_var(--sysdiagnose-content-width))/2)] shrink-0 overflow-y-auto py-4 pl-4 pr-4"
           aria-label="Sections"
         >
-          <BackLink />
-          <nav className="mt-4 space-y-1">
-            {(["battery", "logs", "wifi", "files"] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                disabled={t === "wifi"}
-                onClick={() => setTab(t === "wifi" ? tab : t)}
-                className={`w-full text-left px-3 py-2 rounded capitalize text-sm font-medium ${tab === t ? "bg-background border" : "text-muted-foreground"} ${t === "wifi" ? "opacity-40" : ""}`}
-              >
-                {t}
-                {t === "wifi" ? " (soon)" : ""}
-              </button>
-            ))}
-          </nav>
+          <div className="w-44 ml-auto">
+            <BackLink />
+            <nav className="mt-4 space-y-1">
+              {(["battery", "logs", "wifi", "files"] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  disabled={t === "wifi"}
+                  onClick={() => setTab(t === "wifi" ? tab : t)}
+                  className={`w-full text-left px-3 py-2 rounded capitalize text-sm font-medium ${tab === t ? "bg-background border" : "text-muted-foreground"} ${t === "wifi" ? "opacity-40" : ""}`}
+                >
+                  {t}
+                  {t === "wifi" ? " (soon)" : ""}
+                </button>
+              ))}
+            </nav>
+          </div>
         </aside>
-        <ScrollArea type="always" className="flex-1 min-w-0 h-full bg-background">
-          <main className="w-full max-w-5xl px-4 sm:px-6 py-4">
+        <ScrollArea
+          type="always"
+          className="flex-1 min-w-0 h-full bg-background"
+        >
+          <main className="w-[var(--sysdiagnose-content-width)] max-w-full px-4 sm:px-6 py-4">
             <div className="flex items-center justify-between mb-4">
               <h1 className="text-xl font-semibold">Sysdiagnose</h1>
               <Button size="sm" onClick={resetEntries}>
@@ -753,9 +772,11 @@ export default csr(function SysdiagnosePage() {
                       {processes.slice(0, 5).join(", ")}
                     </div>
                     <div className="max-h-[50vh] overflow-auto rounded border divide-y text-xs font-mono">
-                      {/* biome-ignore lint/suspicious/noArrayIndexKey: log rows have no stable id */}
-                      {logLines.slice(0, 500).map((l, i) => (
-                        <details key={i} className="px-2 py-1">
+                      {logLines.slice(0, 500).map((l) => (
+                        <details
+                          key={`${l.source}:${l.ts}:${l.process}:${l.level}:${l.message}`}
+                          className="px-2 py-1"
+                        >
                           <summary className="cursor-pointer truncate">
                             <span
                               className={`inline-block w-2 h-2 rounded-full mr-2 ${l.level === "error" ? "bg-red-500" : l.level === "fault" ? "bg-orange-500" : "bg-green-500"}`}
