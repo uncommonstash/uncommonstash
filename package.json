@@ -76,7 +76,7 @@
     "marked": "^17.0.1",
     "tailwind-merge": "^2.6.0",
     "tailwindcss": "^4",
-    "typescript": "^5",
+    "typescript": "^7",
     "vite": "^6.3.5",
     "vite-plugin-static-copy": "^2.2.0"
   },
