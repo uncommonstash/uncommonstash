@@ -60,32 +60,31 @@ function BuildInfoPopover() {
       </button>
       {open && (
         <div className="absolute left-0 top-8 z-50 w-72 rounded-md border bg-card p-4 shadow-lg">
-          <p className="text-sm font-semibold">This deployment</p>
-          {info ? (
-            <p className="text-xs text-muted-foreground mt-1">
-              Built from{" "}
-              <a
-                className="underline underline-offset-4 font-mono"
-                href={info.commitUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {info.commit.slice(0, 12)}
-              </a>{" "}
-              ({info.commitTime.slice(0, 10)})
-            </p>
-          ) : (
-            <p className="text-xs text-muted-foreground mt-1">
-              Build provenance unavailable in this environment.
-            </p>
-          )}
-          <Link
-            to="/verify"
-            onClick={() => setOpen(false)}
-            className="inline-block mt-3 text-sm font-medium underline underline-offset-4"
-          >
-            Verify this deployment →
-          </Link>
+          <p className="text-sm text-muted-foreground">
+            {info ? (
+              <>
+                This page was built from{" "}
+                <a
+                  className="underline underline-offset-4 font-mono"
+                  href={info.commitUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {info.commit.slice(0, 12)}
+                </a>{" "}
+                —{" "}
+              </>
+            ) : (
+              <>Build provenance is unavailable here — </>
+            )}
+            <Link
+              to="/verify"
+              onClick={() => setOpen(false)}
+              className="font-medium text-foreground underline underline-offset-4"
+            >
+              verify this deployment →
+            </Link>
+          </p>
         </div>
       )}
     </div>
