@@ -19,7 +19,9 @@ for (const [rel, want] of Object.entries(EXPECTED)) {
   }
   const got = createHash("sha256").update(fs.readFileSync(full)).digest("hex");
   if (got !== want) {
-    console.error(`verify-inputs: HASH MISMATCH ${rel}\n  want ${want}\n  got  ${got}`);
+    console.error(
+      `verify-inputs: HASH MISMATCH ${rel}\n  want ${want}\n  got  ${got}`,
+    );
     failed = true;
   } else {
     console.log(`verify-inputs: ok ${rel} (${got.slice(0, 12)}…)`);
