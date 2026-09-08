@@ -16,6 +16,8 @@ function getPostSlugs() {
     process.exit(1);
   }
   const files = fs.readdirSync(postsDirectory);
+  // Sort for deterministic output across filesystems (readdir order is OS-dependent).
+  files.sort();
   console.log(`Found ${files.length} files in ${postsDirectory}`);
   return files;
 }
@@ -70,8 +72,10 @@ async function getAllPosts() {
 
   return posts
     .filter((post) => post !== null)
-    .sort((post1, post2) =>
-      post1.datePublished > post2.datePublished ? -1 : 1,
+    .sort(
+      (post1, post2) =>
+        (post1.datePublished > post2.datePublished ? -1 : 1) ||
+        post1.slug.localeCompare(post2.slug),
     );
 }
 
@@ -89,7 +93,7 @@ async function run() {
       process.exit(1);
     }
 
-    const fileContent = `export const posts = ${JSON.stringify(posts, null, 2)};`;
+    const fileContent = `export const posts = ${JSON.stringify(posts, null, 2)};\n`;
 
     fs.writeFileSync(outputFile, fileContent);
     console.log(`Generated ${outputFile} with ${posts.length} posts.`);
