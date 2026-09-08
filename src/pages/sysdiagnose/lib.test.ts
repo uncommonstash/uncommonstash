@@ -103,6 +103,43 @@ describe("sysdiagnose lib", () => {
     expect(entries[0].path).toBe("a.txt");
     expect(new TextDecoder().decode(entries[0].data)).toBe("hello");
   });
+  it("parseTar reports continuous scan progress", () => {
+    const files = Array.from({ length: 300 }, (_, i) => ({
+      name: `f${i}.txt`,
+      data: "x",
+    }));
+    // buildTar returns entries; rebuild raw bytes to pass a callback.
+    const enc = new TextEncoder();
+    const chunks: Uint8Array[] = [];
+    for (const f of files) {
+      const h = new Uint8Array(512);
+      enc.encodeInto(f.name, h.subarray(0, 100));
+      enc.encodeInto("1".padStart(11, "0"), h.subarray(124, 135));
+      h[156] = "0".charCodeAt(0);
+      const body = new Uint8Array(512);
+      body.set(enc.encode(f.data));
+      chunks.push(h, body);
+    }
+    chunks.push(new Uint8Array(1024));
+    const total = chunks.reduce((n, c) => n + c.length, 0);
+    const raw = new Uint8Array(total);
+    let at = 0;
+    for (const c of chunks) {
+      raw.set(c, at);
+      at += c.length;
+    }
+    const seen: Array<[number, number, number]> = [];
+    const entries = parseTar(raw, (off, t, n) => seen.push([off, t, n]));
+    expect(entries).toHaveLength(300);
+    expect(seen.length).toBeGreaterThan(0);
+    // Monotonic offsets, constant total, live file counts.
+    for (let i = 1; i < seen.length; i++) {
+      expect(seen[i][0]).toBeGreaterThanOrEqual(seen[i - 1][0]);
+      expect(seen[i][1]).toBe(total);
+      expect(seen[i][2]).toBeGreaterThanOrEqual(seen[i - 1][2]);
+    }
+    expect(seen[seen.length - 1][2]).toBe(300);
+  });
   it("ingestFile reports real progress stages", async () => {
     const tarBytes = (() => {
       const enc = new TextEncoder();

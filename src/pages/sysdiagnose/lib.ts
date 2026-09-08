@@ -24,10 +24,14 @@ export function classifyEntry(path: string): ArchiveEntry["kind"] {
 // Tar parser: plain ustar + PAX extended headers ('x'/'g') + GNU longnames
 // ('L'). Required because real sysdiagnose archives use PAX headers and
 // paths >100 chars (prefix/longname). Caller gunzips first.
-export function parseTar(buffer: Uint8Array): ArchiveEntry[] {
+export function parseTar(
+  buffer: Uint8Array,
+  onProgress?: (offset: number, total: number, files: number) => void,
+): ArchiveEntry[] {
   const entries: ArchiveEntry[] = [];
   const dec = new TextDecoder();
   let offset = 0;
+  let nextReport = 4 * 1024 * 1024;
   let pendingLongName: string | null = null;
   let pendingPaxPath: string | null = null;
   const readStr = (off: number, len: number) =>
@@ -92,7 +96,15 @@ export function parseTar(buffer: Uint8Array): ArchiveEntry[] {
       kind: classifyEntry(name),
       data,
     });
+    // Byte-anchored: fires for many-small-files and few-big-files alike.
+    // postMessage from the worker dispatches even mid-scan, so the main
+    // thread keeps repainting through the blocking loop.
+    if (onProgress && offset >= nextReport) {
+      onProgress(offset, buffer.length, entries.length);
+      nextReport = offset + 4 * 1024 * 1024;
+    }
   }
+  onProgress?.(offset, buffer.length, entries.length);
   return entries;
 }
 

@@ -22,20 +22,21 @@ async function readWithProgress(
   const reader = stream.getReader();
   const chunks: Uint8Array[] = [];
   let read = 0;
-  let lastEmit = 0;
+  let lastEmitted = 0;
+  const EMIT_EVERY = 1024 * 1024; // byte-anchored: smooth at any speed
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
     if (value) {
       chunks.push(value);
       read += value.length;
-      const now = Date.now();
-      if (onProgress && (now - lastEmit > 100 || read >= total)) {
-        lastEmit = now;
+      if (onProgress && (read - lastEmitted >= EMIT_EVERY || read >= total)) {
+        lastEmitted = read;
         onProgress(read);
       }
     }
   }
+  if (onProgress && lastEmitted < read) onProgress(read);
   const out = new Uint8Array(read);
   let at = 0;
   for (const c of chunks) {
@@ -53,7 +54,9 @@ export async function runIngest(
   const total = (file as File).size ?? 0;
   const emit = (p: IngestProgress) => onProgress?.(p);
   const canStream = typeof (file as Blob).stream === "function";
-  // Stage 1: read raw bytes (0 → 0.15). Byte-exact when size is known.
+  // Continuous byte-anchored map: reading 0 → 0.10, decompressing
+  // 0.10 → 0.55, indexing 0.55 → 0.90, storing 0.90 → 0.97, done 1.
+  // No jumps: each stage starts where the previous ends.
   let bytes: Uint8Array;
   if (canStream) {
     bytes = await readWithProgress(
@@ -62,7 +65,7 @@ export async function runIngest(
       (read) =>
         emit({
           stage: "reading",
-          fraction: total > 0 ? 0.15 * (read / total) : 0.07,
+          fraction: total > 0 ? 0.1 * (read / total) : 0.05,
           bytesRead: read,
           bytesTotal: total,
           filesFound: 0,
@@ -72,7 +75,7 @@ export async function runIngest(
     bytes = new Uint8Array(await file.arrayBuffer());
     emit({
       stage: "reading",
-      fraction: 0.15,
+      fraction: 0.1,
       bytesRead: bytes.length,
       bytesTotal: total || bytes.length,
       filesFound: 0,
@@ -80,7 +83,7 @@ export async function runIngest(
   }
   const isGzip = bytes.length > 2 && bytes[0] === 0x1f && bytes[1] === 0x8b;
   if (isGzip && typeof DecompressionStream !== "undefined") {
-    // Stage 2: gunzip (0.15 → 0.7), tracked by compressed bytes consumed.
+    // Tracked by compressed bytes consumed.
     const gzTotal = bytes.length;
     const decompressed = await readWithProgress(
       new Blob([bytes as unknown as BlobPart])
@@ -92,7 +95,7 @@ export async function runIngest(
       (read) =>
         emit({
           stage: "decompressing",
-          fraction: 0.15 + 0.55 * (read / gzTotal),
+          fraction: 0.1 + 0.45 * (read / gzTotal),
           bytesRead: read,
           bytesTotal: total,
           filesFound: 0,
@@ -100,30 +103,40 @@ export async function runIngest(
     );
     bytes = decompressed;
   }
-  // Stage 3: index tar entries (0.7 → 0.9). Synchronous scan; the count is
-  // exact afterwards.
+  // Index tar entries, reporting live byte offset through the scan so the
+  // bar never freezes during the blocking loop.
   emit({
     stage: "indexing",
-    fraction: 0.85,
+    fraction: 0.55,
     bytesRead: total,
     bytesTotal: total,
     filesFound: 0,
   });
   // Let the loading screen paint before the blocking scan.
   await new Promise((r) => setTimeout(r, 0));
-  const entries = parseTar(bytes);
+  const entries = parseTar(bytes, (offset, tarTotal, files) =>
+    emit({
+      stage: "indexing",
+      fraction: 0.55 + 0.35 * (tarTotal > 0 ? offset / tarTotal : 1),
+      bytesRead: total,
+      bytesTotal: total,
+      filesFound: files,
+    }),
+  );
+  // Spill large text/sqlite entries to OPFS when available (best-effort).
   emit({
     stage: "storing",
-    fraction: 0.92,
+    fraction: 0.9,
     bytesRead: total,
     bytesTotal: total,
     filesFound: entries.length,
   });
-  // Spill large text/sqlite entries to OPFS when available (best-effort).
   try {
     const root = await navigator.storage?.getDirectory?.();
     if (root) {
-      for (const e of entries.slice(0, 50)) {
+      const spill = entries.slice(0, 50);
+      let i = 0;
+      for (const e of spill) {
         const h = await root.getFileHandle(
           `sysdiag-${e.path.replace(/[^a-z0-9]+/gi, "-").slice(-80)}`,
           { create: true },
@@ -138,6 +151,14 @@ export async function runIngest(
         ).createWritable();
         await w.write(e.data);
         await w.close();
+        i += 1;
+        emit({
+          stage: "storing",
+          fraction: 0.9 + 0.07 * (i / spill.length),
+          bytesRead: total,
+          bytesTotal: total,
+          filesFound: entries.length,
+        });
       }
     }
   } catch {
