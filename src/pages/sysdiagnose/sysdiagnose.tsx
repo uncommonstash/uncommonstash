@@ -237,6 +237,7 @@ export default csr(function SysdiagnosePage() {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<IngestProgress | null>(null);
   const [fileName, setFileName] = useState("");
+  const [dragging, setDragging] = useState(false);
   const [tab, setTab] = useState("battery");
   const [query, setQuery] = useState("");
   const [regex, setRegex] = useState(false);
@@ -378,7 +379,13 @@ export default csr(function SysdiagnosePage() {
 
   if (entries.length === 0) {
     return (
-      <div className="min-h-screen bg-secondary/30 p-4 [&_*]:shadow-none">
+      // Swallow stray drops outside the button so the browser never
+      // navigates away to a raw .tar.gz.
+      <div
+        className="min-h-screen bg-secondary/30 p-4 [&_*]:shadow-none"
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => e.preventDefault()}
+      >
         <div className="max-w-6xl mx-auto">
           <BackLink />
           <div className="flex min-h-[80vh] items-center justify-center">
@@ -424,7 +431,18 @@ export default csr(function SysdiagnosePage() {
                 <button
                   type="button"
                   onClick={() => fileRef.current?.click()}
-                  className="w-full rounded-xl border-2 border-dashed p-10 text-center hover:bg-background transition"
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragging(true);
+                  }}
+                  onDragLeave={() => setDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragging(false);
+                    const f = e.dataTransfer.files?.[0];
+                    if (f) void load(f);
+                  }}
+                  className={`w-full rounded-xl border-2 border-dashed p-10 text-center transition ${dragging ? "border-primary bg-background" : "hover:bg-background"}`}
                 >
                   <div className="text-lg font-semibold">
                     Drop sysdiagnose_*.tar.gz here
