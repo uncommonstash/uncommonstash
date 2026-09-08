@@ -14,6 +14,8 @@ const outputFile = path.resolve(process.cwd(), "src/lib/tools.json");
 async function findToolYamlFiles(dir) {
   let files = [];
   const items = await fs.readdir(dir, { withFileTypes: true });
+  // Sort for deterministic output across filesystems (readdir order is OS-dependent).
+  items.sort((a, b) => a.name.localeCompare(b.name));
   for (const item of items) {
     const fullPath = path.join(dir, item.name);
     if (item.isDirectory()) {
@@ -40,6 +42,7 @@ async function collectTools() {
   }
   const tools = [];
   const seenSlugs = new Map();
+  toolFiles.sort();
 
   for (const file of toolFiles) {
     const content = await fs.readFile(file, "utf8");
@@ -99,7 +102,8 @@ async function collectTools() {
     });
   }
 
-  await fs.writeFile(outputFile, JSON.stringify(tools, null, 2));
+  tools.sort((a, b) => a.slug.localeCompare(b.slug));
+  await fs.writeFile(outputFile, `${JSON.stringify(tools, null, 2)}\n`);
   console.log(`Collected ${tools.length} tools into ${outputFile}`);
 }
 
