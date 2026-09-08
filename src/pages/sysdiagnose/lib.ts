@@ -21,37 +21,77 @@ export function classifyEntry(path: string): ArchiveEntry["kind"] {
   return "binary";
 }
 
-// Minimal ustar tar parser (supports plain tar; caller gunzips first).
+// Tar parser: plain ustar + PAX extended headers ('x'/'g') + GNU longnames
+// ('L'). Required because real sysdiagnose archives use PAX headers and
+// paths >100 chars (prefix/longname). Caller gunzips first.
 export function parseTar(buffer: Uint8Array): ArchiveEntry[] {
   const entries: ArchiveEntry[] = [];
   const dec = new TextDecoder();
   let offset = 0;
+  let pendingLongName: string | null = null;
+  let pendingPaxPath: string | null = null;
   const readStr = (off: number, len: number) =>
     dec
       .decode(buffer.subarray(off, off + len))
       .replace(/\0.*$/, "")
       .trim();
+  const parsePaxPath = (data: Uint8Array): string | null => {
+    // PAX records: "<len> <key>=<value>\n" — len includes itself.
+    const text = dec.decode(data);
+    let at = 0;
+    let found: string | null = null;
+    while (at < text.length) {
+      const nl = text.indexOf("\n", at);
+      if (nl < 0) break;
+      const line = text.slice(at, nl);
+      const sp = line.indexOf(" ");
+      const eq = line.indexOf("=");
+      if (sp > 0 && eq > sp && line.slice(sp + 1, eq) === "path") {
+        found = line.slice(eq + 1);
+      }
+      at = nl + 1;
+    }
+    return found;
+  };
   while (offset + 512 <= buffer.length) {
-    const name = readStr(offset, 100);
-    if (!name) break;
+    const rawName = readStr(offset, 100);
+    if (!rawName) break;
+    const prefix = readStr(offset + 345, 155);
     const sizeOct = readStr(offset + 124, 12);
     const size = parseInt(sizeOct || "0", 8) || 0;
     const typeflag = String.fromCharCode(buffer[offset + 156] || 0);
     const dataStart = offset + 512;
     const dataEnd = dataStart + size;
     if (dataEnd > buffer.length) break;
-    // Skip AppleDouble sidecar files (._*) — metadata, not real content.
-    if (typeflag !== "5" && !/(^|\/)(\._|\.DS_Store)/.test(name)) {
-      const data = buffer.slice(dataStart, dataEnd);
-      entries.push({
-        path: name,
-        size,
-        mtime: parseInt(readStr(offset + 136, 12) || "0", 8) || 0,
-        kind: classifyEntry(name),
-        data,
-      });
-    }
+    const data = buffer.slice(dataStart, dataEnd);
+    const mtime = parseInt(readStr(offset + 136, 12) || "0", 8) || 0;
     offset = dataStart + Math.ceil(size / 512) * 512;
+    // Metadata entries: consume, never emit.
+    if (typeflag === "x" || typeflag === "g") {
+      const p = parsePaxPath(data);
+      if (p && typeflag === "x") pendingPaxPath = p;
+      continue;
+    }
+    if (typeflag === "L") {
+      pendingLongName = dec.decode(data).replace(/\0.*$/, "");
+      continue;
+    }
+    if (typeflag === "5") continue; // directory
+    const name =
+      pendingLongName ??
+      pendingPaxPath ??
+      (prefix ? `${prefix}/${rawName}` : rawName);
+    pendingLongName = null;
+    pendingPaxPath = null;
+    // Skip AppleDouble sidecar files (._*) — metadata, not real content.
+    if (/(^|\/)(\._|\.DS_Store)/.test(name)) continue;
+    entries.push({
+      path: name,
+      size,
+      mtime,
+      kind: classifyEntry(name),
+      data,
+    });
   }
   return entries;
 }

@@ -11,6 +11,73 @@ import {
   redact,
 } from "./lib";
 
+// Minimal tar builder for tests: ustar headers, PAX 'x' headers for names
+// >100 chars (like Apple's sysdiagnose archives), GNU 'L' on demand.
+function buildTar(
+  files: Array<{ name: string; data: string; gnuLong?: boolean }>,
+): ReturnType<typeof parseTar> {
+  const enc = new TextEncoder();
+  const chunks: Uint8Array[] = [];
+  const body = (data: string) => {
+    const raw = enc.encode(data);
+    const padded = new Uint8Array(Math.ceil(raw.length / 512) * 512 || 0);
+    padded.set(raw);
+    chunks.push(padded);
+  };
+  const paxHeader = (name: string, size: number, type: string, prefix = "") => {
+    const h = new Uint8Array(512);
+    enc.encodeInto(name.slice(0, 100), h.subarray(0, 100));
+    enc.encodeInto(prefix.slice(0, 155), h.subarray(345, 500));
+    enc.encodeInto(size.toString(8).padStart(11, "0"), h.subarray(124, 135));
+    h[156] = type.charCodeAt(0);
+    enc.encodeInto("ustar", h.subarray(257, 262));
+    chunks.push(h);
+  };
+  for (const f of files) {
+    if (f.gnuLong) {
+      paxHeader("././@LongLink", enc.encode(f.name).length + 1, "L");
+      body(`${f.name}\0`);
+      paxHeader(f.name.slice(0, 100), enc.encode(f.data).length, "0");
+      body(f.data);
+    } else if (f.name.length > 100) {
+      const slash = f.name.lastIndexOf("/", 155);
+      if (slash > 0 && f.name.length - slash - 1 <= 100) {
+        // Real ustar split: prefix + short name.
+        paxHeader(
+          f.name.slice(slash + 1),
+          enc.encode(f.data).length,
+          "0",
+          f.name.slice(0, slash),
+        );
+        body(f.data);
+      } else {
+        // PAX extended header carrying the full path.
+        const kv = `path=${f.name}\n`;
+        let rec = `100 ${kv}`;
+        for (let i = 0; i < 3; i++) {
+          rec = `${enc.encode(rec).length} ${kv}`;
+        }
+        paxHeader("paxheader", enc.encode(rec).length, "x");
+        body(rec);
+        paxHeader(f.name.slice(0, 100), enc.encode(f.data).length, "0");
+        body(f.data);
+      }
+    } else {
+      paxHeader(f.name, enc.encode(f.data).length, "0");
+      body(f.data);
+    }
+  }
+  chunks.push(new Uint8Array(1024)); // end-of-archive zeros
+  const total = chunks.reduce((n, c) => n + c.length, 0);
+  const out = new Uint8Array(total);
+  let at = 0;
+  for (const c of chunks) {
+    out.set(c, at);
+    at += c.length;
+  }
+  return parseTar(out);
+}
+
 describe("sysdiagnose lib", () => {
   it("parses battery csv", () => {
     const pts = parseBatteryText(
@@ -32,18 +99,28 @@ describe("sysdiagnose lib", () => {
     expect(redact("mail a@b.com", false)).toContain("a@b.com");
   });
   it("parseTar round-trips a minimal archive", () => {
-    const enc = new TextEncoder();
-    const header = new Uint8Array(512);
-    enc.encodeInto("a.txt", header.subarray(0, 100));
-    enc.encodeInto("00000000005", header.subarray(124, 135));
-    const body = enc.encode("hello");
-    const block = new Uint8Array(512);
-    block.set(body);
-    const tar = new Uint8Array(512 + 512 + 1024);
-    tar.set(header, 0);
-    tar.set(block, 512);
-    const entries = parseTar(tar);
+    const entries = buildTar([{ name: "a.txt", data: "hello" }]);
     expect(entries[0].path).toBe("a.txt");
+    expect(new TextDecoder().decode(entries[0].data)).toBe("hello");
+  });
+  it("parseTar resolves ustar prefix, PAX path, and GNU longname", () => {
+    const prefixName = `${"d/".repeat(40)}batteryuisysdiagnose.plist`;
+    const paxName = `${"z".repeat(120)}.plist`;
+    const gnuName = `${"g/".repeat(60)}long.plist`;
+    const entries = buildTar([
+      { name: "short.txt", data: "s" },
+      { name: prefixName, data: "prefix" },
+      { name: paxName, data: "pax" },
+      { name: gnuName, data: "gnu", gnuLong: true },
+    ]);
+    expect(entries.map((e) => e.path)).toEqual([
+      "short.txt",
+      prefixName,
+      paxName,
+      gnuName,
+    ]);
+    // PAX header and LongLink entries are consumed, never emitted.
+    expect(entries).toHaveLength(4);
   });
   it("rejects non-battery numeric CSV rows", () => {
     const pts = parseBatteryText(
