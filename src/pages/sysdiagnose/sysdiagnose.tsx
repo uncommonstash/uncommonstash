@@ -92,6 +92,29 @@ function BatteryChart({
   );
 }
 
+// Deterministic initial-avatar for an app. Real logos would need a network
+// lookup (App Store / favicons) which breaks the offline + private story,
+// so we render a stable per-bundleId monogram instead.
+function AppIcon({ name, bundleId }: { name: string; bundleId: string }) {
+  const initials = name
+    .split(/[\s._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join("");
+  let h = 0;
+  for (const c of bundleId || name) h = (h * 31 + c.charCodeAt(0)) % 360;
+  return (
+    <span
+      aria-hidden
+      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold text-white"
+      style={{ backgroundColor: `hsl(${h} 45% 45%)` }}
+    >
+      {initials || "?"}
+    </span>
+  );
+}
+
 export default csr(function SysdiagnosePage() {
   const [entries, setEntries] = useState<ArchiveEntry[]>([]);
   const [busy, setBusy] = useState(false);
@@ -266,30 +289,33 @@ export default csr(function SysdiagnosePage() {
 
   return (
     <div className="min-h-screen bg-secondary/30 p-4 [&_*]:shadow-none">
-      <div className="max-w-6xl mx-auto flex gap-4">
-        <aside className="w-44 shrink-0 space-y-1">
-          <BackLink />
-          <p className="font-semibold px-2 pt-2">Sysdiagnose</p>
-          {(["battery", "logs", "wifi", "files"] as const).map((t) => (
-            <button
-              key={t}
-              type="button"
-              disabled={t === "wifi"}
-              onClick={() => setTab(t === "wifi" ? tab : t)}
-              className={`w-full text-left px-3 py-2 rounded capitalize ${tab === t ? "bg-background border font-medium" : "text-muted-foreground"} ${t === "wifi" ? "opacity-40" : ""}`}
-            >
-              {t}
-              {t === "wifi" ? " (soon)" : ""}
-            </button>
-          ))}
-          <div className="px-2 pt-4 text-xs text-muted-foreground">
-            {entries.length} files · {textEntries.length} text
-          </div>
-          <Button variant="ghost" size="sm" onClick={() => setEntries([])}>
+      <div className="max-w-6xl mx-auto">
+        <BackLink />
+        <div className="flex items-center justify-between mt-2 mb-4">
+          <h1 className="text-xl font-semibold">Sysdiagnose</h1>
+          <Button size="sm" onClick={() => setEntries([])}>
             Load another
           </Button>
-        </aside>
-        <main className="flex-1 min-w-0">
+        </div>
+        <div className="flex gap-4">
+          <aside className="w-44 shrink-0 space-y-1" aria-label="Sections">
+            {(["battery", "logs", "wifi", "files"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                disabled={t === "wifi"}
+                onClick={() => setTab(t === "wifi" ? tab : t)}
+                className={`w-full text-left px-3 py-2 rounded capitalize ${tab === t ? "bg-background border font-medium" : "text-muted-foreground"} ${t === "wifi" ? "opacity-40" : ""}`}
+              >
+                {t}
+                {t === "wifi" ? " (soon)" : ""}
+              </button>
+            ))}
+            <div className="px-2 pt-4 text-xs text-muted-foreground">
+              {entries.length} files · {textEntries.length} text
+            </div>
+          </aside>
+          <main className="flex-1 min-w-0">
           <Tabs value={tab} onValueChange={setTab}>
             <TabsContent value="battery">
               <div className="grid sm:grid-cols-4 gap-3 mb-3">
@@ -369,11 +395,16 @@ export default csr(function SysdiagnosePage() {
                         {plistBattery.apps.slice(0, 30).map((a) => (
                           <tr key={a.bundleId || a.name} className="border-t">
                             <td className="py-1">
-                              <div className="text-xs font-medium">
-                                {a.name}
-                              </div>
-                              <div className="font-mono text-[10px] text-muted-foreground">
-                                {a.bundleId}
+                              <div className="flex items-center gap-2">
+                                <AppIcon name={a.name} bundleId={a.bundleId} />
+                                <div>
+                                  <div className="text-xs font-medium">
+                                    {a.name}
+                                  </div>
+                                  <div className="font-mono text-[10px] text-muted-foreground">
+                                    {a.bundleId}
+                                  </div>
+                                </div>
                               </div>
                             </td>
                             <td>{a.energy.toFixed(0)}</td>
@@ -573,7 +604,8 @@ export default csr(function SysdiagnosePage() {
               </Card>
             </TabsContent>
           </Tabs>
-        </main>
+          </main>
+        </div>
       </div>
     </div>
   );
