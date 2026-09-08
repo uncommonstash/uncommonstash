@@ -55,7 +55,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.12",
     "@playwright/test": "^1.56.1",
-    "@swc/core": "^1.7.5",
+    "@swc/core": "^1.16.2",
     "@swc/jest": "^0.2.36",
     "@tailwindcss/postcss": "^4",
     "@tailwindcss/vite": "^4",
