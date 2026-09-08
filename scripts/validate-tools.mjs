@@ -10,11 +10,13 @@ const appTsxPath = path.resolve(process.cwd(), "src/App.tsx");
 
 // Routes that never require a tool.yaml:
 // - "/" (home), "/blog" + "/blog/*" (blog), "/about*" (about-style, future-proof)
+// - "/verify" (build provenance page, not a tool)
 // - "/:slug" (DynamicConverter), "/404" + "*" (not-found catch-all)
 // - "/audio-recorder" (legacy alias of /audio/recorder)
 const EXEMPT_ROUTES = new Set([
   "/",
   "/blog",
+  "/verify",
   "/:slug",
   "/404",
   "*",
