@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BackLink } from "@/components/back-link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -92,10 +92,76 @@ function BatteryChart({
   );
 }
 
-// Deterministic initial-avatar for an app. Real logos would need a network
-// lookup (App Store / favicons) which breaks the offline + private story,
-// so we render a stable per-bundleId monogram instead.
-function AppIcon({ name, bundleId }: { name: string; bundleId: string }) {
+// App artwork via Apple's official iTunes Search API
+// (lookup?bundleId=.., exact match incl. Apple first-party apps, CORS-open).
+// Only bundle-ID strings are queried — never file contents — results cached
+// in localStorage; monogram fallback when offline, opted-out, or unlisted
+// (daemons like backboardd have no store entry).
+const ICON_CACHE_KEY = "sysdiagnose-app-icons-v1";
+
+function readIconCache(): Record<string, string> {
+  try {
+    return JSON.parse(localStorage.getItem(ICON_CACHE_KEY) ?? "{}") as Record<
+      string,
+      string
+    >;
+  } catch {
+    return {};
+  }
+}
+
+function useAppIcons(bundleIds: string[], enabled: boolean) {
+  const [icons, setIcons] = useState<Record<string, string>>(() =>
+    readIconCache(),
+  );
+  const key = useMemo(
+    () => [...new Set(bundleIds.filter(Boolean))].sort().join(","),
+    [bundleIds],
+  );
+  useEffect(() => {
+    if (!enabled || !key) return;
+    const ids = key.split(",");
+    const cached = readIconCache();
+    const missing = ids.filter((id) => !cached[id]);
+    if (missing.length === 0) {
+      setIcons(cached);
+      return;
+    }
+    let cancelled = false;
+    // One batched request for all uncached bundle IDs.
+    fetch(
+      `https://itunes.apple.com/lookup?bundleId=${missing.map(encodeURIComponent).join(",")}&entity=software&limit=${missing.length}`,
+    )
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled || !d?.results) return;
+        const next = { ...readIconCache() };
+        for (const r of d.results as Array<{
+          bundleId?: string;
+          artworkUrl60?: string;
+        }>) {
+          if (r.bundleId && r.artworkUrl60) next[r.bundleId] = r.artworkUrl60;
+        }
+        // Negative cache: don't re-query unlisted IDs every load.
+        for (const id of missing) next[id] = next[id] ?? "";
+        try {
+          localStorage.setItem(ICON_CACHE_KEY, JSON.stringify(next));
+        } catch {
+          // Storage unavailable (private mode) — keep in-memory only.
+        }
+        setIcons(next);
+      })
+      .catch(() => {
+        // Offline / blocked — monograms stay.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [key, enabled]);
+  return icons;
+}
+
+function Monogram({ name, bundleId }: { name: string; bundleId: string }) {
   const initials = name
     .split(/[\s._-]+/)
     .filter(Boolean)
@@ -115,6 +181,30 @@ function AppIcon({ name, bundleId }: { name: string; bundleId: string }) {
   );
 }
 
+function AppIcon({
+  name,
+  bundleId,
+  artUrl,
+}: {
+  name: string;
+  bundleId: string;
+  artUrl?: string;
+}) {
+  if (artUrl) {
+    return (
+      <img
+        src={artUrl}
+        alt=""
+        loading="lazy"
+        width={28}
+        height={28}
+        className="h-7 w-7 shrink-0 rounded-md border"
+      />
+    );
+  }
+  return <Monogram name={name} bundleId={bundleId} />;
+}
+
 export default csr(function SysdiagnosePage() {
   const [entries, setEntries] = useState<ArchiveEntry[]>([]);
   const [busy, setBusy] = useState(false);
@@ -124,6 +214,7 @@ export default csr(function SysdiagnosePage() {
   const [level, setLevel] = useState("all");
   const [processFilter, setProcessFilter] = useState("");
   const [redactOn, setRedactOn] = useState(true);
+  const [iconsOn, setIconsOn] = useState(true);
   const [sql, setSql] = useState(
     "SELECT process, COUNT(*) samples FROM battery GROUP BY process",
   );
@@ -182,6 +273,10 @@ export default csr(function SysdiagnosePage() {
       return null;
     }
   }, [entries]);
+  const appIcons = useAppIcons(
+    plistBattery ? plistBattery.apps.map((a) => a.bundleId) : [],
+    iconsOn,
+  );
   const batteryPoints = useMemo(() => {
     if (plistBattery) return plistBattery.points;
     const pts = [];
@@ -373,11 +468,25 @@ export default csr(function SysdiagnosePage() {
               </Card>
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">
-                    {plistBattery
-                      ? "Per-app energy (24h)"
-                      : "Per-process energy"}
-                  </CardTitle>
+                  <div className="flex items-center justify-between gap-2">
+                    <CardTitle className="text-base">
+                      {plistBattery
+                        ? "Per-app energy (24h)"
+                        : "Per-process energy"}
+                    </CardTitle>
+                    {plistBattery ? (
+                      <label
+                        className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground"
+                        title="Fetch app icons from Apple by bundle ID (only IDs queried, never file contents)"
+                      >
+                        app icons
+                        <Switch
+                          checked={iconsOn}
+                          onCheckedChange={setIconsOn}
+                        />
+                      </label>
+                    ) : null}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {plistBattery ? (
@@ -396,7 +505,15 @@ export default csr(function SysdiagnosePage() {
                           <tr key={a.bundleId || a.name} className="border-t">
                             <td className="py-1">
                               <div className="flex items-center gap-2">
-                                <AppIcon name={a.name} bundleId={a.bundleId} />
+                                <AppIcon
+                                  name={a.name}
+                                  bundleId={a.bundleId}
+                                  artUrl={
+                                    iconsOn
+                                      ? appIcons[a.bundleId] || undefined
+                                      : undefined
+                                  }
+                                />
                                 <div>
                                   <div className="text-xs font-medium">
                                     {a.name}
