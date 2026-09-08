@@ -1,9 +1,10 @@
 /**
- * Minimal cross-origin-isolation service worker (vendored, ~40 lines).
+ * Minimal cross-origin-isolation service worker (vendored).
  *
  * GitHub Pages can't set response headers, but SharedArrayBuffer (needed for
  * multithreaded FFmpeg) requires COOP/COEP. This file plays both roles:
- *  - loaded as a <script> in index.html, it registers itself as the worker;
+ *  - loaded as a classic script (injected production-only from main.tsx),
+ *    it registers itself as the worker;
  *  - loaded as the worker, it re-serves same-origin GET responses with the
  *    isolation headers appended.
  *

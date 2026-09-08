@@ -16,6 +16,8 @@
     "build:engine": "node scripts/prebuild-engine.mjs",
     "build:blog": "node scripts/prebuild-blog.mjs",
     "preview": "vite preview --port 3000",
+    "test:e2e": "playwright test",
+    "test:e2e:prod": "pnpm build && playwright test -c playwright.prod.config.ts e2e/coi-isolation.spec.ts",
     "lint": "biome check .",
     "test": "jest"
   },
