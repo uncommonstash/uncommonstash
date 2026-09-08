@@ -243,9 +243,6 @@ export default csr(function SysdiagnosePage() {
   const [level, setLevel] = useState("all");
   const [processFilter, setProcessFilter] = useState("");
   const [redactOn, setRedactOn] = useState(true);
-  const [sql, setSql] = useState(
-    "SELECT process, COUNT(*) samples FROM battery GROUP BY process",
-  );
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function load(f: File | Blob) {
@@ -463,17 +460,14 @@ export default csr(function SysdiagnosePage() {
                 type="button"
                 disabled={t === "wifi"}
                 onClick={() => setTab(t === "wifi" ? tab : t)}
-                className={`w-full text-left px-3 py-2 rounded capitalize ${tab === t ? "bg-background border font-medium" : "text-muted-foreground"} ${t === "wifi" ? "opacity-40" : ""}`}
+                className={`w-full text-left px-3 py-2 rounded capitalize text-sm font-medium ${tab === t ? "bg-background border" : "text-muted-foreground"} ${t === "wifi" ? "opacity-40" : ""}`}
               >
                 {t}
                 {t === "wifi" ? " (soon)" : ""}
               </button>
             ))}
-            <div className="px-2 pt-4 text-xs text-muted-foreground">
-              {entries.length} files · {textEntries.length} text
-            </div>
           </aside>
-          <main className="flex-1 min-w-0 w-full">
+          <main className="flex-1 min-w-0 w-full bg-background border rounded-xl p-4 sm:p-6 min-h-[calc(100vh-8rem)]">
             <div className="flex items-center justify-between mb-4">
               <h1 className="text-xl font-semibold">Sysdiagnose</h1>
               <Button size="sm" onClick={() => setEntries([])}>
@@ -647,38 +641,6 @@ export default csr(function SysdiagnosePage() {
                         </tbody>
                       </table>
                     )}
-                    <details className="mt-3 text-xs">
-                      <summary className="cursor-pointer text-muted-foreground">
-                        Engineer: raw SQL (sqlite-wasm, single-thread,
-                        in-memory)
-                      </summary>
-                      <Input
-                        className="mt-2 font-mono"
-                        value={sql}
-                        onChange={(v) => setSql(v)}
-                      />
-                      <p className="mt-1 text-muted-foreground">
-                        Runs read-only against powerlog copy when available;
-                        CSV/text fallback otherwise.{" "}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            const csv = `process,samples,energy,avgLevel\n${agg.map((a) => [a.process, a.samples, a.energy, a.avgLevel.toFixed(1)].join(",")).join("\n")}`;
-                            const url = URL.createObjectURL(
-                              new Blob([csv], { type: "text/csv" }),
-                            );
-                            const el = document.createElement("a");
-                            el.href = url;
-                            el.download = "battery.csv";
-                            el.click();
-                            URL.revokeObjectURL(url);
-                          }}
-                        >
-                          Export CSV
-                        </Button>
-                      </p>
-                    </details>
                   </CardContent>
                 </Card>
               </TabsContent>
