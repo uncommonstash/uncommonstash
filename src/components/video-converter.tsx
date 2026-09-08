@@ -36,6 +36,14 @@ const SUPPORTED_FORMATS = {
   avi: "video/x-msvideo",
 };
 
+function toUserMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (/out of bounds|memory access/i.test(message)) {
+    return "The browser ran out of memory processing this file. Try a smaller or lower-resolution video, then try again.";
+  }
+  return `Conversion failed: ${message}`;
+}
+
 export const VideoConverter = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [outputFormat, setOutputFormat] =
@@ -43,6 +51,7 @@ export const VideoConverter = () => {
   const [convertedVideos, setConvertedVideos] = useState<ConvertedVideo[]>([]);
   const [isConverting, setIsConverting] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   const handleFileChange = (newFiles: File[]) => {
     setFiles((prev) => [...prev, ...newFiles]);
@@ -68,6 +77,7 @@ export const VideoConverter = () => {
     setIsConverting(true);
     setProgress(0);
     setConvertedVideos([]);
+    setError(null);
     const newConvertedVideos: ConvertedVideo[] = [];
 
     try {
@@ -88,6 +98,7 @@ export const VideoConverter = () => {
       }
     } catch (error) {
       console.error("Conversion batch failed", error);
+      setError(toUserMessage(error));
     } finally {
       setIsConverting(false);
       setProgress(0);
@@ -175,12 +186,24 @@ export const VideoConverter = () => {
         </div>
       </InputPanel>
 
-      <OutputPanel show={convertedVideos.length > 0}>
+      <OutputPanel show={convertedVideos.length > 0 || error !== null}>
         <OutputHeader
           count={convertedVideos.length}
-          onClear={() => setConvertedVideos([])}
+          onClear={() => {
+            setConvertedVideos([]);
+            setError(null);
+          }}
           onDownloadAll={handleDownloadAll}
         />
+
+        {error && (
+          <div
+            role="alert"
+            className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive"
+          >
+            {error}
+          </div>
+        )}
 
         {convertedVideos.length > 0 ? (
           <div className="grid grid-cols-2 gap-6">
