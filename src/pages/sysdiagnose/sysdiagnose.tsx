@@ -13,7 +13,7 @@ import {
   type LucideIcon,
   Radio,
   Search,
-  Settings2,
+  Settings,
   SignalLow,
   SlidersHorizontal,
   Trash2,
@@ -30,6 +30,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -53,6 +54,15 @@ import {
 function formatMB(bytes: number): string {
   if (!bytes || bytes <= 0) return "0 MB";
   return `${(bytes / 1048576).toFixed(bytes < 10485760 ? 1 : 0)} MB`;
+}
+
+function formatChartDate(timestamp: number | undefined): string {
+  if (!timestamp || !Number.isFinite(timestamp)) return "Date unavailable";
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(timestamp));
 }
 
 function stageLabel(p: IngestProgress): string {
@@ -316,7 +326,7 @@ function AppIcon({
 const PRESET_APP_ICONS: Record<string, LucideIcon> = {
   hls: Radio,
   poorcellcondition: SignalLow,
-  settings: Settings2,
+  settings: Settings,
   deletedapp: Trash2,
 };
 
@@ -553,6 +563,9 @@ export default csr(function SysdiagnosePage() {
     return pts;
   }, [entries, plistBattery]);
   const agg = useMemo(() => aggregateBattery(batteryPoints), [batteryPoints]);
+  const chartDate = formatChartDate(
+    plistBattery?.endTime ?? batteryPoints.at(-1)?.ts,
+  );
 
   const logLines = useMemo(() => {
     const all = [];
@@ -758,7 +771,7 @@ export default csr(function SysdiagnosePage() {
           className="flex-1 min-w-0 h-full border-l bg-background"
         >
           <main
-            className={`${tab === "logs" ? "w-full" : "w-[var(--sysdiagnose-content-width)] max-w-full"} px-4 py-4 sm:px-6`}
+            className={`${tab === "logs" ? "w-full" : "w-[var(--sysdiagnose-content-width)] max-w-full border-r"} px-4 py-4 sm:px-6`}
           >
             <div className="mb-6 flex items-start justify-between gap-4">
               <h1 className="text-xl font-semibold">Sysdiagnose</h1>
@@ -836,11 +849,7 @@ export default csr(function SysdiagnosePage() {
                       Battery level over time
                     </h2>
                     <span className="text-xs text-muted-foreground">
-                      {plistBattery
-                        ? "24h · 15-min samples · "
-                        : "Sample data · "}
-                      <span className="text-[#34c759]">green bands</span>{" "}
-                      indicate charging
+                      {chartDate}
                     </span>
                   </div>
                   <BatteryChart
@@ -848,33 +857,22 @@ export default csr(function SysdiagnosePage() {
                     charging={plistBattery?.charging}
                   />
                 </section>
-                <section
-                  aria-labelledby="energy-table-heading"
-                  className="mt-10"
-                >
-                  <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-                    <h2
-                      id="energy-table-heading"
-                      className="text-base font-semibold"
-                    >
-                      {plistBattery
-                        ? "Per-app energy (24h)"
-                        : "Per-process energy"}
-                    </h2>
-                    <span className="text-xs text-muted-foreground">
-                      {plistBattery
-                        ? "Apple BatteryUI estimate"
-                        : "Parsed energy samples"}
-                    </span>
-                  </div>
+                <section className="mt-10">
                   {plistBattery ? (
                     <Table>
+                      <TableCaption className="sr-only">
+                        App energy for {chartDate}
+                      </TableCaption>
                       <TableHeader>
                         <TableRow>
                           <TableHead className="pl-0">App</TableHead>
-                          <TableHead>Energy (mWh)</TableHead>
-                          <TableHead>Foreground (min)</TableHead>
-                          <TableHead className="pr-0">
+                          <TableHead className="text-right">
+                            Energy (mWh)
+                          </TableHead>
+                          <TableHead className="text-right">
+                            Foreground (min)
+                          </TableHead>
+                          <TableHead className="pr-0 text-right">
                             Background (min)
                           </TableHead>
                         </TableRow>
@@ -911,11 +909,13 @@ export default csr(function SysdiagnosePage() {
                                 </HoverCard.Root>
                               </div>
                             </TableCell>
-                            <TableCell>{a.energy.toFixed(0)} mWh</TableCell>
-                            <TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {a.energy.toFixed(0)} mWh
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
                               {(a.foregroundSec / 60).toFixed(0)} min
                             </TableCell>
-                            <TableCell className="pr-0">
+                            <TableCell className="pr-0 text-right tabular-nums">
                               {(a.backgroundSec / 60).toFixed(0)} min
                             </TableCell>
                           </TableRow>
@@ -924,12 +924,19 @@ export default csr(function SysdiagnosePage() {
                     </Table>
                   ) : (
                     <Table>
+                      <TableCaption className="sr-only">
+                        Process energy samples for {chartDate}
+                      </TableCaption>
                       <TableHeader>
                         <TableRow>
                           <TableHead className="pl-0">Process</TableHead>
-                          <TableHead>Samples</TableHead>
-                          <TableHead>Energy (mWh)</TableHead>
-                          <TableHead className="pr-0">Average level</TableHead>
+                          <TableHead className="text-right">Samples</TableHead>
+                          <TableHead className="text-right">
+                            Energy (mWh)
+                          </TableHead>
+                          <TableHead className="pr-0 text-right">
+                            Average level
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -938,9 +945,13 @@ export default csr(function SysdiagnosePage() {
                             <TableCell className="pl-0 font-mono text-xs">
                               {a.process}
                             </TableCell>
-                            <TableCell>{a.samples}</TableCell>
-                            <TableCell>{a.energy.toFixed(0)} mWh</TableCell>
-                            <TableCell className="pr-0">
+                            <TableCell className="text-right tabular-nums">
+                              {a.samples}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {a.energy.toFixed(0)} mWh
+                            </TableCell>
+                            <TableCell className="pr-0 text-right tabular-nums">
                               {a.avgLevel.toFixed(0)}%
                             </TableCell>
                           </TableRow>

@@ -17,7 +17,7 @@ test("sysdiagnose battery graph renders from PAX archive", async ({ page }) => {
   await expect(page.getByText("Energy (mWh)", { exact: true })).toBeVisible();
 
   // Per-app table from the real plist schema.
-  await expect(page.getByText("Per-app energy (24h)")).toBeVisible();
+  await expect(page.getByText("App", { exact: true }).first()).toBeVisible();
   const safariRow = page.getByRole("row", { name: /Safari/ });
   await safariRow.scrollIntoViewIfNeeded();
   await expect(safariRow).toBeVisible();
