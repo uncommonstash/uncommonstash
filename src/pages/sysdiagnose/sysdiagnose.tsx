@@ -210,7 +210,7 @@ export default csr(function SysdiagnosePage() {
 
   if (entries.length === 0) {
     return (
-      <div className="min-h-screen bg-secondary/30 p-4">
+      <div className="min-h-screen bg-secondary/30 p-4 [&_*]:shadow-none">
         <div className="max-w-6xl mx-auto">
           <BackLink />
           <Card className="max-w-2xl w-full mx-auto mt-6">
@@ -269,7 +269,7 @@ export default csr(function SysdiagnosePage() {
   }
 
   return (
-    <div className="min-h-screen bg-secondary/30 p-4">
+    <div className="min-h-screen bg-secondary/30 p-4 [&_*]:shadow-none">
       <div className="max-w-6xl mx-auto flex gap-4">
         <aside className="w-44 shrink-0 space-y-1">
           <BackLink />
