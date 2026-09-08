@@ -47,3 +47,5 @@ jobs:
             echo "ERROR: runner absolute path leaked into dist/"; exit 1
           fi
           echo "path guard: clean"
+      - name: Verify reproducible build (double-build gate)
+        run: node scripts/verify-reproducible.mjs
