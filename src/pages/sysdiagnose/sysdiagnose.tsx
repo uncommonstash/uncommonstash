@@ -8,13 +8,13 @@ import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { csr } from "@/lib/compat";
+import { IngestClient } from "@/workers/sysdiagnose-ingest/ingest.client";
 import {
   type ArchiveEntry,
   aggregateBattery,
   type BatteryPlistData,
   extractBatteryFromPlist,
   type IngestProgress,
-  ingestFile,
   parseBatteryText,
   parseLogText,
   parsePlist,
@@ -244,13 +244,35 @@ export default csr(function SysdiagnosePage() {
   const [processFilter, setProcessFilter] = useState("");
   const [redactOn, setRedactOn] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
+  const ingestRef = useRef<IngestClient | null>(null);
+
+  function ingestClient(): IngestClient {
+    if (!ingestRef.current) ingestRef.current = new IngestClient();
+    return ingestRef.current;
+  }
+
+  useEffect(() => {
+    const client = ingestRef.current;
+    return () => {
+      client?.terminate();
+      ingestRef.current = null;
+    };
+  }, []);
+
+  function resetEntries() {
+    ingestRef.current?.terminate();
+    ingestRef.current = null;
+    setEntries([]);
+  }
 
   async function load(f: File | Blob) {
     setBusy(true);
     setProgress(null);
     setFileName((f as File).name ?? "archive");
     try {
-      setEntries(await ingestFile(f, setProgress));
+      setEntries(await ingestClient().start(f, setProgress));
+    } catch {
+      // Worker failure (or superseded load) — stay on the upload screen.
     } finally {
       setBusy(false);
       setProgress(null);
@@ -470,7 +492,7 @@ export default csr(function SysdiagnosePage() {
           <main className="flex-1 min-w-0 w-full bg-background border rounded-xl p-4 sm:p-6 min-h-[calc(100vh-8rem)]">
             <div className="flex items-center justify-between mb-4">
               <h1 className="text-xl font-semibold">Sysdiagnose</h1>
-              <Button size="sm" onClick={() => setEntries([])}>
+              <Button size="sm" onClick={resetEntries}>
                 Load another
               </Button>
             </div>
