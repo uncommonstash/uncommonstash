@@ -215,13 +215,9 @@ export default csr(function SysdiagnosePage() {
           <BackLink />
           <Card className="max-w-2xl w-full mx-auto mt-6">
             <CardHeader>
-              <CardTitle>Sysdiagnose</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Private, in-browser iPhone sysdiagnose analysis. Files never
-                leave your device.{" "}
-                <span className="rounded border px-1.5 py-0.5 text-xs">
-                  local-only
-                </span>
+              <p className="text-sm">
+                Sysdiagnose — private, in-browser iPhone analysis; files never
+                leave your device.
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
