@@ -34,7 +34,7 @@
     "@radix-ui/react-tabs": "^1.1.0",
     "@types/react-beautiful-dnd": "^13.1.8",
     "class-variance-authority": "^0.7.1",
-    "cron-parser": "^4.9.0",
+    "cron-parser": "^5.10.0",
     "cronstrue": "^3.9.0",
     "date-fns": "^4.1.0",
     "dompurify": "^3.4.14",

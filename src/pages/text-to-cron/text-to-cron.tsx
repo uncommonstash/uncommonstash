@@ -1,4 +1,4 @@
-import { parseExpression } from "cron-parser";
+import * as CronParserModule from "cron-parser";
 import cronstrue from "cronstrue";
 import { format } from "date-fns";
 import { ArrowLeft, Check, Copy } from "lucide-react";
@@ -49,6 +49,18 @@ export interface NextRunsProps {
 // Utility Functions
 // ============================================================================
 
+const parseCronExpression = (
+  cron: string,
+): { next: () => { toDate: () => Date } } => {
+  // biome-ignore lint/suspicious/noExplicitAny: compat shim for cron-parser v4/v5
+  const m = CronParserModule as unknown as Record<string, any>;
+  // cron-parser v5 exposes CronExpressionParser.parse; v4 exposes parseExpression
+  const parse =
+    m.CronExpressionParser?.parse?.bind(m.CronExpressionParser) ??
+    m.parseExpression;
+  return parse(cron);
+};
+
 const formatRunDate = (date: Date): string => {
   const datePart = format(date, "EEE, MMM d");
   const hours = date.getHours();
@@ -75,7 +87,7 @@ const getNextRuns = (
   count: number = 5,
 ): { runs: string[]; timezone: string } => {
   try {
-    const interval = parseExpression(cron);
+    const interval = parseCronExpression(cron);
     const runs: string[] = [];
     let timezone = "";
 
