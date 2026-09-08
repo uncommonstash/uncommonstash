@@ -128,14 +128,11 @@ describe("sysdiagnose lib", () => {
           tarBytes.byteOffset + tarBytes.byteLength,
         ),
     };
-    const entries = await ingestFile(
-      stub as unknown as Blob,
-      (p) => {
-        seen.push(p.stage);
-        expect(p.fraction).toBeGreaterThanOrEqual(last);
-        last = p.fraction;
-      },
-    );
+    const entries = await ingestFile(stub as unknown as Blob, (p) => {
+      seen.push(p.stage);
+      expect(p.fraction).toBeGreaterThanOrEqual(last);
+      last = p.fraction;
+    });
     expect(entries).toHaveLength(1);
     expect(seen).toContain("reading");
     expect(seen).toContain("indexing");

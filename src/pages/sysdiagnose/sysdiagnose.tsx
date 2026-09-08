@@ -1,3 +1,4 @@
+import * as HoverCard from "@radix-ui/react-hover-card";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BackLink } from "@/components/back-link";
 import { Button } from "@/components/ui/button";
@@ -9,10 +10,10 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { csr } from "@/lib/compat";
 import {
   type ArchiveEntry,
-  type BatteryPlistData,
-  type IngestProgress,
   aggregateBattery,
+  type BatteryPlistData,
   extractBatteryFromPlist,
+  type IngestProgress,
   ingestFile,
   parseBatteryText,
   parseLogText,
@@ -242,7 +243,6 @@ export default csr(function SysdiagnosePage() {
   const [level, setLevel] = useState("all");
   const [processFilter, setProcessFilter] = useState("");
   const [redactOn, setRedactOn] = useState(true);
-  const [iconsOn, setIconsOn] = useState(true);
   const [sql, setSql] = useState(
     "SELECT process, COUNT(*) samples FROM battery GROUP BY process",
   );
@@ -306,7 +306,7 @@ export default csr(function SysdiagnosePage() {
   }, [entries]);
   const appIcons = useAppIcons(
     plistBattery ? plistBattery.apps.map((a) => a.bundleId) : [],
-    iconsOn,
+    true,
   );
   const batteryPoints = useMemo(() => {
     if (plistBattery) return plistBattery.points;
@@ -394,9 +394,7 @@ export default csr(function SysdiagnosePage() {
                     role="progressbar"
                     aria-valuemin={0}
                     aria-valuemax={100}
-                    aria-valuenow={Math.round(
-                      (progress?.fraction ?? 0) * 100,
-                    )}
+                    aria-valuenow={Math.round((progress?.fraction ?? 0) * 100)}
                   >
                     <div
                       className="h-full rounded-full bg-primary transition-[width]"
@@ -419,8 +417,7 @@ export default csr(function SysdiagnosePage() {
                     Drop sysdiagnose_*.tar.gz here
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    or click to browse — up to ~1GB, streamed + spilled to
-                    OPFS
+                    or click to browse — up to ~1GB, streamed + spilled to OPFS
                   </div>
                 </button>
               )}
@@ -458,13 +455,7 @@ export default csr(function SysdiagnosePage() {
     <div className="min-h-screen bg-secondary/30 p-4 [&_*]:shadow-none">
       <div className="max-w-6xl mx-auto">
         <BackLink />
-        <div className="flex items-center justify-between mt-2 mb-4">
-          <h1 className="text-xl font-semibold">Sysdiagnose</h1>
-          <Button size="sm" onClick={() => setEntries([])}>
-            Load another
-          </Button>
-        </div>
-        <div className="flex gap-4">
+        <div className="flex gap-4 mt-2">
           <aside className="w-44 shrink-0 space-y-1" aria-label="Sections">
             {(["battery", "logs", "wifi", "files"] as const).map((t) => (
               <button
@@ -482,317 +473,320 @@ export default csr(function SysdiagnosePage() {
               {entries.length} files · {textEntries.length} text
             </div>
           </aside>
-          <main className="flex-1 min-w-0">
-          <Tabs value={tab} onValueChange={setTab}>
-            <TabsContent value="battery">
-              <div className="grid sm:grid-cols-4 gap-3 mb-3">
-                {[
-                  [
-                    plistBattery ? "Samples (15-min)" : "Samples",
-                    String(batteryPoints.length),
-                  ],
-                  [
-                    "Δ level",
-                    batteryPoints.length > 1
-                      ? `${(batteryPoints[0].level - batteryPoints[batteryPoints.length - 1].level).toFixed(0)}%`
-                      : "—",
-                  ],
-                  [
-                    plistBattery ? "Apps" : "Processes",
-                    String(
-                      plistBattery ? plistBattery.apps.length : agg.length,
-                    ),
-                  ],
-                  [
-                    "Top drain",
-                    plistBattery
-                      ? (plistBattery.apps[0]?.name ?? "—")
-                      : (agg[0]?.process ?? "—"),
-                  ],
-                ].map(([k, v]) => (
-                  <Card key={k}>
-                    <CardContent className="pt-4">
-                      <div className="text-xl font-bold truncate" title={v}>
-                        {v}
-                      </div>
-                      <div className="text-xs text-muted-foreground">{k}</div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-              <Card className="mb-3">
-                <CardHeader>
-                  <CardTitle className="text-base">
-                    Battery level over time
-                    {plistBattery ? (
-                      <span className="ml-2 text-xs font-normal text-muted-foreground">
-                        24h · 15-min samples · shaded = charging
-                      </span>
-                    ) : null}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <BatteryChart
-                    points={batteryPoints}
-                    charging={plistBattery?.charging}
-                  />
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between gap-2">
+          <main className="flex-1 min-w-0 w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-xl font-semibold">Sysdiagnose</h1>
+              <Button size="sm" onClick={() => setEntries([])}>
+                Load another
+              </Button>
+            </div>
+            <Tabs value={tab} onValueChange={setTab} className="w-full">
+              <TabsContent value="battery" className="w-full">
+                <div className="grid sm:grid-cols-4 gap-3 mb-3">
+                  {[
+                    [
+                      plistBattery ? "Samples (15-min)" : "Samples",
+                      String(batteryPoints.length),
+                    ],
+                    [
+                      "Δ level",
+                      batteryPoints.length > 1
+                        ? `${(batteryPoints[0].level - batteryPoints[batteryPoints.length - 1].level).toFixed(0)}%`
+                        : "—",
+                    ],
+                    [
+                      plistBattery ? "Apps" : "Processes",
+                      String(
+                        plistBattery ? plistBattery.apps.length : agg.length,
+                      ),
+                    ],
+                    [
+                      "Top drain",
+                      plistBattery
+                        ? (plistBattery.apps[0]?.name ?? "—")
+                        : (agg[0]?.process ?? "—"),
+                    ],
+                  ].map(([k, v]) => (
+                    <Card key={k}>
+                      <CardContent className="pt-4">
+                        <div className="text-xl font-bold truncate" title={v}>
+                          {v}
+                        </div>
+                        <div className="text-xs text-muted-foreground">{k}</div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+                <Card className="mb-3">
+                  <CardHeader>
+                    <CardTitle className="text-base">
+                      Battery level over time
+                      {plistBattery ? (
+                        <span className="ml-2 text-xs font-normal text-muted-foreground">
+                          24h · 15-min samples · shaded = charging
+                        </span>
+                      ) : null}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <BatteryChart
+                      points={batteryPoints}
+                      charging={plistBattery?.charging}
+                    />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
                     <CardTitle className="text-base">
                       {plistBattery
                         ? "Per-app energy (24h)"
                         : "Per-process energy"}
                     </CardTitle>
+                  </CardHeader>
+                  <CardContent>
                     {plistBattery ? (
-                      <label
-                        className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground"
-                        title="Fetch app icons from Apple by bundle ID (only IDs queried, never file contents)"
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-muted-foreground">
+                            <th>App</th>
+                            <th>Energy</th>
+                            <th>Foreground</th>
+                            <th>Background</th>
+                            <th />
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {plistBattery.apps.slice(0, 30).map((a) => (
+                            <tr key={a.bundleId || a.name} className="border-t">
+                              <td className="py-1">
+                                <div className="flex items-center gap-2">
+                                  <AppIcon
+                                    name={a.name}
+                                    bundleId={a.bundleId}
+                                    artUrl={appIcons[a.bundleId] || undefined}
+                                  />
+                                  <HoverCard.Root
+                                    openDelay={200}
+                                    closeDelay={100}
+                                  >
+                                    <HoverCard.Trigger asChild>
+                                      <span className="cursor-default text-xs font-medium underline decoration-dotted decoration-muted-foreground/50 underline-offset-4">
+                                        {a.name}
+                                      </span>
+                                    </HoverCard.Trigger>
+                                    <HoverCard.Portal>
+                                      <HoverCard.Content
+                                        side="top"
+                                        sideOffset={6}
+                                        className="rounded-md border bg-popover px-2.5 py-1.5 font-mono text-[11px] text-popover-foreground"
+                                      >
+                                        {a.bundleId || a.name}
+                                        <HoverCard.Arrow className="fill-border" />
+                                      </HoverCard.Content>
+                                    </HoverCard.Portal>
+                                  </HoverCard.Root>
+                                </div>
+                              </td>
+                              <td>{a.energy.toFixed(0)}</td>
+                              <td>{(a.foregroundSec / 60).toFixed(0)}m</td>
+                              <td>{(a.backgroundSec / 60).toFixed(0)}m</td>
+                              <td>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setProcessFilter(
+                                      a.bundleId.split(".").pop() ?? a.name,
+                                    );
+                                    setTab("logs");
+                                  }}
+                                >
+                                  → logs
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-muted-foreground">
+                            <th>Process</th>
+                            <th>Samples</th>
+                            <th>Energy</th>
+                            <th>Avg lvl</th>
+                            <th />
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {agg.map((a) => (
+                            <tr key={a.process} className="border-t">
+                              <td className="py-1 font-mono text-xs">
+                                {a.process}
+                              </td>
+                              <td>{a.samples}</td>
+                              <td>{a.energy.toFixed(0)}</td>
+                              <td>{a.avgLevel.toFixed(0)}</td>
+                              <td>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setProcessFilter(
+                                      a.process.split(".").pop() ?? a.process,
+                                    );
+                                    setTab("logs");
+                                  }}
+                                >
+                                  → logs
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                    <details className="mt-3 text-xs">
+                      <summary className="cursor-pointer text-muted-foreground">
+                        Engineer: raw SQL (sqlite-wasm, single-thread,
+                        in-memory)
+                      </summary>
+                      <Input
+                        className="mt-2 font-mono"
+                        value={sql}
+                        onChange={(v) => setSql(v)}
+                      />
+                      <p className="mt-1 text-muted-foreground">
+                        Runs read-only against powerlog copy when available;
+                        CSV/text fallback otherwise.{" "}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            const csv = `process,samples,energy,avgLevel\n${agg.map((a) => [a.process, a.samples, a.energy, a.avgLevel.toFixed(1)].join(",")).join("\n")}`;
+                            const url = URL.createObjectURL(
+                              new Blob([csv], { type: "text/csv" }),
+                            );
+                            const el = document.createElement("a");
+                            el.href = url;
+                            el.download = "battery.csv";
+                            el.click();
+                            URL.revokeObjectURL(url);
+                          }}
+                        >
+                          Export CSV
+                        </Button>
+                      </p>
+                    </details>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="logs" className="w-full">
+                <Card>
+                  <CardContent className="pt-4 space-y-3">
+                    <div className="flex flex-wrap gap-2">
+                      <Input
+                        placeholder="Search messages…"
+                        value={query}
+                        onChange={(v) => setQuery(v)}
+                        className="max-w-xs"
+                      />
+                      <Input
+                        placeholder="Process filter…"
+                        value={processFilter}
+                        onChange={(v) => setProcessFilter(v)}
+                        className="max-w-40"
+                      />
+                      <select
+                        value={level}
+                        onChange={(e) => setLevel(e.target.value)}
+                        className="rounded border bg-background px-2 text-sm"
+                        aria-label="Log level"
                       >
-                        app icons
+                        {["all", "default", "info", "error", "fault"].map(
+                          (l) => (
+                            <option key={l} value={l}>
+                              {l}
+                            </option>
+                          ),
+                        )}
+                      </select>
+                      <label className="flex items-center gap-1 text-xs">
+                        regex{" "}
+                        <Switch checked={regex} onCheckedChange={setRegex} />
+                      </label>
+                      <label className="flex items-center gap-1 text-xs">
+                        redact PII{" "}
                         <Switch
-                          checked={iconsOn}
-                          onCheckedChange={setIconsOn}
+                          checked={redactOn}
+                          onCheckedChange={setRedactOn}
                         />
                       </label>
-                    ) : null}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {plistBattery ? (
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-left text-muted-foreground">
-                          <th>App</th>
-                          <th>Energy</th>
-                          <th>Foreground</th>
-                          <th>Background</th>
-                          <th />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {plistBattery.apps.slice(0, 30).map((a) => (
-                          <tr key={a.bundleId || a.name} className="border-t">
-                            <td className="py-1">
-                              <div className="flex items-center gap-2">
-                                <AppIcon
-                                  name={a.name}
-                                  bundleId={a.bundleId}
-                                  artUrl={
-                                    iconsOn
-                                      ? appIcons[a.bundleId] || undefined
-                                      : undefined
-                                  }
-                                />
-                                <div>
-                                  <div className="text-xs font-medium">
-                                    {a.name}
-                                  </div>
-                                  <div className="font-mono text-[10px] text-muted-foreground">
-                                    {a.bundleId}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                            <td>{a.energy.toFixed(0)}</td>
-                            <td>{(a.foregroundSec / 60).toFixed(0)}m</td>
-                            <td>{(a.backgroundSec / 60).toFixed(0)}m</td>
-                            <td>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => {
-                                  setProcessFilter(
-                                    a.bundleId.split(".").pop() ?? a.name,
-                                  );
-                                  setTab("logs");
-                                }}
-                              >
-                                → logs
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  ) : (
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-left text-muted-foreground">
-                          <th>Process</th>
-                          <th>Samples</th>
-                          <th>Energy</th>
-                          <th>Avg lvl</th>
-                          <th />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {agg.map((a) => (
-                          <tr key={a.process} className="border-t">
-                            <td className="py-1 font-mono text-xs">
-                              {a.process}
-                            </td>
-                            <td>{a.samples}</td>
-                            <td>{a.energy.toFixed(0)}</td>
-                            <td>{a.avgLevel.toFixed(0)}</td>
-                            <td>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => {
-                                  setProcessFilter(
-                                    a.process.split(".").pop() ?? a.process,
-                                  );
-                                  setTab("logs");
-                                }}
-                              >
-                                → logs
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                  <details className="mt-3 text-xs">
-                    <summary className="cursor-pointer text-muted-foreground">
-                      Engineer: raw SQL (sqlite-wasm, single-thread, in-memory)
-                    </summary>
-                    <Input
-                      className="mt-2 font-mono"
-                      value={sql}
-                      onChange={(v) => setSql(v)}
-                    />
-                    <p className="mt-1 text-muted-foreground">
-                      Runs read-only against powerlog copy when available;
-                      CSV/text fallback otherwise.{" "}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          const csv = `process,samples,energy,avgLevel\n${agg.map((a) => [a.process, a.samples, a.energy, a.avgLevel.toFixed(1)].join(",")).join("\n")}`;
-                          const url = URL.createObjectURL(
-                            new Blob([csv], { type: "text/csv" }),
-                          );
-                          const el = document.createElement("a");
-                          el.href = url;
-                          el.download = "battery.csv";
-                          el.click();
-                          URL.revokeObjectURL(url);
-                        }}
-                      >
-                        Export CSV
-                      </Button>
-                    </p>
-                  </details>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="logs">
-              <Card>
-                <CardContent className="pt-4 space-y-3">
-                  <div className="flex flex-wrap gap-2">
-                    <Input
-                      placeholder="Search messages…"
-                      value={query}
-                      onChange={(v) => setQuery(v)}
-                      className="max-w-xs"
-                    />
-                    <Input
-                      placeholder="Process filter…"
-                      value={processFilter}
-                      onChange={(v) => setProcessFilter(v)}
-                      className="max-w-40"
-                    />
-                    <select
-                      value={level}
-                      onChange={(e) => setLevel(e.target.value)}
-                      className="rounded border bg-background px-2 text-sm"
-                      aria-label="Log level"
-                    >
-                      {["all", "default", "info", "error", "fault"].map((l) => (
-                        <option key={l} value={l}>
-                          {l}
-                        </option>
-                      ))}
-                    </select>
-                    <label className="flex items-center gap-1 text-xs">
-                      regex{" "}
-                      <Switch checked={regex} onCheckedChange={setRegex} />
-                    </label>
-                    <label className="flex items-center gap-1 text-xs">
-                      redact PII{" "}
-                      <Switch
-                        checked={redactOn}
-                        onCheckedChange={setRedactOn}
-                      />
-                    </label>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {[
-                      ["hangs", "hang|stuck|watchdog"],
-                      ["jetsam", "jetsam|memory|kill"],
-                      ["thermal", "thermal|heat|throttle"],
-                      ["wakeups", "wakeup|background"],
-                    ].map(([k, v]) => (
-                      <Button
-                        key={k}
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => {
-                          setQuery(v);
-                          setRegex(true);
-                        }}
-                      >
-                        {k}
-                      </Button>
-                    ))}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {logLines.length} lines · processes:{" "}
-                    {processes.slice(0, 5).join(", ")}
-                  </div>
-                  <div className="max-h-[50vh] overflow-auto rounded border divide-y text-xs font-mono">
-                    {/* biome-ignore lint/suspicious/noArrayIndexKey: log rows have no stable id */}
-                    {logLines.slice(0, 500).map((l, i) => (
-                      <details key={i} className="px-2 py-1">
-                        <summary className="cursor-pointer truncate">
-                          <span
-                            className={`inline-block w-2 h-2 rounded-full mr-2 ${l.level === "error" ? "bg-red-500" : l.level === "fault" ? "bg-orange-500" : "bg-green-500"}`}
-                          />
-                          {l.process} —{" "}
-                          {redact(l.message.slice(0, 140), redactOn)}
-                        </summary>
-                        <pre className="whitespace-pre-wrap p-2 text-muted-foreground">
-                          {redact(l.message, redactOn)}&#10;[{l.source}]
-                        </pre>
-                      </details>
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Note: .logarchive binary decoding is partial — showing
-                    extractable strings; use Mac Console for full decode.
-                  </p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="files">
-              <Card>
-                <CardContent className="pt-4 text-xs font-mono max-h-[60vh] overflow-auto">
-                  {entries.slice(0, 500).map((e) => (
-                    <div key={e.path} className="py-0.5 border-b">
-                      {e.path}{" "}
-                      <span className="text-muted-foreground">
-                        ({e.kind}, {(e.size / 1024).toFixed(1)}KB)
-                      </span>
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                    <div className="flex flex-wrap gap-1">
+                      {[
+                        ["hangs", "hang|stuck|watchdog"],
+                        ["jetsam", "jetsam|memory|kill"],
+                        ["thermal", "thermal|heat|throttle"],
+                        ["wakeups", "wakeup|background"],
+                      ].map(([k, v]) => (
+                        <Button
+                          key={k}
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => {
+                            setQuery(v);
+                            setRegex(true);
+                          }}
+                        >
+                          {k}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {logLines.length} lines · processes:{" "}
+                      {processes.slice(0, 5).join(", ")}
+                    </div>
+                    <div className="max-h-[50vh] overflow-auto rounded border divide-y text-xs font-mono">
+                      {/* biome-ignore lint/suspicious/noArrayIndexKey: log rows have no stable id */}
+                      {logLines.slice(0, 500).map((l, i) => (
+                        <details key={i} className="px-2 py-1">
+                          <summary className="cursor-pointer truncate">
+                            <span
+                              className={`inline-block w-2 h-2 rounded-full mr-2 ${l.level === "error" ? "bg-red-500" : l.level === "fault" ? "bg-orange-500" : "bg-green-500"}`}
+                            />
+                            {l.process} —{" "}
+                            {redact(l.message.slice(0, 140), redactOn)}
+                          </summary>
+                          <pre className="whitespace-pre-wrap p-2 text-muted-foreground">
+                            {redact(l.message, redactOn)}&#10;[{l.source}]
+                          </pre>
+                        </details>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Note: .logarchive binary decoding is partial — showing
+                      extractable strings; use Mac Console for full decode.
+                    </p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="files" className="w-full">
+                <Card>
+                  <CardContent className="pt-4 text-xs font-mono max-h-[60vh] overflow-auto">
+                    {entries.slice(0, 500).map((e) => (
+                      <div key={e.path} className="py-0.5 border-b">
+                        {e.path}{" "}
+                        <span className="text-muted-foreground">
+                          ({e.kind}, {(e.size / 1024).toFixed(1)}KB)
+                        </span>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </main>
         </div>
       </div>
