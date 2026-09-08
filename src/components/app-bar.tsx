@@ -82,7 +82,7 @@ function BuildInfoPopover() {
               onClick={() => setOpen(false)}
               className="font-medium text-foreground underline underline-offset-4"
             >
-              verify this deployment →
+              verify here.
             </Link>
           </p>
         </div>
