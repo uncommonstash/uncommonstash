@@ -67,8 +67,8 @@ export default csr(function VerifyPage() {
         This site is built in the open
       </h1>
       <p className="mt-3 text-muted-foreground">
-        Every page here runs code anyone can inspect — and this page proves
-        it. Below is the exact source this deployment was built from, plus
+        Every page here runs code anyone can inspect — and this page proves it.
+        Below is the exact source this deployment was built from, plus
         everything you need to double-check it yourself.
       </p>
 
@@ -122,9 +122,9 @@ export default csr(function VerifyPage() {
           <section>
             <h2 className="text-lg font-semibold">Rebuild it yourself</h2>
             <p className="mt-2 text-muted-foreground">
-              The strongest proof needs no trust at all: rebuild from the
-              public source and compare. Matching hashes mean this site runs
-              exactly the open code — nothing added, nothing hidden.
+              The strongest proof needs no trust at all: rebuild from the public
+              source and compare. Matching hashes mean this site runs exactly
+              the open code — nothing added, nothing hidden.
             </p>
             <div className="mt-4 space-y-4">
               <div>
