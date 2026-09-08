@@ -26,6 +26,6 @@ test("sysdiagnose battery graph renders from PAX archive", async ({
   await expect(safariRow).toBeVisible();
 
   // Logs view picks up the bundled log file.
-  await page.getByRole("tab", { name: "Logs" }).click();
+  await page.locator("aside button", { hasText: "Logs" }).click();
   await expect(page.getByText("simulated hang").first()).toBeVisible();
 });

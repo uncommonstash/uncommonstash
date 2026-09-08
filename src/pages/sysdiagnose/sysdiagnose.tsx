@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { csr } from "@/lib/compat";
 import {
   type ArchiveEntry,
@@ -295,11 +295,6 @@ export default csr(function SysdiagnosePage() {
         </aside>
         <main className="flex-1 min-w-0">
           <Tabs value={tab} onValueChange={setTab}>
-            <TabsList>
-              <TabsTrigger value="battery">Battery</TabsTrigger>
-              <TabsTrigger value="logs">Logs</TabsTrigger>
-              <TabsTrigger value="files">Files</TabsTrigger>
-            </TabsList>
             <TabsContent value="battery">
               <div className="grid sm:grid-cols-4 gap-3 mb-3">
                 {[
