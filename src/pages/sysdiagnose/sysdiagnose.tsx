@@ -1,12 +1,40 @@
 import * as HoverCard from "@radix-ui/react-hover-card";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  BatteryMedium,
+  ChevronDown,
+  ChevronRight,
+  Database,
+  File,
+  FileCode2,
+  FileText,
+  Folder,
+  FolderOpen,
+  FolderTree,
+  type LucideIcon,
+  Radio,
+  Search,
+  Settings2,
+  SignalLow,
+  SlidersHorizontal,
+  Trash2,
+  Upload,
+  Wifi,
+} from "lucide-react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { BackLink } from "@/components/back-link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { csr } from "@/lib/compat";
 import { IngestClient } from "@/workers/sysdiagnose-ingest/ingest.client";
@@ -46,6 +74,11 @@ function stageLabel(p: IngestProgress): string {
   }
 }
 
+const BATTERY_CHART_WIDTH = 760;
+const BATTERY_CHART_HEIGHT = 260;
+const BATTERY_CHART_PADDING = { top: 18, right: 18, bottom: 38, left: 48 };
+const BATTERY_CHART_TICKS = [0, 0.25, 0.5, 0.75, 1];
+
 function BatteryChart({
   points,
   charging,
@@ -53,28 +86,33 @@ function BatteryChart({
   points: { ts: number; level: number }[];
   charging?: Array<{ start: number; end: number }>;
 }) {
-  const W = 640;
-  const H = 180;
-  const P = 24;
+  const W = BATTERY_CHART_WIDTH;
+  const H = BATTERY_CHART_HEIGHT;
+  const P = BATTERY_CHART_PADDING;
   const geom = useMemo(() => {
     if (points.length < 2) return null;
     const ts = points.map((p) => p.ts);
     const min = Math.min(...ts);
     const max = Math.max(...ts);
     const X = (t: number) =>
-      P + ((t - min) / Math.max(1, max - min)) * (W - 2 * P);
-    const Y = (l: number) => H - P - (l / 100) * (H - 2 * P);
+      P.left + ((t - min) / Math.max(1, max - min)) * (W - P.left - P.right);
+    const Y = (l: number) => H - P.bottom - (l / 100) * (H - P.top - P.bottom);
+    const path = points
+      .map(
+        (p, i) =>
+          `${i ? "L" : "M"}${X(p.ts).toFixed(1)},${Y(p.level).toFixed(1)}`,
+      )
+      .join(" ");
     return {
-      d: points
-        .map(
-          (p, i) =>
-            `${i ? "L" : "M"}${X(p.ts).toFixed(1)},${Y(p.level).toFixed(1)}`,
-        )
-        .join(" "),
+      d: path,
+      area: `${path} L ${X(points.at(-1)?.ts ?? max).toFixed(1)},${Y(0).toFixed(1)} L ${X(points[0].ts).toFixed(1)},${Y(0).toFixed(1)} Z`,
       band: (charging ?? []).map((c) => ({
         x1: X(Math.max(c.start, min)),
         x2: X(Math.min(c.end, max)),
       })),
+      min,
+      max,
+      Y,
     };
   }, [points, charging]);
   if (points.length < 2 || !geom)
@@ -86,36 +124,70 @@ function BatteryChart({
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
-      className="w-full rounded border bg-background"
+      className="h-auto min-h-56 w-full"
       role="img"
       aria-label="Battery level over time"
     >
-      {[0, 25, 50, 75, 100].map((l) => (
-        <line
-          key={l}
-          x1={P}
-          x2={W - P}
-          y1={H - P - (l / 100) * (H - 2 * P)}
-          y2={H - P - (l / 100) * (H - 2 * P)}
-          stroke="currentColor"
-          strokeOpacity={0.1}
-        />
-      ))}
-      <path d={geom.d} fill="none" stroke="currentColor" strokeWidth={2} />
       {geom.band.map(
         (b) =>
           b.x2 > b.x1 && (
             <rect
               key={`${b.x1}-${b.x2}`}
               x={b.x1}
-              y={P / 2}
+              y={P.top}
               width={b.x2 - b.x1}
-              height={H - P}
-              fill="currentColor"
-              opacity={0.08}
+              height={H - P.top - P.bottom}
+              fill="#34c759"
+              opacity={0.12}
             />
           ),
       )}
+      {BATTERY_CHART_TICKS.map((tick) => {
+        const level = 100 - tick * 100;
+        const y = geom.Y(level);
+        return (
+          <g key={`y-${level}`}>
+            <line
+              x1={P.left}
+              x2={W - P.right}
+              y1={y}
+              y2={y}
+              stroke="#d2d2d7"
+              strokeWidth={1}
+            />
+            <text
+              x={P.left - 10}
+              y={y + 4}
+              textAnchor="end"
+              fill="#6e6e73"
+              fontSize="11"
+            >
+              {level}%
+            </text>
+          </g>
+        );
+      })}
+      {BATTERY_CHART_TICKS.map((tick) => {
+        const time = new Date(geom.min + (geom.max - geom.min) * tick);
+        const x = P.left + tick * (W - P.left - P.right);
+        return (
+          <text
+            key={`x-${time.toISOString()}`}
+            x={x}
+            y={H - 12}
+            textAnchor={tick === 0 ? "start" : tick === 1 ? "end" : "middle"}
+            fill="#6e6e73"
+            fontSize="11"
+          >
+            {time.toLocaleTimeString([], {
+              hour: "numeric",
+              minute: "2-digit",
+            })}
+          </text>
+        );
+      })}
+      <path d={geom.area} fill="#0071e3" opacity={0.08} />
+      <path d={geom.d} fill="none" stroke="#0071e3" strokeWidth={2.5} />
     </svg>
   );
 }
@@ -218,6 +290,14 @@ function AppIcon({
   bundleId: string;
   artUrl?: string;
 }) {
+  const PresetIcon = PRESET_APP_ICONS[name.toLowerCase()];
+  if (PresetIcon) {
+    return (
+      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
+        <PresetIcon className="h-4 w-4" strokeWidth={1.75} />
+      </span>
+    );
+  }
   if (artUrl) {
     return (
       <img
@@ -231,6 +311,139 @@ function AppIcon({
     );
   }
   return <Monogram name={name} bundleId={bundleId} />;
+}
+
+const PRESET_APP_ICONS: Record<string, LucideIcon> = {
+  hls: Radio,
+  poorcellcondition: SignalLow,
+  settings: Settings2,
+  deletedapp: Trash2,
+};
+
+interface FileTreeNode {
+  name: string;
+  path: string;
+  type: "directory" | "file";
+  children: FileTreeNode[];
+  entry?: ArchiveEntry;
+}
+
+function buildFileTree(entries: ArchiveEntry[]): FileTreeNode[] {
+  const root: FileTreeNode = {
+    name: "",
+    path: "",
+    type: "directory",
+    children: [],
+  };
+
+  for (const entry of entries) {
+    let parent = root;
+    const parts = entry.path.split("/").filter(Boolean);
+    parts.forEach((part, index) => {
+      const path = parts.slice(0, index + 1).join("/");
+      let node = parent.children.find((child) => child.path === path);
+      if (!node) {
+        node = {
+          name: part,
+          path,
+          type: index === parts.length - 1 ? "file" : "directory",
+          children: [],
+          entry: index === parts.length - 1 ? entry : undefined,
+        };
+        parent.children.push(node);
+      }
+      parent = node;
+    });
+  }
+
+  const sort = (nodes: FileTreeNode[]) => {
+    nodes.sort(
+      (a, b) =>
+        Number(b.type === "directory") - Number(a.type === "directory") ||
+        a.name.localeCompare(b.name),
+    );
+    for (const node of nodes) sort(node.children);
+  };
+  sort(root.children);
+  return root.children;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1048576).toFixed(1)} MB`;
+}
+
+function FileTree({ entries }: { entries: ArchiveEntry[] }) {
+  const tree = useMemo(() => buildFileTree(entries), [entries]);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const renderNode = (node: FileTreeNode, depth: number): ReactNode => {
+    const isOpen = expanded.has(node.path);
+    const Icon =
+      node.type === "directory"
+        ? isOpen
+          ? FolderOpen
+          : Folder
+        : node.entry?.kind === "sqlite"
+          ? Database
+          : node.entry?.kind === "plist"
+            ? FileCode2
+            : node.entry?.kind === "text"
+              ? FileText
+              : File;
+
+    return (
+      <div
+        key={node.path}
+        role="treeitem"
+        aria-expanded={node.type === "directory" ? isOpen : undefined}
+      >
+        <button
+          type="button"
+          className="flex w-full items-center gap-2 border-b px-2 py-1.5 text-left text-xs hover:bg-accent"
+          style={{ paddingLeft: `${8 + depth * 18}px` }}
+          onClick={() => {
+            if (node.type !== "directory") return;
+            setExpanded((current) => {
+              const next = new Set(current);
+              if (next.has(node.path)) next.delete(node.path);
+              else next.add(node.path);
+              return next;
+            });
+          }}
+        >
+          {node.type === "directory" ? (
+            isOpen ? (
+              <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+            )
+          ) : (
+            <span className="h-3.5 w-3.5 shrink-0" />
+          )}
+          <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <span className="min-w-0 flex-1 truncate">{node.name}</span>
+          {node.entry ? (
+            <span className="shrink-0 text-muted-foreground">
+              {formatBytes(node.entry.size)}
+            </span>
+          ) : null}
+        </button>
+        {node.type === "directory" && isOpen ? (
+          <div role="group">
+            {node.children.map((child) => renderNode(child, depth + 1))}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
+  return (
+    <div role="tree" className="border-y">
+      {tree.map((node) => renderNode(node, 0))}
+    </div>
+  );
 }
 
 export default csr(function SysdiagnosePage() {
@@ -507,16 +720,32 @@ export default csr(function SysdiagnosePage() {
           aria-label="Sections"
         >
           <div className="w-44 ml-auto">
-            <BackLink />
-            <nav className="mt-4 space-y-1">
-              {(["battery", "logs", "wifi", "files"] as const).map((t) => (
+            <BackLink className="mb-0" />
+            <Button
+              className="mt-6 w-full justify-start gap-2"
+              onClick={resetEntries}
+            >
+              <Upload className="h-4 w-4" />
+              Load another
+            </Button>
+            <nav className="mt-5 space-y-1">
+              {(
+                [
+                  ["battery", BatteryMedium],
+                  ["logs", SlidersHorizontal],
+                  ["wifi", Wifi],
+                  ["files", FolderTree],
+                ] as const
+              ).map(([t, Icon]) => (
                 <button
                   key={t}
                   type="button"
                   disabled={t === "wifi"}
                   onClick={() => setTab(t === "wifi" ? tab : t)}
-                  className={`w-full text-left px-3 py-2 rounded capitalize text-sm font-medium ${tab === t ? "bg-background border" : "text-muted-foreground"} ${t === "wifi" ? "opacity-40" : ""}`}
+                  aria-current={tab === t ? "page" : undefined}
+                  className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors ${tab === t ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"} ${t === "wifi" ? "cursor-not-allowed opacity-40" : ""}`}
                 >
+                  <Icon className="h-4 w-4" />
                   {t}
                   {t === "wifi" ? " (soon)" : ""}
                 </button>
@@ -526,290 +755,251 @@ export default csr(function SysdiagnosePage() {
         </aside>
         <ScrollArea
           type="always"
-          className="flex-1 min-w-0 h-full bg-background"
+          className="flex-1 min-w-0 h-full border-l bg-background"
         >
-          <main className="w-[var(--sysdiagnose-content-width)] max-w-full px-4 sm:px-6 py-4">
-            <div className="flex items-center justify-between mb-4">
+          <main
+            className={`${tab === "logs" ? "w-full" : "w-[var(--sysdiagnose-content-width)] max-w-full"} px-4 py-4 sm:px-6`}
+          >
+            <div className="mb-6 flex items-start justify-between gap-4">
               <h1 className="text-xl font-semibold">Sysdiagnose</h1>
-              <Button size="sm" onClick={resetEntries}>
-                Load another
-              </Button>
+              {tab === "logs" ? (
+                <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
+                  <div className="relative w-56">
+                    <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search messages"
+                      value={query}
+                      onChange={setQuery}
+                      className="pl-8"
+                      aria-label="Search messages"
+                    />
+                  </div>
+                  <Input
+                    placeholder="Process"
+                    value={processFilter}
+                    onChange={setProcessFilter}
+                    className="w-32"
+                    aria-label="Process filter"
+                  />
+                  <select
+                    value={level}
+                    onChange={(e) => setLevel(e.target.value)}
+                    className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                    aria-label="Log level"
+                  >
+                    {["all", "default", "info", "error", "fault"].map((l) => (
+                      <option key={l} value={l}>
+                        {l === "all" ? "All levels" : l}
+                      </option>
+                    ))}
+                  </select>
+                  {[
+                    ["hangs", "hang|stuck|watchdog"],
+                    ["jetsam", "jetsam|memory|kill"],
+                    ["thermal", "thermal|heat|throttle"],
+                  ].map(([k, v]) => (
+                    <Button
+                      key={k}
+                      size="sm"
+                      variant="plain"
+                      className="border"
+                      onClick={() => {
+                        setQuery(v);
+                        setRegex(true);
+                      }}
+                    >
+                      {k}
+                    </Button>
+                  ))}
+                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    regex
+                    <Switch checked={regex} onCheckedChange={setRegex} />
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    redact
+                    <Switch checked={redactOn} onCheckedChange={setRedactOn} />
+                  </label>
+                </div>
+              ) : null}
             </div>
             <Tabs value={tab} onValueChange={setTab} className="w-full">
               <TabsContent value="battery" className="w-full">
-                <div className="grid sm:grid-cols-4 gap-3 mb-3">
-                  {[
-                    [
-                      plistBattery ? "Samples (15-min)" : "Samples",
-                      String(batteryPoints.length),
-                    ],
-                    [
-                      "Δ level",
-                      batteryPoints.length > 1
-                        ? `${(batteryPoints[0].level - batteryPoints[batteryPoints.length - 1].level).toFixed(0)}%`
-                        : "—",
-                    ],
-                    [
-                      plistBattery ? "Apps" : "Processes",
-                      String(
-                        plistBattery ? plistBattery.apps.length : agg.length,
-                      ),
-                    ],
-                    [
-                      "Top drain",
-                      plistBattery
-                        ? (plistBattery.apps[0]?.name ?? "—")
-                        : (agg[0]?.process ?? "—"),
-                    ],
-                  ].map(([k, v]) => (
-                    <Card key={k}>
-                      <CardContent className="pt-4">
-                        <div className="text-xl font-bold truncate" title={v}>
-                          {v}
-                        </div>
-                        <div className="text-xs text-muted-foreground">{k}</div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-                <Card className="mb-3">
-                  <CardHeader>
-                    <CardTitle className="text-base">
+                <section
+                  aria-labelledby="battery-chart-heading"
+                  className="space-y-3"
+                >
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <h2
+                      id="battery-chart-heading"
+                      className="text-base font-semibold"
+                    >
                       Battery level over time
-                      {plistBattery ? (
-                        <span className="ml-2 text-xs font-normal text-muted-foreground">
-                          24h · 15-min samples · shaded = charging
-                        </span>
-                      ) : null}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <BatteryChart
-                      points={batteryPoints}
-                      charging={plistBattery?.charging}
-                    />
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">
+                    </h2>
+                    <span className="text-xs text-muted-foreground">
+                      {plistBattery
+                        ? "24h · 15-min samples · "
+                        : "Sample data · "}
+                      <span className="text-[#34c759]">green bands</span>{" "}
+                      indicate charging
+                    </span>
+                  </div>
+                  <BatteryChart
+                    points={batteryPoints}
+                    charging={plistBattery?.charging}
+                  />
+                </section>
+                <section
+                  aria-labelledby="energy-table-heading"
+                  className="mt-10"
+                >
+                  <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                    <h2
+                      id="energy-table-heading"
+                      className="text-base font-semibold"
+                    >
                       {plistBattery
                         ? "Per-app energy (24h)"
                         : "Per-process energy"}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {plistBattery ? (
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="text-left text-muted-foreground">
-                            <th>App</th>
-                            <th>Energy</th>
-                            <th>Foreground</th>
-                            <th>Background</th>
-                            <th />
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {plistBattery.apps.slice(0, 30).map((a) => (
-                            <tr key={a.bundleId || a.name} className="border-t">
-                              <td className="py-1">
-                                <div className="flex items-center gap-2">
-                                  <AppIcon
-                                    name={a.name}
-                                    bundleId={a.bundleId}
-                                    artUrl={appIcons[a.bundleId] || undefined}
-                                  />
-                                  <HoverCard.Root
-                                    openDelay={200}
-                                    closeDelay={100}
-                                  >
-                                    <HoverCard.Trigger asChild>
-                                      <span className="cursor-default text-xs font-medium underline decoration-dotted decoration-muted-foreground/50 underline-offset-4">
-                                        {a.name}
-                                      </span>
-                                    </HoverCard.Trigger>
-                                    <HoverCard.Portal>
-                                      <HoverCard.Content
-                                        side="top"
-                                        sideOffset={6}
-                                        className="rounded-md border bg-popover px-2.5 py-1.5 font-mono text-[11px] text-popover-foreground"
-                                      >
-                                        {a.bundleId || a.name}
-                                        <HoverCard.Arrow className="fill-border" />
-                                      </HoverCard.Content>
-                                    </HoverCard.Portal>
-                                  </HoverCard.Root>
-                                </div>
-                              </td>
-                              <td>{a.energy.toFixed(0)}</td>
-                              <td>{(a.foregroundSec / 60).toFixed(0)}m</td>
-                              <td>{(a.backgroundSec / 60).toFixed(0)}m</td>
-                              <td>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    setProcessFilter(
-                                      a.bundleId.split(".").pop() ?? a.name,
-                                    );
-                                    setTab("logs");
-                                  }}
+                    </h2>
+                    <span className="text-xs text-muted-foreground">
+                      {plistBattery
+                        ? "Apple BatteryUI estimate"
+                        : "Parsed energy samples"}
+                    </span>
+                  </div>
+                  {plistBattery ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="pl-0">App</TableHead>
+                          <TableHead>Energy (mWh)</TableHead>
+                          <TableHead>Foreground (min)</TableHead>
+                          <TableHead className="pr-0">
+                            Background (min)
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {plistBattery.apps.slice(0, 30).map((a) => (
+                          <TableRow key={a.bundleId || a.name}>
+                            <TableCell className="pl-0">
+                              <div className="flex items-center gap-2">
+                                <AppIcon
+                                  name={a.name}
+                                  bundleId={a.bundleId}
+                                  artUrl={appIcons[a.bundleId] || undefined}
+                                />
+                                <HoverCard.Root
+                                  openDelay={200}
+                                  closeDelay={100}
                                 >
-                                  → logs
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    ) : (
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="text-left text-muted-foreground">
-                            <th>Process</th>
-                            <th>Samples</th>
-                            <th>Energy</th>
-                            <th>Avg lvl</th>
-                            <th />
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {agg.map((a) => (
-                            <tr key={a.process} className="border-t">
-                              <td className="py-1 font-mono text-xs">
-                                {a.process}
-                              </td>
-                              <td>{a.samples}</td>
-                              <td>{a.energy.toFixed(0)}</td>
-                              <td>{a.avgLevel.toFixed(0)}</td>
-                              <td>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    setProcessFilter(
-                                      a.process.split(".").pop() ?? a.process,
-                                    );
-                                    setTab("logs");
-                                  }}
-                                >
-                                  → logs
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </CardContent>
-                </Card>
+                                  <HoverCard.Trigger asChild>
+                                    <span className="cursor-default text-xs font-medium underline decoration-dotted decoration-muted-foreground/50 underline-offset-4">
+                                      {a.name}
+                                    </span>
+                                  </HoverCard.Trigger>
+                                  <HoverCard.Portal>
+                                    <HoverCard.Content
+                                      side="top"
+                                      sideOffset={6}
+                                      className="rounded-md border bg-popover px-2.5 py-1.5 font-mono text-[11px] text-popover-foreground"
+                                    >
+                                      {a.bundleId || a.name}
+                                      <HoverCard.Arrow className="fill-border" />
+                                    </HoverCard.Content>
+                                  </HoverCard.Portal>
+                                </HoverCard.Root>
+                              </div>
+                            </TableCell>
+                            <TableCell>{a.energy.toFixed(0)} mWh</TableCell>
+                            <TableCell>
+                              {(a.foregroundSec / 60).toFixed(0)} min
+                            </TableCell>
+                            <TableCell className="pr-0">
+                              {(a.backgroundSec / 60).toFixed(0)} min
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="pl-0">Process</TableHead>
+                          <TableHead>Samples</TableHead>
+                          <TableHead>Energy (mWh)</TableHead>
+                          <TableHead className="pr-0">Average level</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {agg.map((a) => (
+                          <TableRow key={a.process}>
+                            <TableCell className="pl-0 font-mono text-xs">
+                              {a.process}
+                            </TableCell>
+                            <TableCell>{a.samples}</TableCell>
+                            <TableCell>{a.energy.toFixed(0)} mWh</TableCell>
+                            <TableCell className="pr-0">
+                              {a.avgLevel.toFixed(0)}%
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </section>
               </TabsContent>
               <TabsContent value="logs" className="w-full">
-                <Card>
-                  <CardContent className="pt-4 space-y-3">
-                    <div className="flex flex-wrap gap-2">
-                      <Input
-                        placeholder="Search messages…"
-                        value={query}
-                        onChange={(v) => setQuery(v)}
-                        className="max-w-xs"
-                      />
-                      <Input
-                        placeholder="Process filter…"
-                        value={processFilter}
-                        onChange={(v) => setProcessFilter(v)}
-                        className="max-w-40"
-                      />
-                      <select
-                        value={level}
-                        onChange={(e) => setLevel(e.target.value)}
-                        className="rounded border bg-background px-2 text-sm"
-                        aria-label="Log level"
+                <section aria-labelledby="logs-heading" className="space-y-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <h2 id="logs-heading" className="text-base font-semibold">
+                      Log entries
+                    </h2>
+                    <span className="text-xs text-muted-foreground">
+                      {logLines.length.toLocaleString()} matching lines
+                      {processes.length
+                        ? ` · ${processes.length} processes`
+                        : ""}
+                    </span>
+                  </div>
+                  <div className="max-h-[calc(100vh-9rem)] overflow-auto border-y font-mono text-xs">
+                    {logLines.slice(0, 500).map((l) => (
+                      <details
+                        key={`${l.source}:${l.ts}:${l.process}:${l.level}:${l.message}`}
+                        className="border-b px-2 py-1 last:border-b-0"
                       >
-                        {["all", "default", "info", "error", "fault"].map(
-                          (l) => (
-                            <option key={l} value={l}>
-                              {l}
-                            </option>
-                          ),
-                        )}
-                      </select>
-                      <label className="flex items-center gap-1 text-xs">
-                        regex{" "}
-                        <Switch checked={regex} onCheckedChange={setRegex} />
-                      </label>
-                      <label className="flex items-center gap-1 text-xs">
-                        redact PII{" "}
-                        <Switch
-                          checked={redactOn}
-                          onCheckedChange={setRedactOn}
-                        />
-                      </label>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {[
-                        ["hangs", "hang|stuck|watchdog"],
-                        ["jetsam", "jetsam|memory|kill"],
-                        ["thermal", "thermal|heat|throttle"],
-                        ["wakeups", "wakeup|background"],
-                      ].map(([k, v]) => (
-                        <Button
-                          key={k}
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => {
-                            setQuery(v);
-                            setRegex(true);
-                          }}
-                        >
-                          {k}
-                        </Button>
-                      ))}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {logLines.length} lines · processes:{" "}
-                      {processes.slice(0, 5).join(", ")}
-                    </div>
-                    <div className="max-h-[50vh] overflow-auto rounded border divide-y text-xs font-mono">
-                      {logLines.slice(0, 500).map((l) => (
-                        <details
-                          key={`${l.source}:${l.ts}:${l.process}:${l.level}:${l.message}`}
-                          className="px-2 py-1"
-                        >
-                          <summary className="cursor-pointer truncate">
-                            <span
-                              className={`inline-block w-2 h-2 rounded-full mr-2 ${l.level === "error" ? "bg-red-500" : l.level === "fault" ? "bg-orange-500" : "bg-green-500"}`}
-                            />
-                            {l.process} —{" "}
-                            {redact(l.message.slice(0, 140), redactOn)}
-                          </summary>
-                          <pre className="whitespace-pre-wrap p-2 text-muted-foreground">
-                            {redact(l.message, redactOn)}&#10;[{l.source}]
-                          </pre>
-                        </details>
-                      ))}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Note: .logarchive binary decoding is partial — showing
-                      extractable strings; use Mac Console for full decode.
-                    </p>
-                  </CardContent>
-                </Card>
+                        <summary className="cursor-pointer truncate">
+                          <span
+                            className={`mr-2 inline-block h-2 w-2 rounded-full ${l.level === "error" ? "bg-red-500" : l.level === "fault" ? "bg-orange-500" : "bg-green-500"}`}
+                          />
+                          {l.process} —{" "}
+                          {redact(l.message.slice(0, 140), redactOn)}
+                        </summary>
+                        <pre className="whitespace-pre-wrap p-2 text-muted-foreground">
+                          {redact(l.message, redactOn)}&#10;[{l.source}]
+                        </pre>
+                      </details>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Note: .logarchive binary decoding is partial — showing
+                    extractable strings; use Mac Console for full decode.
+                  </p>
+                </section>
               </TabsContent>
               <TabsContent value="files" className="w-full">
-                <Card>
-                  <CardContent className="pt-4 text-xs font-mono max-h-[60vh] overflow-auto">
-                    {entries.slice(0, 500).map((e) => (
-                      <div key={e.path} className="py-0.5 border-b">
-                        {e.path}{" "}
-                        <span className="text-muted-foreground">
-                          ({e.kind}, {(e.size / 1024).toFixed(1)}KB)
-                        </span>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
+                <section aria-labelledby="files-heading" className="space-y-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <h2 id="files-heading" className="text-base font-semibold">
+                      Archive files
+                    </h2>
+                    <span className="text-xs text-muted-foreground">
+                      {entries.length.toLocaleString()} indexed files
+                    </span>
+                  </div>
+                  <FileTree entries={entries} />
+                </section>
               </TabsContent>
             </Tabs>
           </main>
