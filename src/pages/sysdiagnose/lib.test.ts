@@ -103,6 +103,44 @@ describe("sysdiagnose lib", () => {
     expect(entries[0].path).toBe("a.txt");
     expect(new TextDecoder().decode(entries[0].data)).toBe("hello");
   });
+  it("ingestFile reports real progress stages", async () => {
+    const tarBytes = (() => {
+      const enc = new TextEncoder();
+      const h = new Uint8Array(512);
+      enc.encodeInto("a.txt", h.subarray(0, 100));
+      enc.encodeInto("5".padStart(11, "0"), h.subarray(124, 135));
+      const body = new Uint8Array(512);
+      body.set(enc.encode("hello"));
+      const out = new Uint8Array(512 + 512 + 1024);
+      out.set(h, 0);
+      out.set(body, 512);
+      return out;
+    })();
+    const seen: string[] = [];
+    let last = -1;
+    const { ingestFile } = await import("./lib");
+    // jsdom Blob lacks stream()/arrayBuffer(); stub a minimal file.
+    const stub = {
+      size: tarBytes.length,
+      arrayBuffer: async () =>
+        tarBytes.buffer.slice(
+          tarBytes.byteOffset,
+          tarBytes.byteOffset + tarBytes.byteLength,
+        ),
+    };
+    const entries = await ingestFile(
+      stub as unknown as Blob,
+      (p) => {
+        seen.push(p.stage);
+        expect(p.fraction).toBeGreaterThanOrEqual(last);
+        last = p.fraction;
+      },
+    );
+    expect(entries).toHaveLength(1);
+    expect(seen).toContain("reading");
+    expect(seen).toContain("indexing");
+    expect(seen[seen.length - 1]).toBe("done");
+  });
   it("parseTar resolves ustar prefix, PAX path, and GNU longname", () => {
     const prefixName = `${"d/".repeat(40)}batteryuisysdiagnose.plist`;
     const paxName = `${"z".repeat(120)}.plist`;

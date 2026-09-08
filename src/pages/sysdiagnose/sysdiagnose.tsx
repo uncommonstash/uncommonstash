@@ -3,13 +3,15 @@ import { BackLink } from "@/components/back-link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { csr } from "@/lib/compat";
 import {
   type ArchiveEntry,
-  aggregateBattery,
   type BatteryPlistData,
+  type IngestProgress,
+  aggregateBattery,
   extractBatteryFromPlist,
   ingestFile,
   parseBatteryText,
@@ -17,6 +19,30 @@ import {
   parsePlist,
   redact,
 } from "./lib";
+
+function formatMB(bytes: number): string {
+  if (!bytes || bytes <= 0) return "0 MB";
+  return `${(bytes / 1048576).toFixed(bytes < 10485760 ? 1 : 0)} MB`;
+}
+
+function stageLabel(p: IngestProgress): string {
+  switch (p.stage) {
+    case "reading":
+      return p.bytesTotal > 0
+        ? `Reading ${formatMB(p.bytesRead)} of ${formatMB(p.bytesTotal)}`
+        : `Reading ${formatMB(p.bytesRead)}`;
+    case "decompressing":
+      return `Decompressing ${formatMB(p.bytesRead)} streamed`;
+    case "indexing":
+      return "Indexing archive";
+    case "storing":
+      return p.filesFound > 0
+        ? `Indexing ${p.filesFound.toLocaleString()} files`
+        : "Indexing archive";
+    case "done":
+      return `${p.filesFound.toLocaleString()} files ready`;
+  }
+}
 
 function BatteryChart({
   points,
@@ -208,6 +234,8 @@ function AppIcon({
 export default csr(function SysdiagnosePage() {
   const [entries, setEntries] = useState<ArchiveEntry[]>([]);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<IngestProgress | null>(null);
+  const [fileName, setFileName] = useState("");
   const [tab, setTab] = useState("battery");
   const [query, setQuery] = useState("");
   const [regex, setRegex] = useState(false);
@@ -222,10 +250,13 @@ export default csr(function SysdiagnosePage() {
 
   async function load(f: File | Blob) {
     setBusy(true);
+    setProgress(null);
+    setFileName((f as File).name ?? "archive");
     try {
-      setEntries(await ingestFile(f));
+      setEntries(await ingestFile(f, setProgress));
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   }
 
@@ -339,19 +370,60 @@ export default csr(function SysdiagnosePage() {
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                className="w-full rounded-xl border-2 border-dashed p-10 text-center hover:bg-background transition"
-              >
-                <div className="text-lg font-semibold">
-                  Drop sysdiagnose_*.tar.gz here
+              {busy ? (
+                <div
+                  className="w-full rounded-xl border p-10 text-center"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <Spinner
+                    size="md"
+                    className="mx-auto"
+                    value={progress ? progress.fraction : undefined}
+                  >
+                    <span className="sr-only">Loading sysdiagnose</span>
+                  </Spinner>
+                  <div className="mt-4 text-lg font-semibold truncate">
+                    {fileName || "sysdiagnose archive"}
+                  </div>
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    {progress ? stageLabel(progress) : "Starting"}
+                  </div>
+                  <div
+                    className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-secondary"
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.round(
+                      (progress?.fraction ?? 0) * 100,
+                    )}
+                  >
+                    <div
+                      className="h-full rounded-full bg-primary transition-[width]"
+                      style={{
+                        width: `${Math.round((progress?.fraction ?? 0) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    Processing locally — nothing is uploaded
+                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  or click to browse —{" "}
-                  {busy ? "parsing…" : "up to ~1GB, streamed + spilled to OPFS"}
-                </div>
-              </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="w-full rounded-xl border-2 border-dashed p-10 text-center hover:bg-background transition"
+                >
+                  <div className="text-lg font-semibold">
+                    Drop sysdiagnose_*.tar.gz here
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    or click to browse — up to ~1GB, streamed + spilled to
+                    OPFS
+                  </div>
+                </button>
+              )}
               <input
                 ref={fileRef}
                 type="file"
