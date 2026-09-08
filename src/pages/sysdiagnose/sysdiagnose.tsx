@@ -38,6 +38,8 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { csr } from "@/lib/compat";
+import { AnalyticsClient } from "@/workers/sysdiagnose-analytics/analytics.client";
+import type { AnalyticsAppRow } from "@/workers/sysdiagnose-analytics/analytics.protocol";
 import { IngestClient } from "@/workers/sysdiagnose-ingest/ingest.client";
 import {
   type ArchiveEntry,
@@ -89,16 +91,40 @@ const BATTERY_CHART_HEIGHT = 260;
 const BATTERY_CHART_PADDING = { top: 18, right: 18, bottom: 38, left: 48 };
 const BATTERY_CHART_TICKS = [0, 0.25, 0.5, 0.75, 1];
 
+interface TimeRange {
+  start: number;
+  end: number;
+}
+
+function formatRange(range: TimeRange): string {
+  const date = new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(range.start));
+  const time = new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return `${date} · ${time.format(new Date(range.start))}–${time.format(new Date(range.end))}`;
+}
+
 function BatteryChart({
   points,
   charging,
+  selectedRange,
+  onRangeChange,
 }: {
   points: { ts: number; level: number }[];
   charging?: Array<{ start: number; end: number }>;
+  selectedRange?: TimeRange;
+  onRangeChange?: (range: TimeRange) => void;
 }) {
   const W = BATTERY_CHART_WIDTH;
   const H = BATTERY_CHART_HEIGHT;
   const P = BATTERY_CHART_PADDING;
+  const [dragStart, setDragStart] = useState<number | null>(null);
+  const [dragEnd, setDragEnd] = useState<number | null>(null);
   const geom = useMemo(() => {
     if (points.length < 2) return null;
     const ts = points.map((p) => p.ts);
@@ -122,6 +148,7 @@ function BatteryChart({
       })),
       min,
       max,
+      X,
       Y,
     };
   }, [points, charging]);
@@ -131,6 +158,39 @@ function BatteryChart({
         Not enough battery samples.
       </p>
     );
+  const draftRange =
+    dragStart !== null && dragEnd !== null
+      ? {
+          start: Math.min(dragStart, dragEnd),
+          end: Math.max(dragStart, dragEnd),
+        }
+      : selectedRange;
+  const toTime = (event: React.PointerEvent<SVGRectElement>) => {
+    const svg = event.currentTarget.ownerSVGElement;
+    if (!svg) return geom.min;
+    const rect = svg.getBoundingClientRect();
+    const svgX = ((event.clientX - rect.left) / Math.max(1, rect.width)) * W;
+    const fraction = Math.min(
+      1,
+      Math.max(0, (svgX - P.left) / Math.max(1, W - P.left - P.right)),
+    );
+    return geom.min + fraction * (geom.max - geom.min);
+  };
+  const finishSelection = (event: React.PointerEvent<SVGRectElement>) => {
+    if (dragStart === null) return;
+    const end = toTime(event);
+    const minDistance = (geom.max - geom.min) * 0.02;
+    setDragStart(null);
+    setDragEnd(null);
+    if (Math.abs(end - dragStart) < minDistance) {
+      onRangeChange?.({ start: geom.min, end: geom.max });
+      return;
+    }
+    onRangeChange?.({
+      start: Math.min(dragStart, end),
+      end: Math.max(dragStart, end),
+    });
+  };
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
@@ -152,6 +212,17 @@ function BatteryChart({
             />
           ),
       )}
+      {draftRange ? (
+        <rect
+          x={geom.X(draftRange.start)}
+          y={P.top}
+          width={Math.max(1, geom.X(draftRange.end) - geom.X(draftRange.start))}
+          height={H - P.top - P.bottom}
+          fill="#0071e3"
+          opacity={0.08}
+          pointerEvents="none"
+        />
+      ) : null}
       {BATTERY_CHART_TICKS.map((tick) => {
         const level = 100 - tick * 100;
         const y = geom.Y(level);
@@ -198,6 +269,29 @@ function BatteryChart({
       })}
       <path d={geom.area} fill="#0071e3" opacity={0.08} />
       <path d={geom.d} fill="none" stroke="#0071e3" strokeWidth={2.5} />
+      <rect
+        x={P.left}
+        y={P.top}
+        width={W - P.left - P.right}
+        height={H - P.top - P.bottom}
+        fill="transparent"
+        cursor="crosshair"
+        onPointerDown={(event) => {
+          if (!onRangeChange) return;
+          event.currentTarget.setPointerCapture(event.pointerId);
+          const time = toTime(event);
+          setDragStart(time);
+          setDragEnd(time);
+        }}
+        onPointerMove={(event) => {
+          if (dragStart !== null) setDragEnd(toTime(event));
+        }}
+        onPointerUp={finishSelection}
+        onPointerCancel={() => {
+          setDragStart(null);
+          setDragEnd(null);
+        }}
+      />
     </svg>
   );
 }
@@ -470,6 +564,12 @@ export default csr(function SysdiagnosePage() {
   const [redactOn, setRedactOn] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
   const ingestRef = useRef<IngestClient | null>(null);
+  const analyticsRef = useRef<AnalyticsClient | null>(null);
+  const [analyticsStatus, setAnalyticsStatus] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
+  const [rangeApps, setRangeApps] = useState<AnalyticsAppRow[] | null>(null);
+  const [selectedRange, setSelectedRange] = useState<TimeRange | null>(null);
 
   function ingestClient(): IngestClient {
     if (!ingestRef.current) ingestRef.current = new IngestClient();
@@ -563,9 +663,89 @@ export default csr(function SysdiagnosePage() {
     return pts;
   }, [entries, plistBattery]);
   const agg = useMemo(() => aggregateBattery(batteryPoints), [batteryPoints]);
-  const chartDate = formatChartDate(
-    plistBattery?.endTime ?? batteryPoints.at(-1)?.ts,
+  const chartAnchor =
+    batteryPoints[Math.floor(batteryPoints.length / 2)]?.ts ??
+    plistBattery?.endTime;
+  const chartDate = formatChartDate(chartAnchor);
+  const chartRange = useMemo<TimeRange | null>(() => {
+    const start = batteryPoints[0]?.ts;
+    const end = batteryPoints.at(-1)?.ts;
+    return start !== undefined && end !== undefined && end > start
+      ? { start, end }
+      : null;
+  }, [batteryPoints]);
+  const powerlogEntry = useMemo(
+    () =>
+      entries.find(
+        (entry) =>
+          entry.kind === "sqlite" && /powerlog.*\.plsql$/i.test(entry.path),
+      ) ?? entries.find((entry) => entry.kind === "sqlite"),
+    [entries],
   );
+
+  useEffect(() => {
+    if (chartRange) setSelectedRange(null);
+  }, [chartRange]);
+
+  useEffect(() => {
+    analyticsRef.current?.terminate();
+    analyticsRef.current = null;
+    setRangeApps(null);
+    setAnalyticsStatus("idle");
+    if (!plistBattery || !powerlogEntry) return;
+    const client = new AnalyticsClient();
+    analyticsRef.current = client;
+    let cancelled = false;
+    setAnalyticsStatus("loading");
+    const data = powerlogEntry.data.slice().buffer;
+    void client
+      .init(data, plistBattery.apps, plistBattery.endTime)
+      .then(() => {
+        if (!cancelled) setAnalyticsStatus("ready");
+      })
+      .catch(() => {
+        if (!cancelled) setAnalyticsStatus("error");
+      });
+    return () => {
+      cancelled = true;
+      client.terminate();
+      if (analyticsRef.current === client) analyticsRef.current = null;
+    };
+  }, [plistBattery, powerlogEntry]);
+
+  useEffect(() => {
+    if (analyticsStatus !== "ready" || !chartRange) return;
+    const client = analyticsRef.current;
+    if (!client) return;
+    let cancelled = false;
+    const range = selectedRange ?? chartRange;
+    void client
+      .query(range.start, range.end)
+      .then((result) => {
+        if (!cancelled) setRangeApps(result.apps);
+      })
+      .catch(() => {
+        // A newer drag superseded this request.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [analyticsStatus, chartRange, selectedRange]);
+
+  const displayApps = rangeApps ?? plistBattery?.apps ?? [];
+  const rangeLabel =
+    selectedRange && chartRange ? formatRange(selectedRange) : chartDate;
+  const handleRangeChange = (range: TimeRange) => {
+    if (
+      chartRange &&
+      range.start <= chartRange.start &&
+      range.end >= chartRange.end
+    ) {
+      setSelectedRange(null);
+    } else {
+      setSelectedRange(range);
+    }
+  };
 
   const logLines = useMemo(() => {
     const all = [];
@@ -850,19 +1030,34 @@ export default csr(function SysdiagnosePage() {
                       Battery level over time
                     </h2>
                     <span className="text-xs text-muted-foreground">
-                      {chartDate}
+                      {rangeLabel}
                     </span>
+                    {analyticsStatus === "loading" ? (
+                      <span className="text-xs text-muted-foreground">
+                        Analyzing Powerlog…
+                      </span>
+                    ) : analyticsStatus === "error" ? (
+                      <span className="text-xs text-muted-foreground">
+                        Daily totals
+                      </span>
+                    ) : null}
                   </div>
                   <BatteryChart
                     points={batteryPoints}
                     charging={plistBattery?.charging}
+                    selectedRange={selectedRange ?? undefined}
+                    onRangeChange={
+                      plistBattery && powerlogEntry
+                        ? handleRangeChange
+                        : undefined
+                    }
                   />
                 </section>
                 <section className="mt-10">
                   {plistBattery ? (
                     <Table>
                       <TableCaption className="sr-only">
-                        App energy for {chartDate}
+                        App energy for {rangeLabel}
                       </TableCaption>
                       <TableHeader>
                         <TableRow>
@@ -879,48 +1074,59 @@ export default csr(function SysdiagnosePage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {plistBattery.apps.slice(0, 30).map((a) => (
-                          <TableRow key={a.bundleId || a.name}>
-                            <TableCell className="pl-0">
-                              <div className="flex items-center gap-2">
-                                <AppIcon
-                                  name={a.name}
-                                  bundleId={a.bundleId}
-                                  artUrl={appIcons[a.bundleId] || undefined}
-                                />
-                                <HoverCard.Root
-                                  openDelay={200}
-                                  closeDelay={100}
-                                >
-                                  <HoverCard.Trigger asChild>
-                                    <span className="cursor-default text-sm font-medium underline decoration-dotted decoration-muted-foreground/50 underline-offset-4">
-                                      {a.name}
-                                    </span>
-                                  </HoverCard.Trigger>
-                                  <HoverCard.Portal>
-                                    <HoverCard.Content
-                                      side="top"
-                                      sideOffset={6}
-                                      className="rounded-md border bg-popover px-2.5 py-1.5 font-mono text-[11px] text-popover-foreground"
-                                    >
-                                      {a.bundleId || a.name}
-                                      <HoverCard.Arrow className="fill-border" />
-                                    </HoverCard.Content>
-                                  </HoverCard.Portal>
-                                </HoverCard.Root>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
-                              {a.energy.toFixed(0)} mWh
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
-                              {(a.foregroundSec / 60).toFixed(0)} min
-                            </TableCell>
-                            <TableCell className="pr-0 text-right tabular-nums">
-                              {(a.backgroundSec / 60).toFixed(0)} min
+                        {displayApps.length === 0 ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={4}
+                              className="px-0 py-8 text-center text-sm text-muted-foreground"
+                            >
+                              No app activity in this range.
                             </TableCell>
                           </TableRow>
-                        ))}
+                        ) : (
+                          displayApps.slice(0, 30).map((a) => (
+                            <TableRow key={a.bundleId || a.name}>
+                              <TableCell className="pl-0">
+                                <div className="flex items-center gap-2">
+                                  <AppIcon
+                                    name={a.name}
+                                    bundleId={a.bundleId}
+                                    artUrl={appIcons[a.bundleId] || undefined}
+                                  />
+                                  <HoverCard.Root
+                                    openDelay={200}
+                                    closeDelay={100}
+                                  >
+                                    <HoverCard.Trigger asChild>
+                                      <span className="cursor-default text-sm font-medium underline decoration-dotted decoration-muted-foreground/50 underline-offset-4">
+                                        {a.name}
+                                      </span>
+                                    </HoverCard.Trigger>
+                                    <HoverCard.Portal>
+                                      <HoverCard.Content
+                                        side="top"
+                                        sideOffset={6}
+                                        className="rounded-md border bg-popover px-2.5 py-1.5 font-mono text-[11px] text-popover-foreground"
+                                      >
+                                        {a.bundleId || a.name}
+                                        <HoverCard.Arrow className="fill-border" />
+                                      </HoverCard.Content>
+                                    </HoverCard.Portal>
+                                  </HoverCard.Root>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">
+                                {a.energy.toFixed(0)} mWh
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">
+                                {(a.foregroundSec / 60).toFixed(0)} min
+                              </TableCell>
+                              <TableCell className="pr-0 text-right tabular-nums">
+                                {(a.backgroundSec / 60).toFixed(0)} min
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
                       </TableBody>
                     </Table>
                   ) : (
