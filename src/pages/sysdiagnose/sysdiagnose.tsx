@@ -436,7 +436,7 @@ export default csr(function SysdiagnosePage() {
                     Drop sysdiagnose_*.tar.gz here
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    or click to browse — up to ~1GB, streamed + spilled to OPFS
+                    or click to browse
                   </div>
                 </button>
               )}
