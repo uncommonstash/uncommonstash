@@ -1,5 +1,6 @@
+import * as Popover from "@radix-ui/react-popover";
 import { Info } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 interface BuildInfoSummary {
@@ -11,7 +12,6 @@ interface BuildInfoSummary {
 function BuildInfoPopover() {
   const [open, setOpen] = useState(false);
   const [info, setInfo] = useState<BuildInfoSummary | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/build-info.json")
@@ -25,46 +25,30 @@ function BuildInfoPopover() {
       });
   }, []);
 
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setOpen(false);
-      }
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
-
   return (
-    <div
-      ref={containerRef}
-      className="relative"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-    >
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        aria-expanded={open}
-        aria-label="About this deployment"
-        title="About this deployment"
-        className="flex items-center text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <Info className="w-4 h-4" />
-      </button>
-      {open && (
-        <div className="absolute left-0 top-8 z-50 w-72 rounded-md border bg-card p-4 shadow-lg">
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          onMouseEnter={() => setOpen(true)}
+          onMouseLeave={() => setOpen(false)}
+          aria-label="About this deployment"
+          title="About this deployment"
+          className="flex items-center text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Info className="w-4 h-4" />
+        </button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          side="bottom"
+          align="start"
+          sideOffset={8}
+          onMouseEnter={() => setOpen(true)}
+          onMouseLeave={() => setOpen(false)}
+          onOpenAutoFocus={(event) => event.preventDefault()}
+          className="z-50 w-72 rounded-md border bg-card p-4 shadow-lg"
+        >
           <p className="text-sm text-muted-foreground">
             {info ? (
               <>
@@ -84,15 +68,15 @@ function BuildInfoPopover() {
             )}
             <Link
               to="/verify"
-              onClick={() => setOpen(false)}
               className="font-medium text-foreground underline underline-offset-4"
             >
               verify here.
             </Link>
           </p>
-        </div>
-      )}
-    </div>
+          <Popover.Arrow className="fill-border" />
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }
 
