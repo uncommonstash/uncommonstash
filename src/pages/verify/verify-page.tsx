@@ -64,20 +64,25 @@ export default csr(function VerifyPage() {
     <div className="mx-auto max-w-2xl px-4 py-10">
       <BackLink to="/" label="Back to home" />
       <h1 className="text-3xl font-bold tracking-tight">
-        This site is built in the open
+        Private by design — and provably so
       </h1>
       <p className="mt-3 text-muted-foreground">
-        Every page here runs code anyone can inspect — and this page proves it.
-        Below is the exact source this deployment was built from, plus
-        everything you need to double-check it yourself.
+        Every tool here runs entirely in your browser. Your files never leave
+        your device — no uploads, no accounts, no server processing. And you
+        don&apos;t have to take our word for it: below is the exact
+        open-source code this deployment runs, plus everything you need to
+        confirm it yourself.
       </p>
 
       {info ? (
         <div className="mt-8 space-y-8">
           <section>
-            <h2 className="text-lg font-semibold">What you&apos;re running</h2>
+            <h2 className="text-lg font-semibold">
+              The code behind your privacy
+            </h2>
             <p className="mt-2 text-muted-foreground">
-              Source code{" "}
+              The privacy you get here comes from open code, not promises.
+              This deployment runs source{" "}
               <a
                 className="font-mono underline underline-offset-4"
                 href={info.commitUrl}
@@ -86,8 +91,9 @@ export default csr(function VerifyPage() {
               >
                 {info.commit.slice(0, 12)}
               </a>
-              , published {info.commitTime.slice(0, 10)}. The full code is
-              public, the dependency list is published{" "}
+              , published {info.commitTime.slice(0, 10)} — public for anyone
+              to audit. The full code is open, the dependency list is
+              published{" "}
               <a className="underline underline-offset-4" href={info.sbom}>
                 here
               </a>
@@ -101,12 +107,13 @@ export default csr(function VerifyPage() {
 
           <section>
             <h2 className="text-lg font-semibold">
-              Independently signed and logged
+              Signed, so you know it&apos;s that code
             </h2>
             <p className="mt-2 text-muted-foreground">
               Each deployment is cryptographically signed and recorded in a
-              public transparency log, so anyone can confirm it came from this
-              project&apos;s official build process —{" "}
+              public transparency log — proof that the privacy-protecting code
+              you can audit is exactly what&apos;s running here, with nothing
+              quietly added.{" "}
               <a
                 className="underline underline-offset-4"
                 href={info.attestations}
@@ -120,11 +127,11 @@ export default csr(function VerifyPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold">Rebuild it yourself</h2>
+            <h2 className="text-lg font-semibold">Trust, verified</h2>
             <p className="mt-2 text-muted-foreground">
-              The strongest proof needs no trust at all: rebuild from the public
-              source and compare. Matching hashes mean this site runs exactly
-              the open code — nothing added, nothing hidden.
+              The strongest proof needs no trust at all: rebuild from the
+              public source and compare. Matching hashes mean this site runs
+              exactly the open code that keeps your files on your device.
             </p>
             <div className="mt-4 space-y-4">
               <div>
