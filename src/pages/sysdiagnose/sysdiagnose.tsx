@@ -9,32 +9,47 @@ import { csr } from "@/lib/compat";
 import {
   type ArchiveEntry,
   aggregateBattery,
+  type BatteryPlistData,
+  extractBatteryFromPlist,
   ingestFile,
   parseBatteryText,
   parseLogText,
+  parsePlist,
   redact,
 } from "./lib";
 
-function BatteryChart({ points }: { points: { ts: number; level: number }[] }) {
+function BatteryChart({
+  points,
+  charging,
+}: {
+  points: { ts: number; level: number }[];
+  charging?: Array<{ start: number; end: number }>;
+}) {
   const W = 640;
   const H = 180;
   const P = 24;
-  const path = useMemo(() => {
-    if (points.length < 2) return "";
+  const geom = useMemo(() => {
+    if (points.length < 2) return null;
     const ts = points.map((p) => p.ts);
     const min = Math.min(...ts);
     const max = Math.max(...ts);
     const X = (t: number) =>
       P + ((t - min) / Math.max(1, max - min)) * (W - 2 * P);
     const Y = (l: number) => H - P - (l / 100) * (H - 2 * P);
-    return points
-      .map(
-        (p, i) =>
-          `${i ? "L" : "M"}${X(p.ts).toFixed(1)},${Y(p.level).toFixed(1)}`,
-      )
-      .join(" ");
-  }, [points]);
-  if (points.length < 2)
+    return {
+      d: points
+        .map(
+          (p, i) =>
+            `${i ? "L" : "M"}${X(p.ts).toFixed(1)},${Y(p.level).toFixed(1)}`,
+        )
+        .join(" "),
+      band: (charging ?? []).map((c) => ({
+        x1: X(Math.max(c.start, min)),
+        x2: X(Math.min(c.end, max)),
+      })),
+    };
+  }, [points, charging]);
+  if (points.length < 2 || !geom)
     return (
       <p className="text-sm text-muted-foreground">
         Not enough battery samples.
@@ -58,7 +73,21 @@ function BatteryChart({ points }: { points: { ts: number; level: number }[] }) {
           strokeOpacity={0.1}
         />
       ))}
-      <path d={path} fill="none" stroke="currentColor" strokeWidth={2} />
+      <path d={geom.d} fill="none" stroke="currentColor" strokeWidth={2} />
+      {geom.band.map(
+        (b, i) =>
+          b.x2 > b.x1 && (
+            <rect
+              key={i}
+              x={b.x1}
+              y={P / 2}
+              width={b.x2 - b.x1}
+              height={H - P}
+              fill="currentColor"
+              opacity={0.08}
+            />
+          ),
+      )}
     </svg>
   );
 }
@@ -117,14 +146,29 @@ export default csr(function SysdiagnosePage() {
   }
 
   const textEntries = entries.filter((e) => e.kind === "text");
+  // Primary source: BatteryUISysdiagnose.plist (24h level curve + per-app
+  // energy). Fallback: strict CSV parsing for sample/synthetic data.
+  const plistBattery: BatteryPlistData | null = useMemo(() => {
+    const cand = entries.find((e) =>
+      /batteryuisysdiagnose\.plist$/i.test(e.path),
+    );
+    if (!cand) return null;
+    try {
+      return extractBatteryFromPlist(parsePlist(cand.data));
+    } catch {
+      return null;
+    }
+  }, [entries]);
   const batteryPoints = useMemo(() => {
+    if (plistBattery) return plistBattery.points;
     const pts = [];
     for (const e of entries) {
-      if (/batter|power/i.test(e.path))
-        pts.push(...parseBatteryText(new TextDecoder().decode(e.data)));
+      if (!/\.csv$/i.test(e.path) || e.size > 2_000_000) continue;
+      if (!/batter|power/i.test(e.path)) continue;
+      pts.push(...parseBatteryText(new TextDecoder().decode(e.data)));
     }
     return pts;
-  }, [entries]);
+  }, [entries, plistBattery]);
   const agg = useMemo(() => aggregateBattery(batteryPoints), [batteryPoints]);
 
   const logLines = useMemo(() => {
@@ -170,55 +214,55 @@ export default csr(function SysdiagnosePage() {
         <div className="max-w-6xl mx-auto">
           <BackLink />
           <Card className="max-w-2xl w-full mx-auto mt-6">
-          <CardHeader>
-            <CardTitle>Sysdiagnose</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Private, in-browser iPhone sysdiagnose analysis. Files never leave
-              your device.{" "}
-              <span className="rounded border px-1.5 py-0.5 text-xs">
-                local-only
-              </span>
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="w-full rounded-xl border-2 border-dashed p-10 text-center hover:bg-background transition"
-            >
-              <div className="text-lg font-semibold">
-                Drop sysdiagnose_*.tar.gz here
-              </div>
-              <div className="text-sm text-muted-foreground">
-                or click to browse —{" "}
-                {busy ? "parsing…" : "up to ~1GB, streamed + spilled to OPFS"}
-              </div>
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".tar.gz,.tgz,.tar,.gz"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void load(f);
-              }}
-            />
-            <ol className="text-sm space-y-1 list-decimal pl-5 text-muted-foreground">
-              <li>
-                iPhone: press Vol Up + Vol Down + hold Side 1s, wait ~10 min.
-              </li>
-              <li>
-                Settings → Privacy & Security → Analytics → Analytics Data →
-                sysdiagnose_[date].
-              </li>
-              <li>Share via AirDrop, then drop the .tar.gz above.</li>
-            </ol>
-            <Button variant="secondary" onClick={() => void loadSample()}>
-              Try with sample data
-            </Button>
-          </CardContent>
-        </Card>
+            <CardHeader>
+              <CardTitle>Sysdiagnose</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Private, in-browser iPhone sysdiagnose analysis. Files never
+                leave your device.{" "}
+                <span className="rounded border px-1.5 py-0.5 text-xs">
+                  local-only
+                </span>
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="w-full rounded-xl border-2 border-dashed p-10 text-center hover:bg-background transition"
+              >
+                <div className="text-lg font-semibold">
+                  Drop sysdiagnose_*.tar.gz here
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  or click to browse —{" "}
+                  {busy ? "parsing…" : "up to ~1GB, streamed + spilled to OPFS"}
+                </div>
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".tar.gz,.tgz,.tar,.gz"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void load(f);
+                }}
+              />
+              <ol className="text-sm space-y-1 list-decimal pl-5 text-muted-foreground">
+                <li>
+                  iPhone: press Vol Up + Vol Down + hold Side 1s, wait ~10 min.
+                </li>
+                <li>
+                  Settings → Privacy & Security → Analytics → Analytics Data →
+                  sysdiagnose_[date].
+                </li>
+                <li>Share via AirDrop, then drop the .tar.gz above.</li>
+              </ol>
+              <Button variant="secondary" onClick={() => void loadSample()}>
+                Try with sample data
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -259,15 +303,28 @@ export default csr(function SysdiagnosePage() {
             <TabsContent value="battery">
               <div className="grid sm:grid-cols-4 gap-3 mb-3">
                 {[
-                  ["Samples", String(batteryPoints.length)],
+                  [
+                    plistBattery ? "Samples (15-min)" : "Samples",
+                    String(batteryPoints.length),
+                  ],
                   [
                     "Δ level",
                     batteryPoints.length > 1
                       ? `${(batteryPoints[0].level - batteryPoints[batteryPoints.length - 1].level).toFixed(0)}%`
                       : "—",
                   ],
-                  ["Processes", String(agg.length)],
-                  ["Top drain", agg[0]?.process ?? "—"],
+                  [
+                    plistBattery ? "Apps" : "Processes",
+                    String(
+                      plistBattery ? plistBattery.apps.length : agg.length,
+                    ),
+                  ],
+                  [
+                    "Top drain",
+                    plistBattery
+                      ? (plistBattery.apps[0]?.name ?? "—")
+                      : (agg[0]?.process ?? "—"),
+                  ],
                 ].map(([k, v]) => (
                   <Card key={k}>
                     <CardContent className="pt-4">
@@ -283,56 +340,111 @@ export default csr(function SysdiagnosePage() {
                 <CardHeader>
                   <CardTitle className="text-base">
                     Battery level over time
+                    {plistBattery ? (
+                      <span className="ml-2 text-xs font-normal text-muted-foreground">
+                        24h · 15-min samples · shaded = charging
+                      </span>
+                    ) : null}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <BatteryChart points={batteryPoints} />
+                  <BatteryChart
+                    points={batteryPoints}
+                    charging={plistBattery?.charging}
+                  />
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">
-                    Per-process energy
+                    {plistBattery
+                      ? "Per-app energy (24h)"
+                      : "Per-process energy"}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-left text-muted-foreground">
-                        <th>Process</th>
-                        <th>Samples</th>
-                        <th>Energy</th>
-                        <th>Avg lvl</th>
-                        <th />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {agg.map((a) => (
-                        <tr key={a.process} className="border-t">
-                          <td className="py-1 font-mono text-xs">
-                            {a.process}
-                          </td>
-                          <td>{a.samples}</td>
-                          <td>{a.energy.toFixed(0)}</td>
-                          <td>{a.avgLevel.toFixed(0)}</td>
-                          <td>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                setProcessFilter(
-                                  a.process.split(".").pop() ?? a.process,
-                                );
-                                setTab("logs");
-                              }}
-                            >
-                              → logs
-                            </Button>
-                          </td>
+                  {plistBattery ? (
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-muted-foreground">
+                          <th>App</th>
+                          <th>Energy</th>
+                          <th>Foreground</th>
+                          <th>Background</th>
+                          <th />
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {plistBattery.apps.slice(0, 30).map((a) => (
+                          <tr key={a.bundleId || a.name} className="border-t">
+                            <td className="py-1">
+                              <div className="text-xs font-medium">
+                                {a.name}
+                              </div>
+                              <div className="font-mono text-[10px] text-muted-foreground">
+                                {a.bundleId}
+                              </div>
+                            </td>
+                            <td>{a.energy.toFixed(0)}</td>
+                            <td>{(a.foregroundSec / 60).toFixed(0)}m</td>
+                            <td>{(a.backgroundSec / 60).toFixed(0)}m</td>
+                            <td>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  setProcessFilter(
+                                    a.bundleId.split(".").pop() ?? a.name,
+                                  );
+                                  setTab("logs");
+                                }}
+                              >
+                                → logs
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-muted-foreground">
+                          <th>Process</th>
+                          <th>Samples</th>
+                          <th>Energy</th>
+                          <th>Avg lvl</th>
+                          <th />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {agg.map((a) => (
+                          <tr key={a.process} className="border-t">
+                            <td className="py-1 font-mono text-xs">
+                              {a.process}
+                            </td>
+                            <td>{a.samples}</td>
+                            <td>{a.energy.toFixed(0)}</td>
+                            <td>{a.avgLevel.toFixed(0)}</td>
+                            <td>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  setProcessFilter(
+                                    a.process.split(".").pop() ?? a.process,
+                                  );
+                                  setTab("logs");
+                                }}
+                              >
+                                → logs
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
                   <details className="mt-3 text-xs">
                     <summary className="cursor-pointer text-muted-foreground">
                       Engineer: raw SQL (sqlite-wasm, single-thread, in-memory)
@@ -431,9 +543,9 @@ export default csr(function SysdiagnosePage() {
                     {logLines.length} lines · processes:{" "}
                     {processes.slice(0, 5).join(", ")}
                   </div>
-                <div className="max-h-[50vh] overflow-auto rounded border divide-y text-xs font-mono">
-                  {/* biome-ignore lint/suspicious/noArrayIndexKey: log rows have no stable id */}
-                  {logLines.slice(0, 500).map((l, i) => (
+                  <div className="max-h-[50vh] overflow-auto rounded border divide-y text-xs font-mono">
+                    {/* biome-ignore lint/suspicious/noArrayIndexKey: log rows have no stable id */}
+                    {logLines.slice(0, 500).map((l, i) => (
                       <details key={i} className="px-2 py-1">
                         <summary className="cursor-pointer truncate">
                           <span
