@@ -68,6 +68,29 @@ export async function getFFmpeg() {
   return ffmpeg;
 }
 
+/**
+ * Run an exec command, dropping the engine singleton if the wasm instance
+ * blows up. After an out-of-bounds trap or abort the heap/threads are left
+ * in an undefined state — without this reset, every later conversion fails
+ * identically until page reload. The next call transparently reloads fresh.
+ */
+async function runExec(args: string[]): Promise<number> {
+  const instance = await getFFmpeg();
+  try {
+    return await instance.exec(args);
+  } catch (error) {
+    try {
+      instance.terminate();
+    } catch {
+      // Already dead — just drop the reference below.
+    }
+    if (instance === ffmpeg) {
+      ffmpeg = null;
+    }
+    throw error;
+  }
+}
+
 export async function cutAudio(
   file: File,
   startTime: number,
@@ -76,7 +99,7 @@ export async function cutAudio(
   const ffmpeg = await getFFmpeg();
   await ffmpeg.writeFile(file.name, await fetchFile(file));
 
-  await ffmpeg.exec([
+  await runExec([
     "-i",
     file.name,
     "-ss",
@@ -100,7 +123,7 @@ export async function convertAudio(
   await ffmpeg.writeFile(file.name, await fetchFile(file));
 
   const outputFilename = `output.${outputFormat}`;
-  await ffmpeg.exec(["-i", file.name, ...threadArgs(), outputFilename]);
+  await runExec(["-i", file.name, ...threadArgs(), outputFilename]);
 
   const data = await ffmpeg.readFile(outputFilename);
   return new Blob([toBlobPart(data)], { type: `audio/${outputFormat}` });
@@ -151,7 +174,7 @@ export async function convertVideo(
             outputName,
           ]
         : ["-i", file.name, ...threadArgs(), outputName];
-    await ffmpeg.exec(args);
+    await runExec(args);
     const data = await ffmpeg.readFile(outputName);
 
     const blob = new Blob([toBlobPart(data)], { type: outputMimeType });
@@ -188,7 +211,7 @@ export async function combineAudio(files: File[]): Promise<Blob> {
     // This is necessary because the concat demuxer with "copy" requires
     // all input files to have identical stream parameters (sample rate, channels, codec).
     // Re-encoding ensures the output is a single consistent stream.
-    await ffmpeg.exec([
+    await runExec([
       "-f",
       "concat",
       "-safe",
