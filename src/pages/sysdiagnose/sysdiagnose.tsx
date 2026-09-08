@@ -166,11 +166,10 @@ export default csr(function SysdiagnosePage() {
 
   if (entries.length === 0) {
     return (
-      <div className="min-h-screen bg-secondary/30 flex items-center justify-center p-4">
-        <div className="absolute top-0 left-0 p-6">
+      <div className="min-h-screen bg-secondary/30 p-4">
+        <div className="max-w-6xl mx-auto">
           <BackLink />
-        </div>
-        <Card className="max-w-2xl w-full">
+          <Card className="max-w-2xl w-full mx-auto mt-6">
           <CardHeader>
             <CardTitle>Sysdiagnose</CardTitle>
             <p className="text-sm text-muted-foreground">
@@ -220,6 +219,7 @@ export default csr(function SysdiagnosePage() {
             </Button>
           </CardContent>
         </Card>
+        </div>
       </div>
     );
   }
