@@ -2,6 +2,8 @@ import * as fs from "fs";
 import * as path from "path";
 import {
   extractBatteryFromPlist,
+  findBatteryPlistEntry,
+  inferSysdiagnoseCaptureTime,
   parseBatteryText,
   parseBplist,
   parseLogText,
@@ -102,6 +104,31 @@ describe("sysdiagnose lib", () => {
     const entries = buildTar([{ name: "a.txt", data: "hello" }]);
     expect(entries[0].path).toBe("a.txt");
     expect(new TextDecoder().decode(entries[0].data)).toBe("hello");
+  });
+  it("prefers the canonical BatteryUI plist path", () => {
+    const entry = (path: string) => ({
+      path,
+      size: 0,
+      mtime: 0,
+      kind: "plist" as const,
+      data: new Uint8Array(),
+    });
+    expect(
+      findBatteryPlistEntry([
+        entry("other/BatteryUISysdiagnose.plist"),
+        entry("logs/BatteryUIPlist/BatteryUISysdiagnose.plist"),
+      ])?.path,
+    ).toBe("logs/BatteryUIPlist/BatteryUISysdiagnose.plist");
+  });
+  it("anchors Powerlog to the sysdiagnose capture timestamp", () => {
+    const path =
+      "sysdiagnose_2026.09.07_17-42-39-0700_iPhone-OS_iPhone_23G83/logs/powerlogs/powerlog.PLSQL";
+    expect(inferSysdiagnoseCaptureTime([{ path }], 0)).toBe(
+      Date.parse("2026-09-07T17:42:39-0700"),
+    );
+    expect(
+      inferSysdiagnoseCaptureTime([{ path: "logs/powerlog.PLSQL" }], 42),
+    ).toBe(42);
   });
   it("parseTar reports continuous scan progress", () => {
     const files = Array.from({ length: 300 }, (_, i) => ({
@@ -225,6 +252,12 @@ describe("sysdiagnose lib", () => {
               PLBatteryUIAppEnergyUsedKey: 100.5,
               PLBatteryUIAppForegroundRuntimeKey: 60,
               PLBatteryUIAppBackgroundRuntimeKey: 30,
+              CPU: 12.5,
+              DisplayDynamic: 30,
+              NeuralEngine: 4,
+              PLBatteryUIMetadataVersion: 99,
+              InternalCounter: 1000,
+              "Foreground-CPU": 3,
             },
           ],
         },
@@ -234,6 +267,12 @@ describe("sysdiagnose lib", () => {
     expect(data?.points[0].level).toBe(80);
     expect(data?.charging).toHaveLength(1);
     expect(data?.apps[0].name).toBe("Safari");
+    expect(data?.apps[0].components).toEqual({
+      CPU: 12.5,
+      DisplayDynamic: 30,
+      NeuralEngine: 4,
+      "Foreground-CPU": 3,
+    });
   });
   it("parses XML and binary plists", () => {
     const xml = new TextEncoder().encode(

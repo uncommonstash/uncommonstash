@@ -18,6 +18,17 @@ describe("analytics protocol guards", () => {
           },
         ],
         endTime: 1000,
+        batteryWindowEndTime: 1000,
+      }),
+    ).toBe(true);
+    expect(
+      isAnalyticsIn({
+        v: 1,
+        kind: "analytics/detail",
+        id: 3,
+        bundleId: "com.apple.Maps",
+        startMs: 100,
+        endMs: 200,
       }),
     ).toBe(true);
     expect(
@@ -63,6 +74,16 @@ describe("analytics protocol guards", () => {
         id: 1,
         minMs: 1,
         maxMs: 2,
+      }),
+    ).toBe(true);
+    expect(
+      isAnalyticsOut({
+        v: 1,
+        kind: "analytics/detail-result",
+        id: 2,
+        startMs: 1,
+        endMs: 2,
+        detail: null,
       }),
     ).toBe(true);
     expect(

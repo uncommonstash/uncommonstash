@@ -1,8 +1,11 @@
 import * as HoverCard from "@radix-ui/react-hover-card";
 import {
+  Activity,
   BatteryMedium,
   ChevronDown,
   ChevronRight,
+  Clock3,
+  Cpu,
   Database,
   File,
   FileCode2,
@@ -10,7 +13,9 @@ import {
   Folder,
   FolderOpen,
   FolderTree,
+  Layers3,
   type LucideIcon,
+  Monitor,
   Radio,
   Search,
   Settings,
@@ -19,12 +24,20 @@ import {
   Trash2,
   Upload,
   Wifi,
+  Zap,
 } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { BackLink } from "@/components/back-link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -39,14 +52,24 @@ import {
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { csr } from "@/lib/compat";
 import { AnalyticsClient } from "@/workers/sysdiagnose-analytics/analytics.client";
-import type { AnalyticsAppRow } from "@/workers/sysdiagnose-analytics/analytics.protocol";
+import type {
+  AnalyticsAppRow,
+  AnalyticsAppSeriesPoint,
+  AnalyticsComponent,
+  AnalyticsDetail,
+  AnalyticsDetailPoint,
+  AnalyticsEnergyPoint,
+} from "@/workers/sysdiagnose-analytics/analytics.protocol";
 import { IngestClient } from "@/workers/sysdiagnose-ingest/ingest.client";
 import {
   type ArchiveEntry,
   aggregateBattery,
+  type BatteryApp,
   type BatteryPlistData,
   extractBatteryFromPlist,
+  findBatteryPlistEntry,
   type IngestProgress,
+  inferSysdiagnoseCaptureTime,
   parseBatteryText,
   parseLogText,
   parsePlist,
@@ -109,22 +132,93 @@ function formatRange(range: TimeRange): string {
   return `${date} · ${time.format(new Date(range.start))}–${time.format(new Date(range.end))}`;
 }
 
+function formatPointTime(timestamp: number): string {
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(timestamp));
+}
+
+interface ChartTooltipData {
+  title: string;
+  lines: string[];
+}
+
+function ChartTooltip({ tooltip }: { tooltip: ChartTooltipData | null }) {
+  if (!tooltip) return null;
+  return (
+    <div
+      role="tooltip"
+      className="pointer-events-none absolute right-2 top-2 z-10 max-h-36 w-64 max-w-[calc(100%_-_1rem)] overflow-y-auto rounded-md border bg-popover px-2.5 py-2 text-xs text-popover-foreground shadow-md"
+    >
+      <div className="font-medium">{tooltip.title}</div>
+      {tooltip.lines.map((line) => (
+        <div
+          key={`${tooltip.title}-${line}`}
+          className="mt-0.5 tabular-nums text-muted-foreground"
+        >
+          {line}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function BatteryChart({
   points,
   charging,
   selectedRange,
   onRangeChange,
+  mode,
+  energyTimeline = [],
+  hoveredAppSeries = [],
+  hoveredAppName,
+  energyCoverage,
+  onUseEnergyCoverage,
 }: {
   points: { ts: number; level: number }[];
   charging?: Array<{ start: number; end: number }>;
   selectedRange?: TimeRange;
   onRangeChange?: (range: TimeRange) => void;
+  mode: "battery" | "energy";
+  energyTimeline?: AnalyticsEnergyPoint[];
+  hoveredAppSeries?: AnalyticsAppSeriesPoint[];
+  hoveredAppName?: string;
+  energyCoverage?: TimeRange | null;
+  onUseEnergyCoverage?: () => void;
 }) {
   const W = BATTERY_CHART_WIDTH;
   const H = BATTERY_CHART_HEIGHT;
   const P = BATTERY_CHART_PADDING;
   const [dragStart, setDragStart] = useState<number | null>(null);
   const [dragEnd, setDragEnd] = useState<number | null>(null);
+  const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
+  const componentKeys = useMemo(
+    () =>
+      [
+        ...new Set(
+          energyTimeline.flatMap((point) =>
+            Object.keys(point.components ?? {}),
+          ),
+        ),
+      ].sort(),
+    [energyTimeline],
+  );
+  const energyMax = useMemo(
+    () =>
+      Math.max(
+        ...energyTimeline.map((point) =>
+          Object.values(point.components ?? {}).reduce(
+            (sum, value) => sum + Math.max(0, value),
+            0,
+          ),
+        ),
+        0.01,
+      ),
+    [energyTimeline],
+  );
   const geom = useMemo(() => {
     if (points.length < 2) return null;
     const ts = points.map((p) => p.ts);
@@ -132,16 +226,17 @@ function BatteryChart({
     const max = Math.max(...ts);
     const X = (t: number) =>
       P.left + ((t - min) / Math.max(1, max - min)) * (W - P.left - P.right);
-    const Y = (l: number) => H - P.bottom - (l / 100) * (H - P.top - P.bottom);
+    const batteryY = (level: number) =>
+      H - P.bottom - (level / 100) * (H - P.top - P.bottom);
     const path = points
       .map(
         (p, i) =>
-          `${i ? "L" : "M"}${X(p.ts).toFixed(1)},${Y(p.level).toFixed(1)}`,
+          `${i ? "L" : "M"}${X(p.ts).toFixed(1)},${batteryY(p.level).toFixed(1)}`,
       )
       .join(" ");
     return {
       d: path,
-      area: `${path} L ${X(points.at(-1)?.ts ?? max).toFixed(1)},${Y(0).toFixed(1)} L ${X(points[0].ts).toFixed(1)},${Y(0).toFixed(1)} Z`,
+      area: `${path} L ${X(points.at(-1)?.ts ?? max).toFixed(1)},${batteryY(0).toFixed(1)} L ${X(points[0].ts).toFixed(1)},${batteryY(0).toFixed(1)} Z`,
       band: (charging ?? []).map((c) => ({
         x1: X(Math.max(c.start, min)),
         x2: X(Math.min(c.end, max)),
@@ -149,7 +244,7 @@ function BatteryChart({
       min,
       max,
       X,
-      Y,
+      batteryY,
     };
   }, [points, charging]);
   if (points.length < 2 || !geom)
@@ -158,6 +253,22 @@ function BatteryChart({
         Not enough battery samples.
       </p>
     );
+  if (mode === "energy" && energyTimeline.length === 0)
+    return (
+      <div className="space-y-2 text-sm text-muted-foreground">
+        <p>Energy component timeline is unavailable for this range.</p>
+        {energyCoverage && onUseEnergyCoverage ? (
+          <>
+            <p className="text-xs">
+              Powerlog coverage: {formatRange(energyCoverage)}
+            </p>
+            <Button size="sm" variant="outline" onClick={onUseEnergyCoverage}>
+              Use Powerlog range
+            </Button>
+          </>
+        ) : null}
+      </div>
+    );
   const draftRange =
     dragStart !== null && dragEnd !== null
       ? {
@@ -165,7 +276,7 @@ function BatteryChart({
           end: Math.max(dragStart, dragEnd),
         }
       : selectedRange;
-  const toTime = (event: React.PointerEvent<SVGRectElement>) => {
+  const toTime = (event: React.PointerEvent<SVGElement>) => {
     const svg = event.currentTarget.ownerSVGElement;
     if (!svg) return geom.min;
     const rect = svg.getBoundingClientRect();
@@ -176,7 +287,21 @@ function BatteryChart({
     );
     return geom.min + fraction * (geom.max - geom.min);
   };
-  const finishSelection = (event: React.PointerEvent<SVGRectElement>) => {
+  const startSelection = (event: React.PointerEvent<SVGElement>) => {
+    if (!onRangeChange) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const time = toTime(event);
+    setDragStart(time);
+    setDragEnd(time);
+  };
+  const updateSelection = (event: React.PointerEvent<SVGElement>) => {
+    if (dragStart !== null) setDragEnd(toTime(event));
+  };
+  const cancelSelection = () => {
+    setDragStart(null);
+    setDragEnd(null);
+  };
+  const finishSelection = (event: React.PointerEvent<SVGElement>) => {
     if (dragStart === null) return;
     const end = toTime(event);
     const minDistance = (geom.max - geom.min) * 0.02;
@@ -191,108 +316,291 @@ function BatteryChart({
       end: Math.max(dragStart, end),
     });
   };
+  const updateHover = (event: React.PointerEvent<SVGElement>) => {
+    const time = toTime(event);
+    const samples = mode === "energy" ? energyTimeline : points;
+    if (samples.length === 0) return;
+    let nearestIndex = 0;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    samples.forEach((point, index) => {
+      const distance = Math.abs(point.ts - time);
+      if (distance < nearestDistance) {
+        nearestIndex = index;
+        nearestDistance = distance;
+      }
+    });
+    setHoveredPoint(nearestIndex);
+  };
+  const hoveredBattery =
+    mode === "battery" && hoveredPoint !== null
+      ? points[hoveredPoint]
+      : undefined;
+  const hoveredEnergy =
+    mode === "energy" && hoveredPoint !== null
+      ? energyTimeline[hoveredPoint]
+      : undefined;
+  const hovered = hoveredBattery ?? hoveredEnergy;
+  const nearestAppPoint = hoveredEnergy
+    ? hoveredAppSeries.reduce<AnalyticsAppSeriesPoint | undefined>(
+        (nearest, point) =>
+          !nearest ||
+          Math.abs(point.ts - hoveredEnergy.ts) <
+            Math.abs(nearest.ts - hoveredEnergy.ts)
+            ? point
+            : nearest,
+        undefined,
+      )
+    : undefined;
+  const tooltip = hovered
+    ? mode === "energy" && hoveredEnergy
+      ? {
+          title: formatPointTime(hoveredEnergy.ts),
+          lines: [
+            `Total: ${formatEnergy(hoveredEnergy.energy)}`,
+            ...(nearestAppPoint && hoveredAppName
+              ? [`${hoveredAppName}: ${formatEnergy(nearestAppPoint.energy)}`]
+              : []),
+          ],
+        }
+      : {
+          title: formatPointTime(hovered.ts),
+          lines: [`${hoveredBattery?.level ?? 0}% battery`],
+        }
+    : null;
+  const energyY = (value: number) =>
+    H - P.bottom - (value / energyMax) * (H - P.top - P.bottom);
+  const barWidth = Math.max(
+    3,
+    Math.min(
+      26,
+      ((W - P.left - P.right) * (15 * 60 * 1000)) /
+        Math.max(15 * 60 * 1000, geom.max - geom.min),
+    ),
+  );
+  const appPath =
+    mode === "energy" && hoveredAppSeries.length > 0
+      ? hoveredAppSeries
+          .map(
+            (point, index) =>
+              `${index ? "L" : "M"}${geom.X(point.ts).toFixed(1)},${energyY(point.energy).toFixed(1)}`,
+          )
+          .join(" ")
+      : null;
   return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      className="h-auto min-h-56 w-full"
-      role="img"
-      aria-label="Battery level over time"
-    >
-      {geom.band.map(
-        (b) =>
-          b.x2 > b.x1 && (
-            <rect
-              key={`${b.x1}-${b.x2}`}
-              x={b.x1}
-              y={P.top}
-              width={b.x2 - b.x1}
-              height={H - P.top - P.bottom}
-              fill="#34c759"
-              opacity={0.12}
-            />
-          ),
-      )}
-      {draftRange ? (
-        <rect
-          x={geom.X(draftRange.start)}
-          y={P.top}
-          width={Math.max(1, geom.X(draftRange.end) - geom.X(draftRange.start))}
-          height={H - P.top - P.bottom}
-          fill="#0071e3"
-          opacity={0.08}
-          pointerEvents="none"
-        />
-      ) : null}
-      {BATTERY_CHART_TICKS.map((tick) => {
-        const level = 100 - tick * 100;
-        const y = geom.Y(level);
-        return (
-          <g key={`y-${level}`}>
-            <line
-              x1={P.left}
-              x2={W - P.right}
-              y1={y}
-              y2={y}
-              stroke="#d2d2d7"
-              strokeWidth={1}
-            />
+    <div className="relative">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="h-auto min-h-56 w-full"
+        role="img"
+        aria-label={
+          mode === "energy"
+            ? "Energy by component over time"
+            : "Battery level over time"
+        }
+      >
+        {geom.band.map(
+          (b) =>
+            b.x2 > b.x1 && (
+              <rect
+                key={`${b.x1}-${b.x2}`}
+                x={b.x1}
+                y={P.top}
+                width={b.x2 - b.x1}
+                height={H - P.top - P.bottom}
+                fill="#34c759"
+                opacity={0.12}
+              />
+            ),
+        )}
+        {draftRange ? (
+          <rect
+            x={geom.X(draftRange.start)}
+            y={P.top}
+            width={Math.max(
+              1,
+              geom.X(draftRange.end) - geom.X(draftRange.start),
+            )}
+            height={H - P.top - P.bottom}
+            fill="#0071e3"
+            opacity={0.08}
+            pointerEvents="none"
+          />
+        ) : null}
+        {BATTERY_CHART_TICKS.map((tick) => {
+          const value =
+            mode === "energy" ? energyMax * (1 - tick) : 100 - tick * 100;
+          const y = mode === "energy" ? energyY(value) : geom.batteryY(value);
+          return (
+            <g key={`y-${value}`}>
+              <line
+                x1={P.left}
+                x2={W - P.right}
+                y1={y}
+                y2={y}
+                stroke="#d2d2d7"
+                strokeWidth={1}
+              />
+              <text
+                x={P.left - 10}
+                y={y + 4}
+                textAnchor="end"
+                fill="#6e6e73"
+                fontSize="11"
+              >
+                {mode === "energy" ? formatEnergy(value) : `${value}%`}
+              </text>
+            </g>
+          );
+        })}
+        {BATTERY_CHART_TICKS.map((tick) => {
+          const time = new Date(geom.min + (geom.max - geom.min) * tick);
+          const x = P.left + tick * (W - P.left - P.right);
+          return (
             <text
-              x={P.left - 10}
-              y={y + 4}
-              textAnchor="end"
+              key={`x-${time.toISOString()}`}
+              x={x}
+              y={H - 12}
+              textAnchor={tick === 0 ? "start" : tick === 1 ? "end" : "middle"}
               fill="#6e6e73"
               fontSize="11"
             >
-              {level}%
+              {time.toLocaleTimeString([], {
+                hour: "numeric",
+                minute: "2-digit",
+              })}
             </text>
-          </g>
-        );
-      })}
-      {BATTERY_CHART_TICKS.map((tick) => {
-        const time = new Date(geom.min + (geom.max - geom.min) * tick);
-        const x = P.left + tick * (W - P.left - P.right);
-        return (
-          <text
-            key={`x-${time.toISOString()}`}
-            x={x}
-            y={H - 12}
-            textAnchor={tick === 0 ? "start" : tick === 1 ? "end" : "middle"}
-            fill="#6e6e73"
-            fontSize="11"
-          >
-            {time.toLocaleTimeString([], {
-              hour: "numeric",
-              minute: "2-digit",
+          );
+        })}
+        {mode === "battery" ? (
+          <>
+            <path d={geom.area} fill="#0071e3" opacity={0.08} />
+            <path d={geom.d} fill="none" stroke="#0071e3" strokeWidth={2.5} />
+            {points.map((point) => (
+              <circle
+                key={`point-${point.ts}`}
+                cx={geom.X(point.ts)}
+                cy={geom.batteryY(point.level)}
+                r={4}
+                fill="#0071e3"
+                stroke="white"
+                strokeWidth={1.5}
+                cursor="crosshair"
+                pointerEvents="none"
+              >
+                <title>
+                  {formatPointTime(point.ts)} · {point.level}% battery
+                </title>
+              </circle>
+            ))}
+          </>
+        ) : (
+          <>
+            {energyTimeline.map((point) => {
+              const xStart = geom.X(point.ts) + (barWidth * 0.1) / 2;
+              let baseline = 0;
+              return (
+                <g key={point.ts}>
+                  {componentKeys.map((key) => {
+                    const value = Math.max(0, point.components[key] ?? 0);
+                    const yTop = energyY(baseline + value);
+                    const yBottom = energyY(baseline);
+                    baseline += value;
+                    return value > 0 ? (
+                      <rect
+                        key={key}
+                        x={xStart}
+                        y={yTop}
+                        width={barWidth * 0.9}
+                        height={Math.max(0, yBottom - yTop)}
+                        fill={COMPONENT_COLORS[key] ?? "#8e8e93"}
+                        opacity={0.84}
+                        pointerEvents="none"
+                      />
+                    ) : null;
+                  })}
+                  <rect
+                    x={xStart}
+                    y={energyY(point.energy)}
+                    width={barWidth * 0.9}
+                    height={Math.max(0, energyY(0) - energyY(point.energy))}
+                    fill="none"
+                    stroke="#1d1d1f"
+                    strokeWidth={1}
+                    pointerEvents="none"
+                  >
+                    <title>
+                      {formatPointTime(point.ts)} · {formatEnergy(point.energy)}
+                    </title>
+                  </rect>
+                </g>
+              );
             })}
-          </text>
-        );
-      })}
-      <path d={geom.area} fill="#0071e3" opacity={0.08} />
-      <path d={geom.d} fill="none" stroke="#0071e3" strokeWidth={2.5} />
-      <rect
-        x={P.left}
-        y={P.top}
-        width={W - P.left - P.right}
-        height={H - P.top - P.bottom}
-        fill="transparent"
-        cursor="crosshair"
-        onPointerDown={(event) => {
-          if (!onRangeChange) return;
-          event.currentTarget.setPointerCapture(event.pointerId);
-          const time = toTime(event);
-          setDragStart(time);
-          setDragEnd(time);
-        }}
-        onPointerMove={(event) => {
-          if (dragStart !== null) setDragEnd(toTime(event));
-        }}
-        onPointerUp={finishSelection}
-        onPointerCancel={() => {
-          setDragStart(null);
-          setDragEnd(null);
-        }}
-      />
-    </svg>
+            {appPath ? (
+              <path
+                d={appPath}
+                fill="none"
+                stroke="#ff2d55"
+                strokeWidth={2.5}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                pointerEvents="none"
+              />
+            ) : null}
+          </>
+        )}
+        {hovered ? (
+          <line
+            x1={geom.X(hovered.ts)}
+            x2={geom.X(hovered.ts)}
+            y1={P.top}
+            y2={H - P.bottom}
+            stroke="#1d1d1f"
+            strokeDasharray="3 3"
+            strokeWidth={1}
+            pointerEvents="none"
+          />
+        ) : null}
+        <rect
+          x={P.left}
+          y={P.top}
+          width={W - P.left - P.right}
+          height={H - P.top - P.bottom}
+          fill="transparent"
+          cursor="crosshair"
+          onPointerDown={startSelection}
+          onPointerMove={(event) => {
+            updateSelection(event);
+            updateHover(event);
+          }}
+          onPointerOver={updateHover}
+          onPointerLeave={() => setHoveredPoint(null)}
+          onPointerUp={finishSelection}
+          onPointerCancel={cancelSelection}
+        />
+      </svg>
+      <ChartTooltip tooltip={tooltip} />
+      {mode === "energy" && componentKeys.length > 0 ? (
+        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+          {componentKeys.map((key) => (
+            <span key={key} className="inline-flex items-center gap-1.5">
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{
+                  backgroundColor: COMPONENT_COLORS[key] ?? "#8e8e93",
+                }}
+              />
+              {componentLabel(key)}
+            </span>
+          ))}
+          {hoveredAppName && hoveredAppSeries.length > 0 ? (
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-0.5 w-3 bg-[#ff2d55]" />
+              {hoveredAppName}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -423,6 +731,483 @@ const PRESET_APP_ICONS: Record<string, LucideIcon> = {
   settings: Settings,
   deletedapp: Trash2,
 };
+
+const COMPONENT_LABELS: Record<string, string> = {
+  APSOCBaseIOReport: "I/O",
+  AudioCodec: "Audio codec",
+  AudioSpeaker: "Audio",
+  BB: "Cellular",
+  Bluetooth: "Bluetooth",
+  CPU: "CPU",
+  DisplayDynamic: "Display",
+  DRAM: "Memory",
+  GPU: "GPU",
+  RestOfSOC: "System-on-chip",
+  Other: "Other / unattributed",
+  SOCDisplay: "Display controller",
+  WiFiData: "Wi-Fi",
+  "WiFi-Data": "Wi-Fi",
+};
+
+const COMPONENT_COLORS: Record<string, string> = {
+  APSOCBaseIOReport: "#8e8e93",
+  AudioCodec: "#af52de",
+  AudioSpeaker: "#af52de",
+  BB: "#ff9500",
+  Bluetooth: "#5856d6",
+  CPU: "#34c759",
+  DisplayDynamic: "#0071e3",
+  DRAM: "#5ac8fa",
+  GPU: "#ff2d55",
+  RestOfSOC: "#8e8e93",
+  Other: "#8e8e93",
+  SOCDisplay: "#34c759",
+  "WiFi-Data": "#30d158",
+};
+
+function componentLabel(key: string): string {
+  return COMPONENT_LABELS[key] ?? key;
+}
+
+function formatEnergy(value: number): string {
+  if (value >= 100) return `${value.toFixed(0)} mWh`;
+  if (value >= 10) return `${value.toFixed(1)} mWh`;
+  return `${value.toFixed(2)} mWh`;
+}
+
+function foregroundEnergy(app: AnalyticsAppRow): number {
+  const value = Object.entries(app.components ?? {})
+    .filter(([key]) => key.startsWith("Foreground-"))
+    .reduce((sum, [, value]) => sum + value, 0);
+  return Math.min(app.energy, Math.max(0, value));
+}
+
+function reconcileComponentRows(
+  rows: AnalyticsComponent[],
+  totalEnergy: number,
+): AnalyticsComponent[] {
+  const positiveRows = rows.filter((row) => row.energy > 0.01);
+  const allocated = positiveRows.reduce((sum, row) => sum + row.energy, 0);
+  if (allocated > totalEnergy && allocated > 0) {
+    const scale = totalEnergy / allocated;
+    return positiveRows.map((row) => ({
+      ...row,
+      energy: row.energy * scale,
+    }));
+  }
+  const remainder = totalEnergy - allocated;
+  return remainder > 0.01
+    ? [...positiveRows, { key: "Other", energy: remainder }]
+    : positiveRows;
+}
+
+function AppEnergyChart({ points }: { points: AnalyticsDetailPoint[] }) {
+  const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
+  if (points.length === 0) {
+    return (
+      <p className="py-8 text-sm text-muted-foreground">
+        No timestamped app energy events in this range.
+      </p>
+    );
+  }
+  const W = 620;
+  const H = 190;
+  const P = { top: 16, right: 12, bottom: 34, left: 48 };
+  const min = points[0].ts;
+  const bucketMs = 15 * 60 * 1000;
+  const max = (points.at(-1)?.ts ?? min) + bucketMs;
+  const componentKeys = [
+    ...new Set(points.flatMap((point) => Object.keys(point.components ?? {}))),
+  ].sort(
+    (a, b) =>
+      points.reduce((sum, point) => sum + (point.components[a] ?? 0), 0) -
+      points.reduce((sum, point) => sum + (point.components[b] ?? 0), 0),
+  );
+  const stackMax = Math.max(
+    ...points.map((point) =>
+      Object.values(point.components ?? {}).reduce(
+        (sum, value) => sum + Math.max(0, value),
+        0,
+      ),
+    ),
+    0.01,
+  );
+  const maxEnergy = Math.max(
+    ...points.map((point) => point.energy),
+    stackMax,
+    0.01,
+  );
+  const x = (ts: number) =>
+    P.left + ((ts - min) / Math.max(1, max - min)) * (W - P.left - P.right);
+  const y = (energy: number) =>
+    H - P.bottom - (energy / maxEnergy) * (H - P.top - P.bottom);
+  const barWidth = Math.max(
+    3,
+    Math.min(
+      34,
+      ((W - P.left - P.right) * bucketMs) / Math.max(bucketMs, max - min),
+    ),
+  );
+  const hasForeground = points.some((point) => point.foregroundSec > 0);
+  const updateHover = (event: React.PointerEvent<SVGElement>) => {
+    const svg = event.currentTarget.ownerSVGElement;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const svgX = ((event.clientX - rect.left) / Math.max(1, rect.width)) * W;
+    const clampedX = Math.min(W - P.right, Math.max(P.left, svgX));
+    const time =
+      min +
+      ((clampedX - P.left) / Math.max(1, W - P.left - P.right)) * (max - min);
+    let nearestIndex = 0;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    points.forEach((point, index) => {
+      const distance = Math.abs(point.ts - time);
+      if (distance < nearestDistance) {
+        nearestIndex = index;
+        nearestDistance = distance;
+      }
+    });
+    setHoveredPoint(nearestIndex);
+  };
+  const hovered = hoveredPoint === null ? null : points[hoveredPoint];
+  const tooltip = hovered
+    ? {
+        title: formatPointTime(hovered.ts),
+        lines: [`Total: ${formatEnergy(hovered.energy)}`],
+      }
+    : null;
+  return (
+    <div className="relative">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="h-auto w-full"
+        role="img"
+        aria-label="App energy over time by component"
+      >
+        {[0, 0.5, 1].map((tick) => {
+          const value = maxEnergy * tick;
+          const yValue = y(value);
+          return (
+            <g key={tick}>
+              <line
+                x1={P.left}
+                x2={W - P.right}
+                y1={yValue}
+                y2={yValue}
+                stroke="#d2d2d7"
+                strokeWidth={1}
+              />
+              <text
+                x={P.left - 8}
+                y={yValue + 4}
+                textAnchor="end"
+                fill="#6e6e73"
+                fontSize="10"
+              >
+                {value.toFixed(value < 10 ? 1 : 0)} mWh
+              </text>
+            </g>
+          );
+        })}
+        {[0, 0.5, 1].map((tick) => {
+          const timestamp = min + (max - min) * tick;
+          return (
+            <text
+              key={timestamp}
+              x={x(timestamp)}
+              y={H - 10}
+              textAnchor={tick === 0 ? "start" : tick === 1 ? "end" : "middle"}
+              fill="#6e6e73"
+              fontSize="10"
+            >
+              {new Date(timestamp).toLocaleTimeString([], {
+                hour: "numeric",
+                minute: "2-digit",
+              })}
+            </text>
+          );
+        })}
+        {points.map((point) => {
+          const xStart = x(point.ts) + (barWidth * 0.1) / 2;
+          let baseline = 0;
+          return (
+            <g key={point.ts}>
+              <title>
+                {formatPointTime(point.ts)} · {formatEnergy(point.energy)}
+                {componentKeys.length > 0
+                  ? `\n${componentKeys
+                      .filter((key) => (point.components[key] ?? 0) > 0)
+                      .map(
+                        (key) =>
+                          `${componentLabel(key)}: ${formatEnergy(point.components[key])}`,
+                      )
+                      .join(" · ")}`
+                  : ""}
+              </title>
+              {point.foregroundSec > 0 ? (
+                <rect
+                  x={xStart}
+                  y={P.top}
+                  width={barWidth * 0.9}
+                  height={H - P.top - P.bottom}
+                  fill="#0071e3"
+                  opacity={
+                    0.04 +
+                    0.12 * Math.min(1, Math.max(0, point.foregroundSec / 900))
+                  }
+                  pointerEvents="none"
+                />
+              ) : null}
+              {componentKeys.map((key) => {
+                const value = Math.max(0, point.components[key] ?? 0);
+                const yTop = y(baseline + value);
+                const yBottom = y(baseline);
+                baseline += value;
+                return value > 0 ? (
+                  <rect
+                    key={key}
+                    x={xStart}
+                    y={yTop}
+                    width={barWidth * 0.9}
+                    height={Math.max(0, yBottom - yTop)}
+                    fill={COMPONENT_COLORS[key] ?? "#8e8e93"}
+                    opacity={0.82}
+                  />
+                ) : null;
+              })}
+              <rect
+                x={xStart}
+                y={y(point.energy)}
+                width={barWidth * 0.9}
+                height={Math.max(0, y(0) - y(point.energy))}
+                fill="none"
+                stroke="#1d1d1f"
+                strokeWidth={1}
+              />
+            </g>
+          );
+        })}
+        {hovered ? (
+          <line
+            x1={x(hovered.ts) + barWidth / 2}
+            x2={x(hovered.ts) + barWidth / 2}
+            y1={P.top}
+            y2={H - P.bottom}
+            stroke="#1d1d1f"
+            strokeDasharray="3 3"
+            strokeWidth={1}
+            pointerEvents="none"
+          />
+        ) : null}
+        <rect
+          x={P.left}
+          y={P.top}
+          width={W - P.left - P.right}
+          height={H - P.top - P.bottom}
+          fill="transparent"
+          onPointerMove={updateHover}
+          onPointerLeave={() => setHoveredPoint(null)}
+        />
+      </svg>
+      <ChartTooltip tooltip={tooltip} />
+      {componentKeys.length > 0 ? (
+        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+          {componentKeys.map((key) => (
+            <span key={key} className="inline-flex items-center gap-1.5">
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{
+                  backgroundColor: COMPONENT_COLORS[key] ?? "#8e8e93",
+                }}
+              />
+              {componentLabel(key)}
+            </span>
+          ))}
+          {hasForeground ? (
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                className="h-2 w-2 rounded-sm border border-[#0071e3]/30"
+                style={{ backgroundColor: "rgba(0, 113, 227, 0.1)" }}
+              />
+              Foreground estimate
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function DetailStat({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2 border-b py-3">
+      <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <div className="min-w-0">
+        <div className="truncate text-xs text-muted-foreground">{label}</div>
+        <div className="truncate text-sm font-medium tabular-nums">{value}</div>
+      </div>
+    </div>
+  );
+}
+
+function AppDetailSheet({
+  app,
+  artUrl,
+  detail,
+  status,
+  onOpenChange,
+}: {
+  app: AnalyticsAppRow | null;
+  artUrl?: string;
+  detail: AnalyticsDetail | null;
+  status: "idle" | "loading" | "ready" | "unavailable" | "error";
+  onOpenChange: (open: boolean) => void;
+}) {
+  const row = detail?.app ?? app;
+  const componentRows = reconcileComponentRows(
+    detail?.components ??
+      Object.entries(row?.components ?? {})
+        .filter(
+          ([key]) => !key.startsWith("Foreground-") && key !== "Foreground",
+        )
+        .map(([key, energy]) => ({ key, energy }))
+        .filter((component) => component.energy > 0.01)
+        .sort((a, b) => b.energy - a.energy),
+    row?.energy ?? 0,
+  );
+  const maxComponentEnergy = Math.max(
+    ...componentRows.map((component) => component.energy),
+    0.01,
+  );
+  const appForegroundEnergy = row ? foregroundEnergy(row) : 0;
+  return (
+    <Sheet open={Boolean(app)} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
+        {row ? (
+          <>
+            <SheetHeader className="border-b pb-4 pr-8">
+              <div className="flex items-center gap-3">
+                <AppIcon
+                  name={row.name}
+                  bundleId={row.bundleId}
+                  artUrl={artUrl}
+                />
+                <div className="min-w-0">
+                  <SheetTitle className="truncate">{row.name}</SheetTitle>
+                  <SheetDescription className="truncate font-mono text-xs">
+                    {row.bundleId || "Bundle identifier unavailable"}
+                  </SheetDescription>
+                </div>
+              </div>
+            </SheetHeader>
+            <section className="grid grid-cols-2 gap-x-5 pb-2">
+              <DetailStat
+                icon={Zap}
+                label="Energy"
+                value={formatEnergy(row.energy)}
+              />
+              <DetailStat
+                icon={Cpu}
+                label="Foreground"
+                value={`${(row.foregroundSec / 60).toFixed(0)} min`}
+              />
+              <DetailStat
+                icon={Clock3}
+                label="Background"
+                value={`${(row.backgroundSec / 60).toFixed(0)} min`}
+              />
+              <DetailStat
+                icon={Monitor}
+                label="Foreground energy"
+                value={formatEnergy(appForegroundEnergy)}
+              />
+            </section>
+            <section className="border-b pb-5">
+              <div className="mb-3 flex items-center gap-2">
+                <Activity className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold">Energy over time</h3>
+              </div>
+              {status === "loading" ? (
+                <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
+                  Loading Powerlog events…
+                </div>
+              ) : detail?.sourceRangeIsPartial ? (
+                <p className="py-8 text-sm text-muted-foreground">
+                  The Powerlog covers only{" "}
+                  {formatRange({
+                    start: detail.sourceRange.startMs,
+                    end: detail.sourceRange.endMs,
+                  })}
+                  . A calibrated timeline is unavailable for the full-day range.
+                </p>
+              ) : (
+                <AppEnergyChart points={detail?.points ?? []} />
+              )}
+            </section>
+            <section className="pb-5">
+              <div className="mb-3 flex items-center gap-2">
+                <Layers3 className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold">Energy components</h3>
+              </div>
+              {componentRows.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Component breakdown unavailable for this app.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {componentRows.map((component) => (
+                    <div key={component.key}>
+                      <div className="mb-1 flex items-center justify-between gap-3 text-sm">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span
+                            className="h-2 w-2 shrink-0 rounded-full"
+                            style={{
+                              backgroundColor:
+                                COMPONENT_COLORS[component.key] ?? "#8e8e93",
+                            }}
+                          />
+                          <span className="truncate">
+                            {componentLabel(component.key)}
+                          </span>
+                        </span>
+                        <span className="shrink-0 tabular-nums text-muted-foreground">
+                          {formatEnergy(component.energy)}
+                        </span>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${(component.energy / maxComponentEnergy) * 100}%`,
+                            backgroundColor:
+                              COMPONENT_COLORS[component.key] ?? "#8e8e93",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+            {status === "error" ? (
+              <p className="border-t pt-4 text-xs text-muted-foreground">
+                Powerlog detail could not be loaded.
+              </p>
+            ) : null}
+          </>
+        ) : null}
+      </SheetContent>
+    </Sheet>
+  );
+}
 
 interface FileTreeNode {
   name: string;
@@ -569,7 +1354,23 @@ export default csr(function SysdiagnosePage() {
     "idle" | "loading" | "ready" | "error"
   >("idle");
   const [rangeApps, setRangeApps] = useState<AnalyticsAppRow[] | null>(null);
+  const [chartMode, setChartMode] = useState<"battery" | "energy">("battery");
+  const [energyTimeline, setEnergyTimeline] = useState<AnalyticsEnergyPoint[]>(
+    [],
+  );
+  const [appSeries, setAppSeries] = useState<
+    Record<string, AnalyticsAppSeriesPoint[]>
+  >({});
+  const [hoveredAppKey, setHoveredAppKey] = useState<string | null>(null);
+  const [analyticsCoverage, setAnalyticsCoverage] = useState<TimeRange | null>(
+    null,
+  );
   const [selectedRange, setSelectedRange] = useState<TimeRange | null>(null);
+  const [selectedApp, setSelectedApp] = useState<AnalyticsAppRow | null>(null);
+  const [appDetail, setAppDetail] = useState<AnalyticsDetail | null>(null);
+  const [detailStatus, setDetailStatus] = useState<
+    "idle" | "loading" | "ready" | "unavailable" | "error"
+  >("idle");
 
   function ingestClient(): IngestClient {
     if (!ingestRef.current) ingestRef.current = new IngestClient();
@@ -587,6 +1388,14 @@ export default csr(function SysdiagnosePage() {
   function resetEntries() {
     ingestRef.current?.terminate();
     ingestRef.current = null;
+    setSelectedApp(null);
+    setAppDetail(null);
+    setDetailStatus("idle");
+    setRangeApps(null);
+    setEnergyTimeline([]);
+    setAppSeries({});
+    setHoveredAppKey(null);
+    setAnalyticsCoverage(null);
     setEntries([]);
   }
 
@@ -638,9 +1447,7 @@ export default csr(function SysdiagnosePage() {
   // Primary source: BatteryUISysdiagnose.plist (24h level curve + per-app
   // energy). Fallback: strict CSV parsing for sample/synthetic data.
   const plistBattery: BatteryPlistData | null = useMemo(() => {
-    const cand = entries.find((e) =>
-      /batteryuisysdiagnose\.plist$/i.test(e.path),
-    );
+    const cand = findBatteryPlistEntry(entries);
     if (!cand) return null;
     try {
       return extractBatteryFromPlist(parsePlist(cand.data));
@@ -668,12 +1475,18 @@ export default csr(function SysdiagnosePage() {
     plistBattery?.endTime;
   const chartDate = formatChartDate(chartAnchor);
   const chartRange = useMemo<TimeRange | null>(() => {
+    if (plistBattery) {
+      return {
+        start: plistBattery.endTime - 24 * 3600 * 1000,
+        end: plistBattery.endTime,
+      };
+    }
     const start = batteryPoints[0]?.ts;
     const end = batteryPoints.at(-1)?.ts;
     return start !== undefined && end !== undefined && end > start
       ? { start, end }
       : null;
-  }, [batteryPoints]);
+  }, [batteryPoints, plistBattery]);
   const powerlogEntry = useMemo(
     () =>
       entries.find(
@@ -681,6 +1494,17 @@ export default csr(function SysdiagnosePage() {
           entry.kind === "sqlite" && /powerlog.*\.plsql$/i.test(entry.path),
       ) ?? entries.find((entry) => entry.kind === "sqlite"),
     [entries],
+  );
+  const energyChartCoverage = useMemo(() => {
+    if (!analyticsCoverage || !chartRange) return null;
+    const start = Math.max(analyticsCoverage.start, chartRange.start);
+    const end = Math.min(analyticsCoverage.end, chartRange.end);
+    return end > start ? { start, end } : null;
+  }, [analyticsCoverage, chartRange]);
+  const powerlogCaptureTime = useMemo(
+    () =>
+      inferSysdiagnoseCaptureTime(entries, plistBattery?.endTime ?? Date.now()),
+    [entries, plistBattery?.endTime],
   );
 
   useEffect(() => {
@@ -691,6 +1515,10 @@ export default csr(function SysdiagnosePage() {
     analyticsRef.current?.terminate();
     analyticsRef.current = null;
     setRangeApps(null);
+    setEnergyTimeline([]);
+    setAppSeries({});
+    setHoveredAppKey(null);
+    setAnalyticsCoverage(null);
     setAnalyticsStatus("idle");
     if (!plistBattery || !powerlogEntry) return;
     const client = new AnalyticsClient();
@@ -699,9 +1527,12 @@ export default csr(function SysdiagnosePage() {
     setAnalyticsStatus("loading");
     const data = powerlogEntry.data.slice().buffer;
     void client
-      .init(data, plistBattery.apps, plistBattery.endTime)
-      .then(() => {
-        if (!cancelled) setAnalyticsStatus("ready");
+      .init(data, plistBattery.apps, powerlogCaptureTime, plistBattery.endTime)
+      .then((ready) => {
+        if (!cancelled) {
+          setAnalyticsCoverage({ start: ready.minMs, end: ready.maxMs });
+          setAnalyticsStatus("ready");
+        }
       })
       .catch(() => {
         if (!cancelled) setAnalyticsStatus("error");
@@ -711,7 +1542,7 @@ export default csr(function SysdiagnosePage() {
       client.terminate();
       if (analyticsRef.current === client) analyticsRef.current = null;
     };
-  }, [plistBattery, powerlogEntry]);
+  }, [plistBattery, powerlogCaptureTime, powerlogEntry]);
 
   useEffect(() => {
     if (analyticsStatus !== "ready" || !chartRange) return;
@@ -719,10 +1550,17 @@ export default csr(function SysdiagnosePage() {
     if (!client) return;
     let cancelled = false;
     const range = selectedRange ?? chartRange;
+    setEnergyTimeline([]);
+    setAppSeries({});
+    setHoveredAppKey(null);
     void client
       .query(range.start, range.end)
       .then((result) => {
-        if (!cancelled) setRangeApps(result.apps);
+        if (!cancelled) {
+          setRangeApps(result.apps);
+          setEnergyTimeline(result.timeline);
+          setAppSeries(result.appSeries);
+        }
       })
       .catch(() => {
         // A newer drag superseded this request.
@@ -732,7 +1570,43 @@ export default csr(function SysdiagnosePage() {
     };
   }, [analyticsStatus, chartRange, selectedRange]);
 
+  useEffect(() => {
+    if (!selectedApp) {
+      setAppDetail(null);
+      setDetailStatus("idle");
+      return;
+    }
+    const range = selectedRange ?? chartRange;
+    const client = analyticsRef.current;
+    if (analyticsStatus !== "ready" || !range || !client) {
+      setAppDetail(null);
+      setDetailStatus("unavailable");
+      return;
+    }
+    let cancelled = false;
+    setDetailStatus("loading");
+    void client
+      .detail(selectedApp.bundleId || selectedApp.name, range.start, range.end)
+      .then((result) => {
+        if (cancelled) return;
+        setAppDetail(result.detail);
+        setDetailStatus(result.detail ? "ready" : "unavailable");
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAppDetail(null);
+          setDetailStatus("error");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [analyticsStatus, chartRange, selectedApp, selectedRange]);
+
   const displayApps = rangeApps ?? plistBattery?.apps ?? [];
+  const hoveredApp = hoveredAppKey
+    ? displayApps.find((app) => (app.bundleId || app.name) === hoveredAppKey)
+    : undefined;
   const rangeLabel =
     selectedRange && chartRange ? formatRange(selectedRange) : chartDate;
   const handleRangeChange = (range: TimeRange) => {
@@ -745,6 +1619,17 @@ export default csr(function SysdiagnosePage() {
     } else {
       setSelectedRange(range);
     }
+  };
+
+  const openAppDetail = (app: BatteryApp | AnalyticsAppRow) => {
+    setSelectedApp("activityShare" in app ? app : { ...app, activityShare: 1 });
+    setAppDetail(null);
+    setDetailStatus(analyticsStatus === "ready" ? "loading" : "unavailable");
+  };
+
+  const useEnergyCoverage = () => {
+    if (!energyChartCoverage) return;
+    setSelectedRange({ ...energyChartCoverage });
   };
 
   const logLines = useMemo(() => {
@@ -796,7 +1681,7 @@ export default csr(function SysdiagnosePage() {
         <div className="max-w-6xl mx-auto">
           <BackLink />
           <div className="flex min-h-[80vh] items-center justify-center">
-            <div className="w-full max-w-2xl space-y-4">
+            <div className="w-full max-w-xl space-y-4">
               {busy ? (
                 <div
                   className="w-full p-10 text-center"
@@ -849,7 +1734,7 @@ export default csr(function SysdiagnosePage() {
                     const f = e.dataTransfer.files?.[0];
                     if (f) void load(f);
                   }}
-                  className={`w-full rounded-xl border-2 border-dashed p-10 text-center transition ${dragging ? "border-primary bg-background" : "hover:bg-background"}`}
+                  className={`flex min-h-64 w-full flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition ${dragging ? "border-primary bg-background" : "hover:bg-background"}`}
                 >
                   <div className="text-lg font-semibold">
                     Drop sysdiagnose_*.tar.gz here
@@ -869,7 +1754,7 @@ export default csr(function SysdiagnosePage() {
                   if (f) void load(f);
                 }}
               />
-              <ol className="text-sm space-y-1 list-decimal pl-5 text-muted-foreground">
+              <ol className="mx-auto w-fit max-w-full list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
                 <li>
                   iPhone: press Vol Up + Vol Down + hold Side 1s, wait ~10 min.
                 </li>
@@ -880,9 +1765,11 @@ export default csr(function SysdiagnosePage() {
                 <li>Share via AirDrop, then drop the .tar.gz above.</li>
               </ol>
               {import.meta.env.DEV ? (
-                <Button variant="secondary" onClick={() => void loadSample()}>
-                  Try with sample data
-                </Button>
+                <div className="flex justify-center">
+                  <Button variant="secondary" onClick={() => void loadSample()}>
+                    Try with sample data
+                  </Button>
+                </div>
               ) : null}
             </div>
           </div>
@@ -1022,30 +1909,68 @@ export default csr(function SysdiagnosePage() {
                   aria-labelledby="battery-chart-heading"
                   className="space-y-3"
                 >
-                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                    <h2
-                      id="battery-chart-heading"
-                      className="text-base font-semibold"
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <h2
+                        id="battery-chart-heading"
+                        className="text-base font-semibold"
+                      >
+                        {chartMode === "energy"
+                          ? "Energy by component"
+                          : "Battery level over time"}
+                      </h2>
+                      <span className="text-xs text-muted-foreground">
+                        {rangeLabel}
+                      </span>
+                      {analyticsStatus === "loading" ? (
+                        <span className="text-xs text-muted-foreground">
+                          Analyzing Powerlog…
+                        </span>
+                      ) : analyticsStatus === "error" ? (
+                        <span className="text-xs text-muted-foreground">
+                          Daily totals
+                        </span>
+                      ) : null}
+                    </div>
+                    <div
+                      role="group"
+                      aria-label="Chart view"
+                      className="inline-flex rounded-md border p-0.5"
                     >
-                      Battery level over time
-                    </h2>
-                    <span className="text-xs text-muted-foreground">
-                      {rangeLabel}
-                    </span>
-                    {analyticsStatus === "loading" ? (
-                      <span className="text-xs text-muted-foreground">
-                        Analyzing Powerlog…
-                      </span>
-                    ) : analyticsStatus === "error" ? (
-                      <span className="text-xs text-muted-foreground">
-                        Daily totals
-                      </span>
-                    ) : null}
+                      <Button
+                        size="sm"
+                        variant={
+                          chartMode === "battery" ? "secondary" : "plain"
+                        }
+                        onClick={() => setChartMode("battery")}
+                        aria-pressed={chartMode === "battery"}
+                      >
+                        <BatteryMedium className="mr-1.5 h-4 w-4" />
+                        Battery
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={chartMode === "energy" ? "secondary" : "plain"}
+                        onClick={() => setChartMode("energy")}
+                        aria-pressed={chartMode === "energy"}
+                      >
+                        <Layers3 className="mr-1.5 h-4 w-4" />
+                        Energy
+                      </Button>
+                    </div>
                   </div>
                   <BatteryChart
                     points={batteryPoints}
                     charging={plistBattery?.charging}
                     selectedRange={selectedRange ?? undefined}
+                    mode={chartMode}
+                    energyTimeline={energyTimeline}
+                    hoveredAppSeries={
+                      hoveredAppKey ? appSeries[hoveredAppKey] : undefined
+                    }
+                    hoveredAppName={hoveredApp?.name}
+                    energyCoverage={energyChartCoverage}
+                    onUseEnergyCoverage={useEnergyCoverage}
                     onRangeChange={
                       plistBattery && powerlogEntry
                         ? handleRangeChange
@@ -1085,7 +2010,30 @@ export default csr(function SysdiagnosePage() {
                           </TableRow>
                         ) : (
                           displayApps.slice(0, 30).map((a) => (
-                            <TableRow key={a.bundleId || a.name}>
+                            <TableRow
+                              key={a.bundleId || a.name}
+                              tabIndex={0}
+                              className="cursor-pointer"
+                              aria-label={`View ${a.name} energy details`}
+                              aria-selected={
+                                selectedApp?.bundleId === a.bundleId
+                              }
+                              onClick={() => openAppDetail(a)}
+                              onKeyDown={(event) => {
+                                if (event.key !== "Enter" && event.key !== " ")
+                                  return;
+                                event.preventDefault();
+                                openAppDetail(a);
+                              }}
+                              onPointerEnter={() =>
+                                setHoveredAppKey(a.bundleId || a.name)
+                              }
+                              onPointerLeave={() => setHoveredAppKey(null)}
+                              onFocus={() =>
+                                setHoveredAppKey(a.bundleId || a.name)
+                              }
+                              onBlur={() => setHoveredAppKey(null)}
+                            >
                               <TableCell className="pl-0">
                                 <div className="flex items-center gap-2">
                                   <AppIcon
@@ -1222,6 +2170,23 @@ export default csr(function SysdiagnosePage() {
             </Tabs>
           </main>
         </ScrollArea>
+        <AppDetailSheet
+          app={selectedApp}
+          artUrl={
+            selectedApp
+              ? appIcons[selectedApp.bundleId] || undefined
+              : undefined
+          }
+          detail={appDetail}
+          status={detailStatus}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedApp(null);
+              setAppDetail(null);
+              setDetailStatus("idle");
+            }
+          }}
+        />
       </div>
     </div>
   );

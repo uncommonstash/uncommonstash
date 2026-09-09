@@ -6,6 +6,47 @@ export interface ArchiveEntry {
   data: Uint8Array;
 }
 
+export function findBatteryPlistEntry(
+  entries: ArchiveEntry[],
+): ArchiveEntry | undefined {
+  const candidates = entries.filter((entry) =>
+    /BatteryUISysdiagnose\.plist$/i.test(entry.path),
+  );
+  return (
+    candidates.find((entry) =>
+      /(?:^|\/)logs\/BatteryUIPlist\/BatteryUISysdiagnose\.plist$/i.test(
+        entry.path,
+      ),
+    ) ??
+    candidates.find((entry) =>
+      /(?:^|\/)BatteryUIPlist\/BatteryUISysdiagnose\.plist$/i.test(entry.path),
+    ) ??
+    candidates[0]
+  );
+}
+
+const SYSDIAGNOSE_CAPTURE_RE =
+  /(?:^|\/)sysdiagnose_(\d{4})\.(\d{2})\.(\d{2})_(\d{2})-(\d{2})-(\d{2})([+-]\d{4})(?:_|\/|$)/i;
+
+/**
+ * Powerlog timestamps are device-relative seconds. Anchor them to the
+ * sysdiagnose capture instant, not BatteryUI's next midnight boundary.
+ */
+export function inferSysdiagnoseCaptureTime(
+  entries: Array<Pick<ArchiveEntry, "path">>,
+  fallbackMs: number,
+): number {
+  for (const entry of entries) {
+    const match = SYSDIAGNOSE_CAPTURE_RE.exec(entry.path);
+    if (!match) continue;
+    const timestamp = Date.parse(
+      `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}${match[7]}`,
+    );
+    if (Number.isFinite(timestamp)) return timestamp;
+  }
+  return fallbackMs;
+}
+
 export function classifyEntry(path: string): ArchiveEntry["kind"] {
   const p = path.toLowerCase();
   if (p.endsWith(".plsql") || p.endsWith(".sqlite") || p.endsWith(".db"))
@@ -230,6 +271,7 @@ export interface BatteryApp {
   energy: number;
   foregroundSec: number;
   backgroundSec: number;
+  components?: Record<string, number>;
 }
 
 export interface BatteryPlistData {
@@ -247,6 +289,37 @@ function asRecord(v: unknown): Record<string, unknown> | null {
 
 function asNum(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
+
+const BATTERY_ENERGY_COMPONENT_KEYS = new Set([
+  "APSOCBaseIOReport",
+  "AudioCodec",
+  "AudioSpeaker",
+  "BB",
+  "Bluetooth",
+  "Cellular",
+  "CPU",
+  "Display",
+  "DisplayController",
+  "DisplayDynamic",
+  "DRAM",
+  "GPU",
+  "GPS",
+  "IO",
+  "Location",
+  "Memory",
+  "NeuralEngine",
+  "RestOfSOC",
+  "SOCDisplay",
+  "SystemOnChip",
+  "WiFiData",
+  "WiFi-Data",
+]);
+
+function isBatteryEnergyComponentKey(key: string): boolean {
+  return (
+    BATTERY_ENERGY_COMPONENT_KEYS.has(key) || key.startsWith("Foreground-")
+  );
 }
 
 // Extract battery curve + per-app energy from a parsed
@@ -312,6 +385,16 @@ export function extractBatteryFromPlist(obj: unknown): BatteryPlistData | null {
         energy: asNum(r["PLBatteryUIAppEnergyUsedKey"]) ?? 0,
         foregroundSec: asNum(r["PLBatteryUIAppForegroundRuntimeKey"]) ?? 0,
         backgroundSec: asNum(r["PLBatteryUIAppBackgroundRuntimeKey"]) ?? 0,
+        components: Object.fromEntries(
+          Object.entries(r)
+            .filter(
+              ([key, value]) =>
+                !key.startsWith("PLBatteryUI") &&
+                isBatteryEnergyComponentKey(key) &&
+                asNum(value) !== null,
+            )
+            .map(([key, value]) => [key, asNum(value) as number]),
+        ),
       });
     }
     apps.sort((a, b) => b.energy - a.energy);

@@ -1,5 +1,6 @@
 import type { BatteryApp } from "@/pages/sysdiagnose/lib";
 import {
+  type AnalyticsDetailResultMsg,
   type AnalyticsOut,
   type AnalyticsResultMsg,
   isAnalyticsOut,
@@ -9,6 +10,7 @@ export class AnalyticsClient {
   private worker: Worker | null = null;
   private nextId = 1;
   private latestQueryId = 0;
+  private latestDetailId = 0;
   private pending = new Map<
     number,
     {
@@ -44,6 +46,14 @@ export class AnalyticsClient {
       pending.reject(new Error("stale analytics result"));
       return;
     }
+    if (
+      msg.kind === "analytics/detail-result" &&
+      msg.id !== this.latestDetailId
+    ) {
+      this.pending.delete(msg.id);
+      pending.reject(new Error("stale analytics result"));
+      return;
+    }
     this.pending.delete(msg.id);
     if (msg.kind === "analytics/error") pending.reject(new Error(msg.message));
     else pending.resolve(msg);
@@ -66,10 +76,19 @@ export class AnalyticsClient {
     powerlog: ArrayBuffer,
     apps: BatteryApp[],
     endTime: number,
+    batteryWindowEndTime: number,
   ): Promise<Extract<AnalyticsOut, { kind: "analytics/ready" }>> {
     const id = this.nextId++;
     return this.request(
-      { v: 1, kind: "analytics/init", id, powerlog, apps, endTime },
+      {
+        v: 1,
+        kind: "analytics/init",
+        id,
+        powerlog,
+        apps,
+        endTime,
+        batteryWindowEndTime,
+      },
       [powerlog],
     );
   }
@@ -77,12 +96,6 @@ export class AnalyticsClient {
   query(startMs: number, endMs: number): Promise<AnalyticsResultMsg> {
     const id = this.nextId++;
     this.latestQueryId = id;
-    for (const [pendingId, pending] of this.pending) {
-      if (pendingId !== id && pendingId > 0 && pendingId < id) {
-        pending.reject(new Error("stale analytics request"));
-        this.pending.delete(pendingId);
-      }
-    }
     return this.request({
       v: 1,
       kind: "analytics/query",
@@ -90,6 +103,23 @@ export class AnalyticsClient {
       startMs,
       endMs,
     }) as Promise<AnalyticsResultMsg>;
+  }
+
+  detail(
+    bundleId: string,
+    startMs: number,
+    endMs: number,
+  ): Promise<AnalyticsDetailResultMsg> {
+    const id = this.nextId++;
+    this.latestDetailId = id;
+    return this.request({
+      v: 1,
+      kind: "analytics/detail",
+      id,
+      bundleId,
+      startMs,
+      endMs,
+    }) as Promise<AnalyticsDetailResultMsg>;
   }
 
   terminate() {
