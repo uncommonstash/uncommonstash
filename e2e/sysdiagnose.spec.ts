@@ -8,9 +8,9 @@ test("sysdiagnose battery graph renders from PAX archive", async ({ page }) => {
 
   // Battery curve: 6 valid samples, -1 gaps skipped.
   await expect(page.getByText("Battery level over time")).toBeVisible();
-  const svgPath = page.locator(
-    'svg[aria-label="Battery level over time"] path',
-  );
+  const svgPath = page
+    .locator('svg[aria-label="Battery level over time"] path')
+    .last();
   await expect(svgPath).toBeVisible();
   expect(((await svgPath.getAttribute("d")) ?? "").length).toBeGreaterThan(10);
   await expect(page.getByText("100%", { exact: true })).toBeVisible();
@@ -27,4 +27,42 @@ test("sysdiagnose battery graph renders from PAX archive", async ({ page }) => {
   await page.locator("aside button", { hasText: "Logs" }).click();
   await expect(page.getByPlaceholder("Search messages")).toBeVisible();
   await expect(page.getByText("simulated hang").first()).toBeVisible();
+});
+
+test("sysdiagnose extracts randomized Powerlog app activity for a selected range", async ({
+  page,
+}) => {
+  await page.goto("/sysdiagnose");
+  await page
+    .locator('input[type="file"]')
+    .setInputFiles("e2e/fixtures/sysdiagnose-analytics-range.tar.gz");
+
+  const safariRow = page.getByRole("row", { name: /Safari/ });
+  await expect(safariRow).toBeVisible();
+  const safariEnergy = safariRow.getByRole("cell").nth(1);
+  await expect(safariEnergy).toHaveText("500 mWh");
+
+  // Drag a six-hour interior range. This is deliberately away from the
+  // Battery UI / Powerlog edge so Powerlog is the sole source of the result.
+  const chart = page.locator('svg[aria-label="Battery level over time"]');
+  const box = await chart.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box) throw new Error("battery chart has no bounding box");
+  const y = box.y + box.height / 2;
+  await page.mouse.move(box.x + box.width * 0.3, y);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.55, y, { steps: 8 });
+  await page.mouse.up();
+
+  // The worker must replace the plist's 24h total with a nonzero selected
+  // Powerlog share, rather than clearing the table or retaining the summary.
+  await expect(page.getByText("No app activity in this range.")).toHaveCount(0);
+  await expect(safariEnergy).not.toHaveText("500 mWh");
+  await expect(safariEnergy).toHaveText(/^[1-4]\d\d mWh$/);
+
+  // Root-node components are extracted from the same selected Powerlog range.
+  await page.getByRole("button", { name: "Energy" }).click();
+  await expect(
+    page.locator('svg[aria-label="Energy by component over time"]'),
+  ).toBeVisible();
 });

@@ -16,13 +16,12 @@ import {
   buildAppDetail,
   buildEnergyTimeline,
   isFullBatteryWindow,
-  normalizePowerlogRows,
-  type PowerlogAggregate,
   type PowerlogAppEnergyEvent,
   type PowerlogEnergyEvent,
   type PowerlogNode,
   type PowerlogRuntimeEvent,
 } from "./pipeline";
+import { queryCoalitionAggregates } from "./powerlog";
 
 type Sqlite = Awaited<ReturnType<typeof sqlite3InitModule>>;
 type Database = InstanceType<Sqlite["oo1"]["DB"]>;
@@ -256,84 +255,6 @@ function queryForegroundEvents(
   }
 }
 
-function queryAggregates(start: number, end: number): PowerlogAggregate[] {
-  const rows = queryRows(
-    `
-      SELECT
-        COALESCE(NULLIF(BundleId, ''), LaunchdName) AS key,
-        SUM(
-          COALESCE(energy, 0) *
-          CASE
-            WHEN timestampEnd > timestamp THEN
-              MAX(0, MIN(timestampEnd, ?) - MAX(timestamp, ?)) /
-              (timestampEnd - timestamp)
-            ELSE 0
-          END
-        ) AS rawEnergy,
-        SUM(
-          CASE
-            WHEN timestampEnd > timestamp THEN
-              MAX(0, MIN(timestampEnd, ?) - MAX(timestamp, ?))
-            ELSE 0
-          END
-        ) AS activitySec
-      FROM PLCoalitionAgent_EventInterval_CoalitionInterval
-      WHERE timestampEnd > ? AND timestamp < ?
-      GROUP BY COALESCE(NULLIF(BundleId, ''), LaunchdName)
-    `,
-    [end, start, end, start, start, end],
-  );
-  return normalizePowerlogRows(rows);
-}
-
-function queryRootAggregates(
-  start: number,
-  end: number,
-): PowerlogAggregate[] | null {
-  if (!hasTable("PLAccountingOperator_Aggregate_RootNodeEnergy")) {
-    return null;
-  }
-  try {
-    const rows = queryRows(
-      `
-        WITH hourly AS (
-          SELECT
-            NodeID,
-            RootNodeID,
-            timestamp,
-            timeInterval,
-            MAX(Energy) AS energy
-          FROM PLAccountingOperator_Aggregate_RootNodeEnergy
-          WHERE timeInterval = 3600
-            AND timestamp + timeInterval > ?
-            AND timestamp < ?
-          GROUP BY NodeID, RootNodeID, timestamp, timeInterval
-        )
-        SELECT
-          appNode.Name AS key,
-          SUM(
-            COALESCE(hourly.energy, 0) *
-            MAX(0, MIN(hourly.timestamp + hourly.timeInterval, ?) -
-              MAX(hourly.timestamp, ?)) /
-            hourly.timeInterval
-          ) AS rawEnergy,
-          SUM(
-            MAX(0, MIN(hourly.timestamp + hourly.timeInterval, ?) -
-              MAX(hourly.timestamp, ?))
-          ) AS activitySec
-        FROM hourly
-        JOIN PLAccountingOperator_EventNone_Nodes AS appNode
-          ON appNode.ID = hourly.NodeID
-        GROUP BY appNode.Name
-      `,
-      [end, start, end, start, end, start],
-    );
-    return normalizePowerlogRows(rows);
-  } catch {
-    return null;
-  }
-}
-
 async function init(msg: Extract<AnalyticsIn, { kind: "analytics/init" }>) {
   const initSQLite = sqlite3InitModule as unknown as (options: {
     locateFile: () => string;
@@ -401,14 +322,17 @@ function query(msg: Extract<AnalyticsIn, { kind: "analytics/query" }>) {
     (wallMs - databaseOffsetMs) / 1000;
   const fullStartSec = toPowerlogSeconds(analysisMinMs);
   const fullEndSec = toPowerlogSeconds(analysisMaxMs);
-  const full =
-    queryRootAggregates(fullStartSec, fullEndSec) ??
-    queryAggregates(fullStartSec, fullEndSec);
+  // Coalition intervals are the Powerlog source keyed directly by app bundle
+  // ID. Root-node aggregates are component data: their NodeID relationship is
+  // not a stable app-activity index across sysdiagnose versions.
+  const full = queryCoalitionAggregates(queryRows, fullStartSec, fullEndSec);
   const selectedStartSec = toPowerlogSeconds(startMs);
   const selectedEndSec = toPowerlogSeconds(endMs);
-  const selected =
-    queryRootAggregates(selectedStartSec, selectedEndSec) ??
-    queryAggregates(selectedStartSec, selectedEndSec);
+  const selected = queryCoalitionAggregates(
+    queryRows,
+    selectedStartSec,
+    selectedEndSec,
+  );
   const isBatteryWindow = isFullBatteryWindow(
     msg.startMs,
     msg.endMs,
@@ -457,12 +381,12 @@ function queryDetail(msg: Extract<AnalyticsIn, { kind: "analytics/detail" }>) {
   const fullEndSec = toPowerlogSeconds(analysisMaxMs);
   const selectedStartSec = toPowerlogSeconds(startMs);
   const selectedEndSec = toPowerlogSeconds(endMs);
-  const full =
-    queryRootAggregates(fullStartSec, fullEndSec) ??
-    queryAggregates(fullStartSec, fullEndSec);
-  const selected =
-    queryRootAggregates(selectedStartSec, selectedEndSec) ??
-    queryAggregates(selectedStartSec, selectedEndSec);
+  const full = queryCoalitionAggregates(queryRows, fullStartSec, fullEndSec);
+  const selected = queryCoalitionAggregates(
+    queryRows,
+    selectedStartSec,
+    selectedEndSec,
+  );
   const isBatteryWindow = isFullBatteryWindow(
     msg.startMs,
     msg.endMs,
