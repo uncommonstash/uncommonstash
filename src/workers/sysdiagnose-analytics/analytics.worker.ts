@@ -101,19 +101,19 @@ function queryRootEnergyEvents(
     const rows = queryRows(
       `
         SELECT
-          RootNodeID AS rootId,
-          timestamp,
+          rootEnergy.RootNodeID AS rootId,
+          rootEnergy.timestamp AS timestamp,
           0 AS startOffset,
-          timeInterval * 1000000.0 AS endOffset,
-          MAX(Energy) AS energy
-        FROM PLAccountingOperator_Aggregate_RootNodeEnergy
+          rootEnergy.timeInterval * 1000000.0 AS endOffset,
+          MAX(rootEnergy.Energy) AS energy
+        FROM PLAccountingOperator_Aggregate_RootNodeEnergy AS rootEnergy
         JOIN PLAccountingOperator_EventNone_Nodes AS appNode
-          ON appNode.ID = NodeID
+          ON appNode.ID = rootEnergy.NodeID
         WHERE appNode.Name = ?
-          AND timeInterval = 3600
-          AND timestamp + timeInterval > ?
-          AND timestamp < ?
-        GROUP BY NodeID, RootNodeID, timestamp, timeInterval
+          AND rootEnergy.timeInterval = 3600
+          AND rootEnergy.timestamp + rootEnergy.timeInterval > ?
+          AND rootEnergy.timestamp < ?
+        GROUP BY rootEnergy.NodeID, rootEnergy.RootNodeID, rootEnergy.timestamp, rootEnergy.timeInterval
       `,
       [bundleId, start, end],
     );
@@ -153,19 +153,19 @@ function queryRootEnergyEventsForApps(
       `
         SELECT
           appNode.Name AS appKey,
-          RootNodeID AS rootId,
-          timestamp,
+          rootEnergy.RootNodeID AS rootId,
+          rootEnergy.timestamp AS timestamp,
           0 AS startOffset,
-          timeInterval * 1000000.0 AS endOffset,
-          MAX(Energy) AS energy
-        FROM PLAccountingOperator_Aggregate_RootNodeEnergy
+          rootEnergy.timeInterval * 1000000.0 AS endOffset,
+          MAX(rootEnergy.Energy) AS energy
+        FROM PLAccountingOperator_Aggregate_RootNodeEnergy AS rootEnergy
         JOIN PLAccountingOperator_EventNone_Nodes AS appNode
-          ON appNode.ID = NodeID
+          ON appNode.ID = rootEnergy.NodeID
         WHERE appNode.Name IN (${placeholders})
-          AND timeInterval = 3600
-          AND timestamp + timeInterval > ?
-          AND timestamp < ?
-        GROUP BY appNode.Name, NodeID, RootNodeID, timestamp, timeInterval
+          AND rootEnergy.timeInterval = 3600
+          AND rootEnergy.timestamp + rootEnergy.timeInterval > ?
+          AND rootEnergy.timestamp < ?
+        GROUP BY appNode.Name, rootEnergy.NodeID, rootEnergy.RootNodeID, rootEnergy.timestamp, rootEnergy.timeInterval
       `,
       [...appKeys, start, end],
     );

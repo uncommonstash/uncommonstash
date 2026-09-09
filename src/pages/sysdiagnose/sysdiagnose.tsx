@@ -177,6 +177,7 @@ function BatteryChart({
   hoveredAppName,
   energyCoverage,
   onUseEnergyCoverage,
+  onShowBattery,
 }: {
   points: { ts: number; level: number }[];
   charging?: Array<{ start: number; end: number }>;
@@ -188,6 +189,7 @@ function BatteryChart({
   hoveredAppName?: string;
   energyCoverage?: TimeRange | null;
   onUseEnergyCoverage?: () => void;
+  onShowBattery?: () => void;
 }) {
   const W = BATTERY_CHART_WIDTH;
   const H = BATTERY_CHART_HEIGHT;
@@ -257,6 +259,11 @@ function BatteryChart({
     return (
       <div className="space-y-2 text-sm text-muted-foreground">
         <p>Energy component timeline is unavailable for this range.</p>
+        {onShowBattery ? (
+          <Button size="sm" variant="outline" onClick={onShowBattery}>
+            Select a range on Battery chart
+          </Button>
+        ) : null}
         {energyCoverage && onUseEnergyCoverage ? (
           <>
             <p className="text-xs">
@@ -1974,6 +1981,7 @@ export default csr(function SysdiagnosePage() {
                     hoveredAppName={hoveredApp?.name}
                     energyCoverage={energyChartCoverage}
                     onUseEnergyCoverage={useEnergyCoverage}
+                    onShowBattery={() => setChartMode("battery")}
                     onRangeChange={
                       plistBattery && powerlogEntry
                         ? handleRangeChange

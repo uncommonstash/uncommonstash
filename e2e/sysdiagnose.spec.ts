@@ -61,6 +61,8 @@ test("sysdiagnose extracts randomized Powerlog app activity for a selected range
   await expect(safariEnergy).toHaveText(/^[1-4]\d\d mWh$/);
 
   // Root-node components are extracted from the same selected Powerlog range.
+  // The fixture's joined node table deliberately also has `timestamp`, matching
+  // the real archive and guarding against ambiguous unqualified SQL columns.
   await page.getByRole("button", { name: "Energy" }).click();
   await expect(
     page.locator('svg[aria-label="Energy by component over time"]'),

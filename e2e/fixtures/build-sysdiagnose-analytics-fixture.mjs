@@ -80,19 +80,21 @@ function powerlogSql() {
   const statements = [
     "PRAGMA journal_mode=OFF;",
     "CREATE TABLE PLCoalitionAgent_EventInterval_CoalitionInterval (timestamp REAL, timestampEnd REAL, BundleId TEXT, LaunchdName TEXT, energy REAL);",
-    "CREATE TABLE PLAccountingOperator_EventNone_Nodes (ID INTEGER PRIMARY KEY, Name TEXT);",
+    // The device schema also has timestamp here. Keeping it in the mock makes
+    // root-energy joins fail if the worker leaves aggregate columns unqualified.
+    "CREATE TABLE PLAccountingOperator_EventNone_Nodes (ID INTEGER PRIMARY KEY, timestamp REAL, Name TEXT);",
     "CREATE TABLE PLAccountingOperator_Aggregate_RootNodeEnergy (timestamp REAL, timeInterval REAL, Energy REAL, NodeID INTEGER, RootNodeID INTEGER);",
     "CREATE TABLE PLAppTimeService_Aggregate_AppRunTime (timestamp REAL, timeInterval REAL, ScreenOnTime REAL, BundleID TEXT);",
   ];
   const componentIds = [900, 901, 902];
   ["CPU", "DisplayDynamic", "DRAM"].forEach((name, index) => {
     statements.push(
-      `INSERT INTO PLAccountingOperator_EventNone_Nodes VALUES (${componentIds[index]}, '${name}');`,
+      `INSERT INTO PLAccountingOperator_EventNone_Nodes (ID, timestamp, Name) VALUES (${componentIds[index]}, ${powerlogStart}, '${name}');`,
     );
   });
   apps.forEach(([, bundleId], index) => {
     statements.push(
-      `INSERT INTO PLAccountingOperator_EventNone_Nodes VALUES (${index + 1}, '${bundleId}');`,
+      `INSERT INTO PLAccountingOperator_EventNone_Nodes (ID, timestamp, Name) VALUES (${index + 1}, ${powerlogStart}, '${bundleId}');`,
     );
   });
   for (let hour = 0; hour < 24; hour += 1) {
