@@ -12,8 +12,10 @@ import {
 } from "./analytics.protocol";
 import {
   allocateAppsToRange,
+  BATTERY_UI_WINDOW_MS,
   buildAppDetail,
   buildEnergyTimeline,
+  isFullBatteryWindow,
   normalizePowerlogRows,
   type PowerlogAggregate,
   type PowerlogAppEnergyEvent,
@@ -35,8 +37,6 @@ let databaseMinMs = 0;
 let databaseMaxMs = 0;
 let analysisMinMs = 0;
 let analysisMaxMs = 0;
-
-const BATTERY_UI_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 function queryRows(
   sql: string,
@@ -409,9 +409,11 @@ function query(msg: Extract<AnalyticsIn, { kind: "analytics/query" }>) {
   const selected =
     queryRootAggregates(selectedStartSec, selectedEndSec) ??
     queryAggregates(selectedStartSec, selectedEndSec);
-  const isBatteryWindow =
-    startMs <= batteryWindowEndTimeMs - BATTERY_UI_WINDOW_MS &&
-    endMs >= batteryWindowEndTimeMs;
+  const isBatteryWindow = isFullBatteryWindow(
+    msg.startMs,
+    msg.endMs,
+    batteryWindowEndTimeMs,
+  );
   const rangeApps = isBatteryWindow
     ? apps.map((app) => ({ ...app, activityShare: 1 }))
     : allocateAppsToRange(apps, full, selected);
@@ -461,9 +463,12 @@ function queryDetail(msg: Extract<AnalyticsIn, { kind: "analytics/detail" }>) {
   const selected =
     queryRootAggregates(selectedStartSec, selectedEndSec) ??
     queryAggregates(selectedStartSec, selectedEndSec);
-  const isFullAnalysisRange =
-    startMs <= analysisMinMs && endMs >= analysisMaxMs;
-  const rangeApps = isFullAnalysisRange
+  const isBatteryWindow = isFullBatteryWindow(
+    msg.startMs,
+    msg.endMs,
+    batteryWindowEndTimeMs,
+  );
+  const rangeApps = isBatteryWindow
     ? apps.map((candidate) => ({ ...candidate, activityShare: 1 }))
     : allocateAppsToRange(apps, full, selected);
   const app =

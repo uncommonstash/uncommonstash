@@ -2,10 +2,31 @@ import {
   allocateAppsToRange,
   buildAppDetail,
   buildEnergyTimeline,
+  isFullBatteryWindow,
   normalizePowerlogRows,
 } from "./pipeline";
 
 describe("analytics pipeline", () => {
+  it("keeps the calibrated app list for the requested battery window when Powerlog ends early", () => {
+    const batteryWindowEnd = 1_700_000_000_000;
+    expect(
+      isFullBatteryWindow(
+        batteryWindowEnd - 24 * 60 * 60 * 1000,
+        batteryWindowEnd,
+        batteryWindowEnd,
+      ),
+    ).toBe(true);
+    // The worker may clamp this to Powerlog's earlier end, but the original
+    // request still represents the complete Battery UI window.
+    expect(
+      isFullBatteryWindow(
+        batteryWindowEnd - 24 * 60 * 60 * 1000,
+        batteryWindowEnd - 6 * 60 * 60 * 1000,
+        batteryWindowEnd,
+      ),
+    ).toBe(false);
+  });
+
   it("allocates calibrated daily app energy by interval activity", () => {
     const rows = allocateAppsToRange(
       [

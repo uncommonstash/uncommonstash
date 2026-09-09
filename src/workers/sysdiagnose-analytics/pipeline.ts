@@ -43,10 +43,28 @@ export interface AnalyticsEnergyTimeline {
 }
 
 const ENERGY_BUCKET_SECONDS = 15 * 60;
+export const BATTERY_UI_WINDOW_MS = 24 * 60 * 60 * 1000;
 const OTHER_COMPONENT_KEY = "Other";
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+/**
+ * The Battery UI plist is already a calibrated snapshot for its complete
+ * 24-hour window. Powerlog can end earlier than that window (for example,
+ * when the sysdiagnose is captured before the local day ends), so this must
+ * be checked against the requested range rather than a Powerlog-clamped one.
+ */
+export function isFullBatteryWindow(
+  requestedStartMs: number,
+  requestedEndMs: number,
+  batteryWindowEndTimeMs: number,
+): boolean {
+  return (
+    requestedStartMs <= batteryWindowEndTimeMs - BATTERY_UI_WINDOW_MS &&
+    requestedEndMs >= batteryWindowEndTimeMs
+  );
 }
 
 /**
