@@ -66,3 +66,32 @@ test("sysdiagnose extracts randomized Powerlog app activity for a selected range
     page.locator('svg[aria-label="Energy by component over time"]'),
   ).toBeVisible();
 });
+
+test("sysdiagnose renders the Powerlog overlap when a selected range extends past coverage", async ({
+  page,
+}) => {
+  await page.goto("/sysdiagnose");
+  await page
+    .locator('input[type="file"]')
+    .setInputFiles("e2e/fixtures/sysdiagnose-analytics-range.tar.gz");
+  await expect(page.getByRole("row", { name: /Safari/ })).toBeVisible();
+
+  const chart = page.locator('svg[aria-label="Battery level over time"]');
+  const box = await chart.boundingBox();
+  expect(box).not.toBeNull();
+  if (!box) throw new Error("battery chart has no bounding box");
+  const y = box.y + box.height / 2;
+  // The mock Powerlog ends at 5:42 PM; this range ends shortly after it.
+  await page.mouse.move(box.x + box.width * 0.01, y);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.25, y, { steps: 8 });
+  await page.mouse.up();
+
+  await page.getByRole("button", { name: "Energy" }).click();
+  await expect(
+    page.locator('svg[aria-label="Energy by component over time"]'),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Energy component timeline is unavailable for this range."),
+  ).toHaveCount(0);
+});

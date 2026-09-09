@@ -341,24 +341,22 @@ function query(msg: Extract<AnalyticsIn, { kind: "analytics/query" }>) {
   const rangeApps = isBatteryWindow
     ? apps.map((app) => ({ ...app, activityShare: 1 }))
     : allocateAppsToRange(apps, full, selected);
-  const sourceRangeIsPartial = startMs > msg.startMs || endMs < msg.endMs;
-  const timelineEvents = sourceRangeIsPartial
-    ? []
-    : (queryRootEnergyEventsForApps(apps, selectedStartSec, selectedEndSec) ??
-      []);
+  // The selected source range is already clipped to Powerlog coverage. Keep
+  // its valid overlap instead of discarding a useful timeline when a drag is
+  // a few minutes wider than the database.
+  const timelineEvents =
+    queryRootEnergyEventsForApps(apps, selectedStartSec, selectedEndSec) ?? [];
   const timelineNodes = queryNodes([
     ...new Set(timelineEvents.map((event) => event.rootId)),
   ]);
-  const timeline = sourceRangeIsPartial
-    ? { timeline: [], appSeries: {} }
-    : buildEnergyTimeline(
-        rangeApps,
-        timelineEvents,
-        timelineNodes,
-        selectedStartSec,
-        selectedEndSec,
-        databaseOffsetMs,
-      );
+  const timeline = buildEnergyTimeline(
+    rangeApps,
+    timelineEvents,
+    timelineNodes,
+    selectedStartSec,
+    selectedEndSec,
+    databaseOffsetMs,
+  );
   const out: AnalyticsResultMsg = {
     v: 1,
     kind: "analytics/result",
@@ -431,7 +429,6 @@ function queryDetail(msg: Extract<AnalyticsIn, { kind: "analytics/detail" }>) {
     const sourceRangeIsPartial = startMs > msg.startMs || endMs < msg.endMs;
     detail = {
       ...detail,
-      points: sourceRangeIsPartial ? [] : detail.points,
       sourceRange: { startMs, endMs },
       sourceRangeIsPartial,
     };

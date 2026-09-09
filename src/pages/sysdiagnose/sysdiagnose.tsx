@@ -1139,17 +1139,20 @@ function AppDetailSheet({
                 <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
                   Loading Powerlog events…
                 </div>
-              ) : detail?.sourceRangeIsPartial ? (
-                <p className="py-8 text-sm text-muted-foreground">
-                  The Powerlog covers only{" "}
-                  {formatRange({
-                    start: detail.sourceRange.startMs,
-                    end: detail.sourceRange.endMs,
-                  })}
-                  . A calibrated timeline is unavailable for the full-day range.
-                </p>
               ) : (
-                <AppEnergyChart points={detail?.points ?? []} />
+                <>
+                  {detail?.sourceRangeIsPartial ? (
+                    <p className="mb-3 text-sm text-muted-foreground">
+                      Showing Powerlog data through{" "}
+                      {formatRange({
+                        start: detail.sourceRange.startMs,
+                        end: detail.sourceRange.endMs,
+                      })}
+                      .
+                    </p>
+                  ) : null}
+                  <AppEnergyChart points={detail?.points ?? []} />
+                </>
               )}
             </section>
             <section className="pb-5">
