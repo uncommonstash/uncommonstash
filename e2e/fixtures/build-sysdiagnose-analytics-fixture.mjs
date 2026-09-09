@@ -17,6 +17,7 @@ const fixturePath = new URL(
 const archiveRoot =
   "sysdiagnose_2026.09.07_17-42-39-0700_iPhone-OS_iPhone_23G83_mock_powerlog";
 const batteryWindowEnd = Date.parse("2026-09-08T00:00:00-07:00") / 1000;
+const sysdiagnoseCaptureTime = Date.parse("2026-09-07T17:42:39-07:00") / 1000;
 const powerlogEnd = 59_700_943;
 const powerlogStart = powerlogEnd - 24 * 60 * 60;
 
@@ -85,7 +86,11 @@ function powerlogSql() {
     "CREATE TABLE PLAccountingOperator_EventNone_Nodes (ID INTEGER PRIMARY KEY, timestamp REAL, Name TEXT);",
     "CREATE TABLE PLAccountingOperator_Aggregate_RootNodeEnergy (timestamp REAL, timeInterval REAL, Energy REAL, NodeID INTEGER, RootNodeID INTEGER);",
     "CREATE TABLE PLAppTimeService_Aggregate_AppRunTime (timestamp REAL, timeInterval REAL, ScreenOnTime REAL, BundleID TEXT);",
+    "CREATE TABLE PLStorageOperator_EventForward_TimeOffset (timestamp REAL, system REAL);",
   ];
+  statements.push(
+    `INSERT INTO PLStorageOperator_EventForward_TimeOffset VALUES (${powerlogEnd}, ${sysdiagnoseCaptureTime - powerlogEnd});`,
+  );
   const componentIds = [900, 901, 902];
   ["CPU", "DisplayDynamic", "DRAM"].forEach((name, index) => {
     statements.push(
@@ -110,7 +115,7 @@ function powerlogSql() {
       componentIds.forEach((rootId) => {
         const energy = 800 + Math.round(seeded() * 4_000) + appIndex * 100;
         statements.push(
-          `INSERT INTO PLAccountingOperator_Aggregate_RootNodeEnergy VALUES (${timestamp}, 3600, ${energy}, ${appIndex + 1}, ${rootId});`,
+          `INSERT INTO PLAccountingOperator_Aggregate_RootNodeEnergy VALUES (${timestamp + 3600}, 3600, ${energy}, ${appIndex + 1}, ${rootId});`,
         );
       });
     });

@@ -1,4 +1,8 @@
-import { queryCoalitionAggregates } from "./powerlog";
+import {
+  buildRootEnergyEventsQuery,
+  queryCoalitionAggregates,
+  queryPowerlogSystemOffset,
+} from "./powerlog";
 
 function seededRandom(seed: number): () => number {
   let state = seed;
@@ -36,5 +40,33 @@ describe("Powerlog coalition extraction", () => {
     expect(calls[0].sql).toContain("timestampEnd > ? AND timestamp < ?");
     expect(calls[0].bind).toEqual([5_000, 1_000, 5_000, 1_000, 1_000, 5_000]);
     expect(extracted).toEqual(rows);
+  });
+
+  it("uses the TimeOffset calibration and end-stamped root energy intervals", () => {
+    const rootQuery = buildRootEnergyEventsQuery(
+      ["com.apple.mobilesafari", "com.apple.Maps"],
+      1_000,
+      5_000,
+    );
+    expect(rootQuery.sql).toContain(
+      "rootEnergy.timestamp - rootEnergy.timeInterval AS timestamp",
+    );
+    expect(rootQuery.sql).toContain("rootEnergy.timestamp > ?");
+    expect(rootQuery.sql).toContain(
+      "rootEnergy.timestamp - rootEnergy.timeInterval < ?",
+    );
+    expect(rootQuery.bind).toEqual([
+      "com.apple.mobilesafari",
+      "com.apple.Maps",
+      1_000,
+      5_000,
+    ]);
+
+    const offset = queryPowerlogSystemOffset((sql) => {
+      expect(sql).toContain("PLStorageOperator_EventForward_TimeOffset");
+      return [{ systemOffset: 1_729_127_236.72 }];
+    });
+    expect(offset).toBe(1_729_127_236.72);
+    expect(queryPowerlogSystemOffset(() => [])).toBeNull();
   });
 });

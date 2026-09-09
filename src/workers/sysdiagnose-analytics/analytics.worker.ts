@@ -21,7 +21,11 @@ import {
   type PowerlogNode,
   type PowerlogRuntimeEvent,
 } from "./pipeline";
-import { queryCoalitionAggregates } from "./powerlog";
+import {
+  buildRootEnergyEventsQuery,
+  queryCoalitionAggregates,
+  queryPowerlogSystemOffset,
+} from "./powerlog";
 
 type Sqlite = Awaited<ReturnType<typeof sqlite3InitModule>>;
 type Database = InstanceType<Sqlite["oo1"]["DB"]>;
@@ -98,25 +102,8 @@ function queryRootEnergyEvents(
     return null;
   }
   try {
-    const rows = queryRows(
-      `
-        SELECT
-          rootEnergy.RootNodeID AS rootId,
-          rootEnergy.timestamp AS timestamp,
-          0 AS startOffset,
-          rootEnergy.timeInterval * 1000000.0 AS endOffset,
-          MAX(rootEnergy.Energy) AS energy
-        FROM PLAccountingOperator_Aggregate_RootNodeEnergy AS rootEnergy
-        JOIN PLAccountingOperator_EventNone_Nodes AS appNode
-          ON appNode.ID = rootEnergy.NodeID
-        WHERE appNode.Name = ?
-          AND rootEnergy.timeInterval = 3600
-          AND rootEnergy.timestamp + rootEnergy.timeInterval > ?
-          AND rootEnergy.timestamp < ?
-        GROUP BY rootEnergy.NodeID, rootEnergy.RootNodeID, rootEnergy.timestamp, rootEnergy.timeInterval
-      `,
-      [bundleId, start, end],
-    );
+    const query = buildRootEnergyEventsQuery([bundleId], start, end);
+    const rows = queryRows(query.sql, query.bind);
     const events = rows.flatMap((row) => {
       const rootId = Number(row["rootId"]);
       const timestamp = Number(row["timestamp"]);
@@ -147,28 +134,9 @@ function queryRootEnergyEventsForApps(
     ...new Set(apps.flatMap((app) => [app.bundleId, app.name]).filter(Boolean)),
   ];
   if (appKeys.length === 0) return [];
-  const placeholders = appKeys.map(() => "?").join(",");
   try {
-    const rows = queryRows(
-      `
-        SELECT
-          appNode.Name AS appKey,
-          rootEnergy.RootNodeID AS rootId,
-          rootEnergy.timestamp AS timestamp,
-          0 AS startOffset,
-          rootEnergy.timeInterval * 1000000.0 AS endOffset,
-          MAX(rootEnergy.Energy) AS energy
-        FROM PLAccountingOperator_Aggregate_RootNodeEnergy AS rootEnergy
-        JOIN PLAccountingOperator_EventNone_Nodes AS appNode
-          ON appNode.ID = rootEnergy.NodeID
-        WHERE appNode.Name IN (${placeholders})
-          AND rootEnergy.timeInterval = 3600
-          AND rootEnergy.timestamp + rootEnergy.timeInterval > ?
-          AND rootEnergy.timestamp < ?
-        GROUP BY appNode.Name, rootEnergy.NodeID, rootEnergy.RootNodeID, rootEnergy.timestamp, rootEnergy.timeInterval
-      `,
-      [...appKeys, start, end],
-    );
+    const query = buildRootEnergyEventsQuery(appKeys, start, end);
+    const rows = queryRows(query.sql, query.bind);
     return rows.flatMap((row) => {
       const appKey = typeof row["appKey"] === "string" ? row["appKey"] : "";
       const rootId = Number(row["rootId"]);
@@ -296,7 +264,9 @@ async function init(msg: Extract<AnalyticsIn, { kind: "analytics/init" }>) {
   if (!Number.isFinite(minTimestamp) || !Number.isFinite(maxTimestamp)) {
     throw new Error("Powerlog has no coalition interval timestamps");
   }
-  databaseOffsetMs = endTimeMs - maxTimestamp * 1000;
+  databaseOffsetMs =
+    (queryPowerlogSystemOffset(queryRows) ??
+      (endTimeMs - maxTimestamp * 1000) / 1000) * 1000;
   databaseMinMs = minTimestamp * 1000 + databaseOffsetMs;
   databaseMaxMs = maxTimestamp * 1000 + databaseOffsetMs;
   analysisMinMs = Math.max(databaseMinMs, endTimeMs - BATTERY_UI_WINDOW_MS);
