@@ -45,6 +45,12 @@ test("sysdiagnose extracts randomized Powerlog app activity for a selected range
   // Drag a six-hour interior range. This is deliberately away from the
   // Battery UI / Powerlog edge so Powerlog is the sole source of the result.
   const chart = page.locator('svg[aria-label="Battery level over time"]');
+  const fullRangeStart = Number(
+    await chart
+      .locator('g[data-chart-axis="time"] text')
+      .first()
+      .getAttribute("data-timestamp"),
+  );
   const box = await chart.boundingBox();
   expect(box).not.toBeNull();
   if (!box) throw new Error("battery chart has no bounding box");
@@ -67,6 +73,31 @@ test("sysdiagnose extracts randomized Powerlog app activity for a selected range
   await expect(
     page.locator('svg[aria-label="Energy by component over time"]'),
   ).toBeVisible();
+  const energyChart = page.locator(
+    'svg[aria-label="Energy by component over time"]',
+  );
+  // Energy is a result for the drag range, so its time axis must zoom to that
+  // interval instead of retaining the full Battery UI day.
+  expect(
+    Number(
+      await energyChart
+        .locator('g[data-chart-axis="time"] text')
+        .first()
+        .getAttribute("data-timestamp"),
+    ),
+  ).toBeGreaterThan(fullRangeStart);
+
+  // Energy units must remain inside the SVG viewport rather than losing their
+  // leading digit to the left edge.
+  const chartBox = await energyChart.boundingBox();
+  const yLabelBox = await energyChart
+    .locator('g[data-chart-axis="energy"] text')
+    .first()
+    .boundingBox();
+  expect(chartBox).not.toBeNull();
+  expect(yLabelBox).not.toBeNull();
+  if (!chartBox || !yLabelBox) throw new Error("energy chart label is missing");
+  expect(yLabelBox.x).toBeGreaterThanOrEqual(chartBox.x);
 });
 
 test("sysdiagnose renders the Powerlog overlap when a selected range extends past coverage", async ({

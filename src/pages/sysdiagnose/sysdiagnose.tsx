@@ -111,7 +111,10 @@ function stageLabel(p: IngestProgress): string {
 
 const BATTERY_CHART_WIDTH = 760;
 const BATTERY_CHART_HEIGHT = 260;
-const BATTERY_CHART_PADDING = { top: 18, right: 18, bottom: 38, left: 48 };
+// Energy tick labels include units and can be wider than percentage labels.
+// Leave enough viewport to the left of their end-aligned x coordinate so SVG
+// does not clip their leading digits.
+const BATTERY_CHART_PADDING = { top: 18, right: 18, bottom: 38, left: 64 };
 const BATTERY_CHART_TICKS = [0, 0.25, 0.5, 0.75, 1];
 
 interface TimeRange {
@@ -224,8 +227,15 @@ function BatteryChart({
   const geom = useMemo(() => {
     if (points.length < 2) return null;
     const ts = points.map((p) => p.ts);
-    const min = Math.min(...ts);
-    const max = Math.max(...ts);
+    // Battery keeps the complete day visible as the range-selection surface.
+    // Energy is a result for the selected interval, so its axis must match the
+    // range printed in the heading instead of making sparse events look offset.
+    const min =
+      mode === "energy" && selectedRange
+        ? selectedRange.start
+        : Math.min(...ts);
+    const max =
+      mode === "energy" && selectedRange ? selectedRange.end : Math.max(...ts);
     const X = (t: number) =>
       P.left + ((t - min) / Math.max(1, max - min)) * (W - P.left - P.right);
     const batteryY = (level: number) =>
@@ -248,7 +258,7 @@ function BatteryChart({
       X,
       batteryY,
     };
-  }, [points, charging]);
+  }, [points, charging, mode, selectedRange]);
   if (points.length < 2 || !geom)
     return (
       <p className="text-sm text-muted-foreground">
@@ -419,7 +429,7 @@ function BatteryChart({
               />
             ),
         )}
-        {draftRange ? (
+        {mode === "battery" && draftRange ? (
           <rect
             x={geom.X(draftRange.start)}
             y={P.top}
@@ -433,51 +443,58 @@ function BatteryChart({
             pointerEvents="none"
           />
         ) : null}
-        {BATTERY_CHART_TICKS.map((tick) => {
-          const value =
-            mode === "energy" ? energyMax * (1 - tick) : 100 - tick * 100;
-          const y = mode === "energy" ? energyY(value) : geom.batteryY(value);
-          return (
-            <g key={`y-${value}`}>
-              <line
-                x1={P.left}
-                x2={W - P.right}
-                y1={y}
-                y2={y}
-                stroke="#d2d2d7"
-                strokeWidth={1}
-              />
+        <g data-chart-axis={mode === "energy" ? "energy" : "battery"}>
+          {BATTERY_CHART_TICKS.map((tick) => {
+            const value =
+              mode === "energy" ? energyMax * (1 - tick) : 100 - tick * 100;
+            const y = mode === "energy" ? energyY(value) : geom.batteryY(value);
+            return (
+              <g key={`y-${value}`}>
+                <line
+                  x1={P.left}
+                  x2={W - P.right}
+                  y1={y}
+                  y2={y}
+                  stroke="#d2d2d7"
+                  strokeWidth={1}
+                />
+                <text
+                  x={P.left - 10}
+                  y={y + 4}
+                  textAnchor="end"
+                  fill="#6e6e73"
+                  fontSize="11"
+                >
+                  {mode === "energy" ? formatEnergy(value) : `${value}%`}
+                </text>
+              </g>
+            );
+          })}
+        </g>
+        <g data-chart-axis="time">
+          {BATTERY_CHART_TICKS.map((tick) => {
+            const time = new Date(geom.min + (geom.max - geom.min) * tick);
+            const x = P.left + tick * (W - P.left - P.right);
+            return (
               <text
-                x={P.left - 10}
-                y={y + 4}
-                textAnchor="end"
+                key={`x-${time.toISOString()}`}
+                data-timestamp={time.getTime()}
+                x={x}
+                y={H - 12}
+                textAnchor={
+                  tick === 0 ? "start" : tick === 1 ? "end" : "middle"
+                }
                 fill="#6e6e73"
                 fontSize="11"
               >
-                {mode === "energy" ? formatEnergy(value) : `${value}%`}
+                {time.toLocaleTimeString([], {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
               </text>
-            </g>
-          );
-        })}
-        {BATTERY_CHART_TICKS.map((tick) => {
-          const time = new Date(geom.min + (geom.max - geom.min) * tick);
-          const x = P.left + tick * (W - P.left - P.right);
-          return (
-            <text
-              key={`x-${time.toISOString()}`}
-              x={x}
-              y={H - 12}
-              textAnchor={tick === 0 ? "start" : tick === 1 ? "end" : "middle"}
-              fill="#6e6e73"
-              fontSize="11"
-            >
-              {time.toLocaleTimeString([], {
-                hour: "numeric",
-                minute: "2-digit",
-              })}
-            </text>
-          );
-        })}
+            );
+          })}
+        </g>
         {mode === "battery" ? (
           <>
             <path d={geom.area} fill="#0071e3" opacity={0.08} />
