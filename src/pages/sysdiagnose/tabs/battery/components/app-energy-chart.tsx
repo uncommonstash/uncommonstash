@@ -176,7 +176,7 @@ export function AppEnergyChart({ rows }: { rows: AppEnergyAttributionRow[] }) {
       <div className="relative">
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          className="h-56 w-full"
+          className="h-72 w-full"
           aria-label="App energy over time by component"
           preserveAspectRatio="none"
           onPointerLeave={() => setHoveredKey(null)}

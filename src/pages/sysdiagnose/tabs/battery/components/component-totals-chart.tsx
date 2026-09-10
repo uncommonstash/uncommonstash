@@ -142,7 +142,7 @@ export function ComponentTotalsChart({
           <div className="relative">
             <svg
               viewBox={`0 0 ${width} ${height}`}
-              className="h-64 w-full"
+              className="h-80 w-full"
               aria-label="Energy by component chart"
               preserveAspectRatio="none"
               data-requested-start-ms={provenance?.requestedRange.startMs}

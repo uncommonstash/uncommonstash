@@ -49,7 +49,7 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
   const batteryChartBox = await batteryChart.boundingBox();
   expect(batteryChartBox).not.toBeNull();
   if (!batteryChartBox) throw new Error("battery chart is missing");
-  expect(batteryChartBox.height).toBeCloseTo(256, 0);
+  expect(batteryChartBox.height).toBeCloseTo(320, 0);
   await page.mouse.move(
     batteryChartBox.x + batteryChartBox.width * 0.25,
     batteryChartBox.y + batteryChartBox.height * 0.5,
@@ -155,6 +155,7 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
   const chartBox = await chart.boundingBox();
   expect(chartBox).not.toBeNull();
   if (!chartBox) throw new Error("component chart is missing");
+  expect(chartBox.height).toBeCloseTo(320, 0);
   const yAxisLabelLeftEdges = await chart
     .locator("text")
     .evaluateAll((labels) =>

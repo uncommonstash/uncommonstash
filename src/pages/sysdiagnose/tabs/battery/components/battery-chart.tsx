@@ -90,7 +90,7 @@ export function BatteryChart({
     <div className="relative">
       <svg
         viewBox={`0 0 ${width} ${height}`}
-        className="h-64 w-full"
+        className="h-80 w-full"
         aria-label="Battery level from Battery UI plist"
         data-selected-end-ms={selectedRange.endMs}
         data-selected-start-ms={selectedRange.startMs}
