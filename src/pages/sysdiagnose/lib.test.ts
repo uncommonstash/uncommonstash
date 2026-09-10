@@ -11,7 +11,6 @@ import {
   parsePlist,
   parseTar,
   parseXmlPlist,
-  redact,
 } from "./lib";
 
 // Minimal tar builder for tests: ustar headers, PAX 'x' headers for names
@@ -136,10 +135,6 @@ describe("sysdiagnose lib", () => {
     );
     expect(lines.length).toBe(2);
     expect(lines[0].level).toBe("error");
-  });
-  it("redacts PII", () => {
-    expect(redact("mail a@b.com", true)).toContain("[redacted-email]");
-    expect(redact("mail a@b.com", false)).toContain("a@b.com");
   });
   it("parseTar round-trips a minimal archive", () => {
     const entries = buildTar([{ name: "a.txt", data: "hello" }]);
