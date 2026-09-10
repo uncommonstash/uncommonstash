@@ -63,22 +63,6 @@ independent research also describes the node dictionary plus hourly
 `RootNodeEnergy` records as app-by-hardware attribution; see [Punmy's Power Log
 analysis](https://punmy.cn/2018/06/12/iOS%20%E6%9C%80%E5%85%A8%E9%9D%A2%E7%9A%84%E5%8A%9F%E8%80%97%E5%88%86%E6%9E%90%E4%B9%8B%E2%80%94%E2%80%94Power%20Log/).
 
-This means `PLAccountingOperator_Aggregate_RootNodeEnergy` is an
-**attribution matrix**, not an already-computed device component chart:
-
-```text
-RootNodeID = component being accounted for  (CPU, DisplayDynamic, DRAM, ...)
-NodeID     = consumer credited under it     (an app, service, or system bucket)
-Energy     = component → consumer attribution for an aggregate interval
-```
-
-`NodeID = RootNodeID` selects the root's own allocation. It is **not** the sum
-of all consumers under that component. In the captured archive's final hour,
-root-self entries totalled 9.4 mWh while all rows totalled 247.1 mWh. The exact
-device-wide aggregation rule still requires validation against the
-distribution/qualification records before the UI can call a component chart a
-total.
-
 ## Time model
 
 Powerlog `timestamp` values are monotonic-clock seconds, not wall-clock Unix
@@ -114,7 +98,14 @@ Dictionary for the opaque IDs used by Powerlog accounting tables.
 ## `PLAccountingOperator_Aggregate_RootNodeEnergy`
 
 Hourly and daily energy-attribution aggregates. This is the main table used by
-the current direct app extraction.
+the current direct app extraction. It is an **attribution matrix**, not an
+already-computed device component chart:
+
+```text
+RootNodeID = component being accounted for  (CPU, DisplayDynamic, DRAM, ...)
+NodeID     = consumer credited under it     (an app, service, or system bucket)
+Energy     = component → consumer attribution for an aggregate interval
+```
 
 | Column         | SQLite type          | Meaning                                                                   | Unit                                                       |
 | ---            | ---                  | ---                                                                       | ---                                                        |
@@ -125,9 +116,12 @@ the current direct app extraction.
 | `NodeID`       | INTEGER              | Consumer account receiving the attribution; join to `Nodes.ID`.           | Identifier                                                 |
 | `RootNodeID`   | INTEGER              | Component/account being distributed; join to `Nodes.ID`.                  | Identifier                                                 |
 
-Do not use `NodeID = RootNodeID` as a component total. It is only a root-self
-row. Do not sum arbitrary rows either: whether every `NodeID` is an exclusive
-recipient must be proven from the distribution records first.
+`NodeID = RootNodeID` selects the root's own allocation. It is **not** the sum
+of all consumers under that component. In the sampled archive's final hour,
+root-self entries totalled 9.4 mWh while all rows totalled 247.1 mWh. The exact
+device-wide aggregation rule still requires validation against the
+distribution/qualification records before the UI can call a component chart a
+total.
 
 ## `PLStorageOperator_EventForward_TimeOffset`
 
