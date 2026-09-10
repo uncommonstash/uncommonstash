@@ -1,5 +1,11 @@
 import { BatteryMedium, FileText, FolderTree, Upload } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { BackLink } from "@/components/back-link";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -116,40 +122,51 @@ export default csr(function SysdiagnosePage() {
   ];
   return (
     <div className="h-screen overflow-hidden bg-secondary/30 [&_*]:shadow-none">
-      <div className="flex h-full">
+      <div
+        className="flex h-full"
+        style={
+          {
+            "--sysdiagnose-content-width": "min(64rem, calc(100vw - 22rem))",
+          } as CSSProperties
+        }
+      >
         <aside
-          className="w-56 shrink-0 overflow-y-auto p-4"
+          className="w-[calc((100vw_-_var(--sysdiagnose-content-width))/2)] shrink-0 overflow-y-auto py-4 pl-4 pr-4"
           aria-label="Sections"
         >
-          <BackLink />
-          <Button
-            size="sm"
-            className="mt-6 w-full justify-start gap-2 rounded-full px-3"
-            onClick={reset}
-          >
-            <Upload className="h-4 w-4" />
-            Upload
-          </Button>
-          <nav className="mt-5 space-y-1">
-            {navigation.map(({ id, label, Icon }) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setTab(id)}
-                aria-current={tab === id ? "page" : undefined}
-                className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors ${tab === id ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"}`}
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </button>
-            ))}
-          </nav>
+          <div className="ml-auto w-44">
+            <BackLink className="mb-0" />
+            <Button
+              size="sm"
+              className="mt-6 w-full justify-start gap-2 rounded-full px-3"
+              onClick={reset}
+            >
+              <Upload className="h-4 w-4" />
+              Upload
+            </Button>
+            <nav className="mt-5 space-y-1">
+              {navigation.map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setTab(id)}
+                  aria-current={tab === id ? "page" : undefined}
+                  className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors ${tab === id ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"}`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </button>
+              ))}
+            </nav>
+          </div>
         </aside>
         <ScrollArea
           type="always"
-          className="min-w-0 flex-1 border-l bg-background"
+          className="h-full min-w-0 flex-1 border-l bg-background"
         >
-          <main className="mx-auto w-full max-w-5xl px-6 py-4">
+          <main
+            className={`${tab === "logs" ? "w-full" : "w-[var(--sysdiagnose-content-width)] max-w-full border-r"} px-4 py-4 sm:px-6`}
+          >
             <h1 className="mb-6 text-xl font-semibold">Sysdiagnose</h1>
             {tab === "battery" ? (
               <BatteryTab battery={battery} powerlog={powerlog} />

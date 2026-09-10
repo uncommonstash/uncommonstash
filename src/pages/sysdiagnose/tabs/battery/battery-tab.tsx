@@ -32,21 +32,27 @@ export function BatteryTab({
       initialRange={initialRange}
     >
       <div className="space-y-6">
-        <div className="flex items-center justify-end gap-1 rounded-md border p-0.5">
-          <Button
-            size="sm"
-            variant={view === "battery" ? "secondary" : "plain"}
-            onClick={() => setView("battery")}
+        <div className="flex justify-end">
+          <div
+            role="group"
+            aria-label="Battery view"
+            className="inline-flex items-center gap-1 rounded-md border p-0.5"
           >
-            Battery overview
-          </Button>
-          <Button
-            size="sm"
-            variant={view === "energy" ? "secondary" : "plain"}
-            onClick={() => setView("energy")}
-          >
-            Energy overview
-          </Button>
+            <Button
+              size="sm"
+              variant={view === "battery" ? "secondary" : "plain"}
+              onClick={() => setView("battery")}
+            >
+              Battery overview
+            </Button>
+            <Button
+              size="sm"
+              variant={view === "energy" ? "secondary" : "plain"}
+              onClick={() => setView("energy")}
+            >
+              Energy overview
+            </Button>
+          </div>
         </div>
         {view === "battery" ? (
           <BatteryOverview battery={battery} />

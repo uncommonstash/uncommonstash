@@ -21,6 +21,13 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
     .locator('input[type="file"]')
     .setInputFiles("e2e/fixtures/sysdiagnose-query-mock.tar.gz");
 
+  const pageTitle = page.getByRole("heading", { name: "Sysdiagnose" });
+  await expect(pageTitle).toBeVisible();
+  expect((await pageTitle.boundingBox())?.y).toBeGreaterThanOrEqual(0);
+  const viewToggle = page.getByRole("group", { name: "Battery view" });
+  await expect(viewToggle).toBeVisible();
+  expect((await viewToggle.boundingBox())?.width).toBeLessThan(300);
+
   await expect(page.getByText("Battery level from Battery UI")).toBeVisible();
   await expect(
     page.locator('svg[aria-label="Battery level from Battery UI plist"] path'),
