@@ -7,13 +7,11 @@ the schema changes between iOS releases. This is therefore an exact reference
 for the analysis inputs and corroborating tables examined here—not a claim to
 catalogue every private table present on every iOS version.
 
-The table definitions in [powerlog-schema.md](./powerlog-schema.md) were read
-from the supplied Powerlog database. They are a schema snapshot, not a promise
-about another iOS version.
-
-[external-research.md](./external-research.md) records what independent
-forensic researchers and Apple’s public documentation say, and—equally
-important—what those sources do not prove about this archive.
+The table definitions in [SCHEMA.md](./SCHEMA.md) were read from the supplied
+Powerlog database. They are a schema snapshot, not a promise about another iOS
+version. That document also records what independent forensic researchers and
+Apple’s public documentation say, and—equally important—what those sources do
+not prove about this archive.
 
 ## Evidence labels
 
