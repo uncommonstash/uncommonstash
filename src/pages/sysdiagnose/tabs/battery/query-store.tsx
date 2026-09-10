@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from "react";
 import { SysdiagnoseQueryClient } from "@/workers/sysdiagnose-query/query.client";
-import type { QueryRange, SysdiagnoseQueryPlan, SysdiagnoseQueryResult } from "@/workers/sysdiagnose-query/query.protocol";
+import type { QueryRange, SysdiagnoseQueryCatalog, SysdiagnoseQueryPlan, SysdiagnoseQueryResult } from "@/workers/sysdiagnose-query/query.protocol";
 
 type QueryState =
   | { state: "idle" | "loading" }
@@ -10,6 +10,7 @@ type QueryState =
 interface StoreState {
   range: QueryRange;
   ready: "loading" | "ready" | "error" | "unavailable";
+  catalog: SysdiagnoseQueryCatalog | null;
   queries: Record<string, QueryState>;
 }
 
@@ -17,12 +18,14 @@ type Action =
   | { type: "reset"; range: QueryRange; ready: StoreState["ready"] }
   | { type: "range"; range: QueryRange }
   | { type: "ready"; ready: StoreState["ready"] }
+  | { type: "catalog"; catalog: SysdiagnoseQueryCatalog }
   | { type: "query"; key: string; query: QueryState };
 
 function reducer(state: StoreState, action: Action): StoreState {
-  if (action.type === "reset") return { range: action.range, ready: action.ready, queries: {} };
+  if (action.type === "reset") return { range: action.range, ready: action.ready, catalog: null, queries: {} };
   if (action.type === "range") return { ...state, range: action.range };
   if (action.type === "ready") return { ...state, ready: action.ready };
+  if (action.type === "catalog") return { ...state, catalog: action.catalog };
   return { ...state, queries: { ...state.queries, [action.key]: action.query } };
 }
 
@@ -38,6 +41,7 @@ export function QueryStoreProvider({ powerlog, initialRange, children }: { power
   const [state, dispatch] = useReducer(reducer, {
     range: initialRange,
     ready: powerlog ? "loading" : "unavailable",
+    catalog: null,
     queries: {},
   });
   const client = useRef<SysdiagnoseQueryClient | null>(null);
@@ -56,7 +60,10 @@ export function QueryStoreProvider({ powerlog, initialRange, children }: { power
     client.current = next;
     dispatch({ type: "ready", ready: "loading" });
     void next.init(powerlog.slice().buffer).then(
-      () => dispatch({ type: "ready", ready: "ready" }),
+      (catalog) => {
+        dispatch({ type: "catalog", catalog });
+        dispatch({ type: "ready", ready: "ready" });
+      },
       () => dispatch({ type: "ready", ready: "error" }),
     );
     return () => next.terminate();

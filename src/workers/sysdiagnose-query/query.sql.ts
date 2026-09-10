@@ -17,6 +17,14 @@ export type QueryRows = (
 ) => Array<Record<string, unknown>>;
 
 const HOURLY_SECONDS = 3600;
+const CALIBRATED_INTERVAL = `
+  AND energy.timestamp - energy.timeInterval >= (
+    SELECT MIN(timestamp) FROM PLStorageOperator_EventForward_TimeOffset
+  )`;
+const CALIBRATED_RUNTIME_INTERVAL = `
+  AND timestamp - timeInterval >= (
+    SELECT MIN(timestamp) FROM PLStorageOperator_EventForward_TimeOffset
+  )`;
 
 export const ROOT_NODE_ENERGY_SOURCE: QuerySource = {
   id: "root-node-energy-hourly",
@@ -75,6 +83,11 @@ export function createTimeNormalizer(queryRows: QueryRows) {
     systemSec: numberField(row, "systemSec"),
   } satisfies Offset));
   if (offsets.length === 0) throw new Error("missing TimeOffset calibration");
+  for (let index = 1; index < offsets.length; index += 1) {
+    if (offsets[index - 1].monotonicSec >= offsets[index].monotonicSec) {
+      throw new Error("invalid TimeOffset calibration ordering");
+    }
+  }
   const offsetAt = (timestamp: number) => {
     let selected: Offset | undefined;
     for (const offset of offsets) {
@@ -169,7 +182,7 @@ export function executeQueryPlan(
               root.IsPermanent AS rootNodePermanent, SUM(energy.Energy) AS rawEnergy
          FROM PLAccountingOperator_Aggregate_RootNodeEnergy AS energy
          JOIN PLAccountingOperator_EventNone_Nodes AS root ON root.ID = energy.RootNodeID
-        WHERE energy.timeInterval = ?
+        WHERE energy.timeInterval = ? ${CALIBRATED_INTERVAL}
         GROUP BY energy.timestamp, energy.timeInterval, energy.RootNodeID,
                  root.Name, root.IsPermanent
         ORDER BY energy.timestamp ASC, energy.RootNodeID ASC`,
@@ -203,7 +216,7 @@ export function executeQueryPlan(
          FROM PLAccountingOperator_Aggregate_RootNodeEnergy AS energy
          JOIN PLAccountingOperator_EventNone_Nodes AS root ON root.ID = energy.RootNodeID
          JOIN PLAccountingOperator_EventNone_Nodes AS consumer ON consumer.ID = energy.NodeID
-        WHERE consumer.Name IN (${placeholders}) AND energy.timeInterval = ?
+        WHERE consumer.Name IN (${placeholders}) AND energy.timeInterval = ? ${CALIBRATED_INTERVAL}
         GROUP BY energy.timestamp, energy.timeInterval, energy.RootNodeID, energy.NodeID,
                  root.Name, root.IsPermanent, consumer.Name, consumer.IsPermanent
         ORDER BY energy.timestamp ASC, consumer.Name ASC, energy.RootNodeID ASC`,
@@ -227,7 +240,7 @@ export function executeQueryPlan(
             SUM(COALESCE(ScreenOnTime, 0)) AS foregroundSec,
             SUM(COALESCE(BackgroundTime, 0)) AS backgroundSec
        FROM PLAppTimeService_Aggregate_AppRunTime
-      WHERE BundleID IN (${placeholders}) AND timeInterval = ?
+      WHERE BundleID IN (${placeholders}) AND timeInterval = ? ${CALIBRATED_RUNTIME_INTERVAL}
       GROUP BY timestamp, timeInterval, BundleID
       ORDER BY timestamp ASC, BundleID ASC`,
     [...apps, HOURLY_SECONDS],

@@ -6,7 +6,7 @@ const offsets = [
 ];
 
 function rows(sql: string): Array<Record<string, unknown>> {
-  if (sql.includes("TimeOffset")) return offsets;
+  if (sql.includes("timestamp AS monotonicSec")) return offsets;
   if (sql.includes("consumerNodeId")) return [{ endSec: 8_300, intervalSec: 3_600, rootNodeId: 9, rootNodeName: "CPU", rootNodePermanent: 1, consumerNodeId: 2, consumerNodeName: "com.example.app", consumerNodePermanent: 0, rawEnergy: 75 }];
   if (sql.includes("BundleID AS bundleId")) return [{ endSec: 8_300, intervalSec: 3_600, bundleId: "com.example.app", foregroundSec: 120, backgroundSec: 30 }];
   return [
@@ -42,7 +42,7 @@ describe("Powerlog query SQL", () => {
   });
 
   it("rejects a duplicate typed query result instead of silently shaping it", () => {
-    const duplicate: QueryRows = (sql) => sql.includes("TimeOffset") ? offsets : sql.includes("consumerNodeId") || sql.includes("BundleID AS bundleId") ? [] : [
+    const duplicate: QueryRows = (sql) => sql.includes("timestamp AS monotonicSec") ? offsets : sql.includes("consumerNodeId") || sql.includes("BundleID AS bundleId") ? [] : [
       { endSec: 8_300, intervalSec: 3_600, rootNodeId: 9, rootNodeName: "CPU", rootNodePermanent: 1, rawEnergy: 100 },
       { endSec: 8_300, intervalSec: 3_600, rootNodeId: 9, rootNodeName: "CPU", rootNodePermanent: 1, rawEnergy: 100 },
     ];

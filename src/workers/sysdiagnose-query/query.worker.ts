@@ -8,7 +8,7 @@ import {
   type SysdiagnoseQueryOut,
   isSysdiagnoseQueryIn,
 } from "./query.protocol";
-import { APP_RUNTIME_SOURCE, executeQueryPlan, ROOT_NODE_ENERGY_SOURCE, type QueryRows } from "./query.sql";
+import { APP_RUNTIME_SOURCE, createTimeNormalizer, executeQueryPlan, ROOT_NODE_ENERGY_SOURCE, type QueryRows } from "./query.sql";
 
 type Sqlite = Awaited<ReturnType<typeof sqlite3InitModule>>;
 type Database = InstanceType<Sqlite["oo1"]["DB"]>;
@@ -36,6 +36,12 @@ function tableCatalog(name: string) {
   return { name, columns };
 }
 
+function requireColumns(name: string, required: string[]) {
+  const available = new Set(tableCatalog(name).columns);
+  const missing = required.filter((column) => !available.has(column));
+  if (missing.length > 0) throw new Error(`unsupported schema: ${name} lacks ${missing.join(", ")}`);
+}
+
 async function initialize(powerlog: ArrayBuffer) {
   const initSQLite = sqlite3InitModule as unknown as (options: { locateFile: () => string }) => Promise<Sqlite>;
   sqlite = await initSQLite({ locateFile: () => sqliteWasmUrl });
@@ -55,6 +61,11 @@ async function initialize(powerlog: ArrayBuffer) {
   );
   if (result !== sqlite.capi.SQLITE_OK) throw new Error(`could not open Powerlog database (${result})`);
   for (const table of REQUIRED_TABLES) requireTable(table);
+  requireColumns("PLStorageOperator_EventForward_TimeOffset", ["timestamp", "system"]);
+  requireColumns("PLAccountingOperator_Aggregate_RootNodeEnergy", ["timestamp", "timeInterval", "Energy", "NodeID", "RootNodeID"]);
+  requireColumns("PLAccountingOperator_EventNone_Nodes", ["ID", "Name", "IsPermanent"]);
+  requireColumns("PLAppTimeService_Aggregate_AppRunTime", ["timestamp", "timeInterval", "ScreenOnTime", "BackgroundTime", "BundleID"]);
+  createTimeNormalizer(queryRows);
 }
 
 const REQUIRED_TABLES = [
@@ -67,6 +78,8 @@ const REQUIRED_TABLES = [
 function error(id: number, message: string): SysdiagnoseQueryOut {
   const code = message.includes("missing table")
     ? "missing-table"
+    : message.includes("unsupported schema")
+      ? "unsupported-schema"
     : message.includes("TimeOffset") || message.includes("calibration")
       ? "missing-time-calibration"
       : "query-failed";
