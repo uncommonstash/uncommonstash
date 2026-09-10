@@ -104,12 +104,6 @@ export function EnergyOverview({ battery }: { battery: BatteryPlistData }) {
               ? runtime.result.rows.filter(isAppRuntimeRow)
               : []
           }
-          energyProvenance={
-            energy.state === "ready" ? energy.result.provenance : undefined
-          }
-          runtimeProvenance={
-            runtime.state === "ready" ? runtime.result.provenance : undefined
-          }
         />
       )}
     </div>

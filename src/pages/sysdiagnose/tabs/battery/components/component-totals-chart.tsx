@@ -4,7 +4,6 @@ import type {
   QueryProvenance,
 } from "@/workers/sysdiagnose-query/query.protocol";
 import { ChartTooltip } from "./chart-tooltip";
-import { SourceStatus } from "./source-status";
 
 const COLORS = [
   "#0071e3",
@@ -108,7 +107,6 @@ export function ComponentTotalsChart({
           </p>
         </div>
       </div>
-      <SourceStatus provenance={provenance} />
       {intervals.length === 0 ? (
         <p className="py-10 text-sm text-muted-foreground">
           No complete Powerlog intervals overlap this range.
@@ -121,6 +119,10 @@ export function ComponentTotalsChart({
               className="h-64 w-full"
               aria-label="Powerlog component totals chart"
               preserveAspectRatio="none"
+              data-requested-start-ms={provenance?.requestedRange.startMs}
+              data-requested-end-ms={provenance?.requestedRange.endMs}
+              data-effective-start-ms={provenance?.effectiveRange?.startMs}
+              data-effective-end-ms={provenance?.effectiveRange?.endMs}
               onPointerLeave={() => setHoveredIntervalKey(null)}
             >
               {[0, 0.25, 0.5, 0.75, 1].map((tick) => {

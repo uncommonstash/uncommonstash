@@ -100,11 +100,7 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
     appDetail.getByText("Direct Powerlog attribution records"),
   ).toBeVisible();
   await appDetail.getByRole("button", { name: "Close" }).click();
-  await expect(
-    page
-      .getByText(/Source: PLAccountingOperator_Aggregate_RootNodeEnergy/)
-      .first(),
-  ).toBeVisible();
+  await expect(page.getByText(/^Source:/)).toHaveCount(0);
 
   await page.getByRole("button", { name: "Energy overview" }).click();
   const chart = page.locator(
@@ -114,7 +110,6 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
   await expect(
     page.getByText(/Hourly SUM\(Energy\), grouped by RootNodeID/),
   ).toBeVisible();
-  await expect(page.getByText(/Effective source range:/).first()).toBeVisible();
   await expect(chart.locator("rect").first()).toBeVisible();
   const firstInterval = golden.componentIntervals[0];
   const firstBar = chart.locator("g[data-interval-start-ms]").first();
@@ -188,7 +183,9 @@ test("a selected Battery UI range returns complete overlapping Powerlog interval
   });
   await page.mouse.up();
   await page.getByRole("button", { name: "Energy overview" }).click();
-  const source = page.getByText(/Effective source range:/).first();
+  const source = page.locator(
+    'svg[aria-label="Powerlog component totals chart"]',
+  );
   await expect(source).toBeVisible();
   const requestedStart = Number(
     await source.getAttribute("data-requested-start-ms"),

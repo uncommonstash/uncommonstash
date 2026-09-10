@@ -10,10 +10,8 @@ import type {
   AppEnergyAttributionRow,
   AppIdentity,
   AppRuntimeRow,
-  QueryProvenance,
 } from "@/workers/sysdiagnose-query/query.protocol";
 import { AppIcon } from "./app-icon";
-import { SourceStatus } from "./source-status";
 
 function formatInterval({
   startMs,
@@ -42,16 +40,12 @@ export function AppDetailSheet({
   artworkUrl,
   energyRows,
   runtimeRows,
-  energyProvenance,
-  runtimeProvenance,
   onOpenChange,
 }: {
   app: AppIdentity | null;
   artworkUrl?: string;
   energyRows: AppEnergyAttributionRow[];
   runtimeRows: AppRuntimeRow[];
-  energyProvenance?: QueryProvenance;
-  runtimeProvenance?: QueryProvenance;
   onOpenChange: (open: boolean) => void;
 }) {
   const appEnergyRows = app
@@ -85,7 +79,6 @@ export function AppDetailSheet({
             <h3 className="text-sm font-semibold">
               Direct Powerlog attribution records
             </h3>
-            <SourceStatus provenance={energyProvenance} />
             {appEnergyRows.length === 0 ? (
               <DirectRowsEmpty>
                 No attribution source rows for this app in the selected range.
@@ -136,7 +129,6 @@ export function AppDetailSheet({
 
           <section className="space-y-2">
             <h3 className="text-sm font-semibold">Direct AppRunTime records</h3>
-            <SourceStatus provenance={runtimeProvenance} />
             {appRuntimeRows.length === 0 ? (
               <DirectRowsEmpty>
                 No runtime source rows for this app in the selected range.

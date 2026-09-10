@@ -14,24 +14,18 @@ import type {
   AppEnergyAttributionRow,
   AppIdentity,
   AppRuntimeRow,
-  QueryProvenance,
 } from "@/workers/sysdiagnose-query/query.protocol";
 import { AppDetailSheet } from "./app-detail-sheet";
 import { AppIcon, useAppIcons } from "./app-icon";
-import { SourceStatus } from "./source-status";
 
 export function AppTable({
   apps,
   energyRows,
   runtimeRows,
-  energyProvenance,
-  runtimeProvenance,
 }: {
   apps: AppIdentity[];
   energyRows: AppEnergyAttributionRow[];
   runtimeRows: AppRuntimeRow[];
-  energyProvenance?: QueryProvenance;
-  runtimeProvenance?: QueryProvenance;
 }) {
   const [selectedBundleId, setSelectedBundleId] = useState<string | null>(null);
   const appIcons = useAppIcons(apps.map((app) => app.bundleId));
@@ -78,8 +72,6 @@ export function AppTable({
     <section className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="shrink-0">
         <h3 className="text-base font-semibold">App attribution and runtime</h3>
-        <SourceStatus provenance={energyProvenance} />
-        <SourceStatus provenance={runtimeProvenance} />
       </div>
       <ScrollArea
         type="always"
@@ -186,8 +178,6 @@ export function AppTable({
         }
         energyRows={energyRows}
         runtimeRows={runtimeRows}
-        energyProvenance={energyProvenance}
-        runtimeProvenance={runtimeProvenance}
         onOpenChange={(open) => {
           if (!open) setSelectedBundleId(null);
         }}
