@@ -44,7 +44,7 @@ export function BatteryTab({
               onClick={() => setView("battery")}
               aria-pressed={view === "battery"}
             >
-              Battery overview
+              Battery
             </Button>
             <Button
               size="sm"
@@ -52,7 +52,7 @@ export function BatteryTab({
               onClick={() => setView("energy")}
               aria-pressed={view === "energy"}
             >
-              Energy overview
+              Energy
             </Button>
           </div>
         </div>

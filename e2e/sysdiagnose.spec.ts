@@ -28,7 +28,7 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
   await expect(viewToggle).toBeVisible();
   expect((await viewToggle.boundingBox())?.width).toBeLessThan(300);
   await expect(
-    page.getByRole("button", { name: "Battery overview" }),
+    viewToggle.getByRole("button", { name: "Battery", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
 
   await expect(page.getByText("Battery level from Battery UI")).toBeVisible();
@@ -100,7 +100,7 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
   await appDetail.getByRole("button", { name: "Close" }).click();
   await expect(page.getByText(/^Source:/)).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Energy overview" }).click();
+  await page.getByRole("button", { name: "Energy" }).click();
   const chart = page.locator('svg[aria-label="Energy by component chart"]');
   await expect(chart).toBeVisible();
   await expect(page.getByText("Energy by component")).toBeVisible();
@@ -202,7 +202,7 @@ test("a Battery UI selection leaves the component timeline fixed and updates the
     .getByRole("cell")
     .nth(1)
     .textContent();
-  await page.getByRole("button", { name: "Energy overview" }).click();
+  await page.getByRole("button", { name: "Energy" }).click();
   const source = page.locator('svg[aria-label="Energy by component chart"]');
   await expect(source).toBeVisible();
   await expect(source).toHaveAttribute("data-selected-start-ms", selectedStart);
