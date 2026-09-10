@@ -2,11 +2,10 @@ import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { ArchiveEntry } from "../../lib";
-import { parseLogText, redact } from "../../lib";
+import { parseLogText } from "../../lib";
 
 export function LogsTab({ entries }: { entries: ArchiveEntry[] }) {
   const [query, setQuery] = useState("");
-  const [redaction, setRedaction] = useState(true);
   const lines = useMemo(
     () =>
       entries
@@ -41,15 +40,6 @@ export function LogsTab({ entries }: { entries: ArchiveEntry[] }) {
             aria-label="Search messages"
             className="w-60"
           />
-          <label className="text-xs text-muted-foreground">
-            <input
-              className="mr-1"
-              type="checkbox"
-              checked={redaction}
-              onChange={(event) => setRedaction(event.target.checked)}
-            />
-            redact identifiers
-          </label>
         </div>
       </div>
       <ScrollArea
@@ -63,10 +53,10 @@ export function LogsTab({ entries }: { entries: ArchiveEntry[] }) {
             className="border-b px-4 py-1 sm:px-6"
           >
             <summary className="cursor-pointer truncate">
-              {line.process} — {redact(line.message.slice(0, 160), redaction)}
+              {line.process} — {line.message.slice(0, 160)}
             </summary>
             <pre className="whitespace-pre-wrap p-2 text-muted-foreground">
-              {redact(line.message, redaction)}
+              {line.message}
               {"\n"}[{line.source}]
             </pre>
           </details>

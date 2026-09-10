@@ -194,14 +194,6 @@ export function parseLogText(source: string, text: string): LogLine[] {
   return out;
 }
 
-const EMAIL = /[\w.+-]+@[\w-]+\.[\w.]+/g;
-const MAC = /\b([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b/g;
-
-export function redact(text: string, enabled: boolean): string {
-  if (!enabled) return text;
-  return text.replace(EMAIL, "[redacted-email]").replace(MAC, "[redacted-mac]");
-}
-
 export interface BatteryPoint {
   ts: number;
   level: number;

@@ -35,7 +35,13 @@ describe("ingest protocol guards", () => {
       }),
     ).toBe(true);
     expect(
-      isWorkerOutMsg({ v: 1, kind: "ingest/done", id: 1, entries: [] }),
+      isWorkerOutMsg({
+        v: 1,
+        kind: "ingest/done",
+        id: 1,
+        entries: [],
+        wifi: {},
+      }),
     ).toBe(true);
     expect(
       isWorkerOutMsg({
