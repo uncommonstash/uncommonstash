@@ -10,12 +10,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { create } from "tar";
 
-const fixturePath = new URL("./sysdiagnose-query-mock.tar.gz", import.meta.url)
-  .pathname;
-const expectedPath = new URL(
-  "./sysdiagnose-query-mock.expected.json",
-  import.meta.url,
-).pathname;
+const fixturePath =
+  process.env.SYSDIAGNOSE_FIXTURE_OUTPUT ??
+  new URL("./sysdiagnose-query-mock.tar.gz", import.meta.url).pathname;
+const expectedPath =
+  process.env.SYSDIAGNOSE_FIXTURE_EXPECTED_OUTPUT ??
+  new URL("./sysdiagnose-query-mock.expected.json", import.meta.url).pathname;
 const archiveRoot =
   "sysdiagnose_2026.09.07_17-42-39-0700_iPhone-OS_iPhone_23G83_mock_powerlog";
 const batteryWindowEnd = Date.parse("2026-09-08T00:00:00-07:00") / 1000;
@@ -234,9 +234,7 @@ try {
     {
       cwd: temp,
       file: fixturePath,
-      // Stored deflate blocks trade fixture size for identical output
-      // across the zlib versions used by macOS and GitHub Actions.
-      gzip: { level: 0 },
+      gzip: true,
       noMtime: true,
       portable: true,
     },
