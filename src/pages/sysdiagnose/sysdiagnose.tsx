@@ -194,7 +194,7 @@ export default csr(function SysdiagnosePage() {
             </nav>
           </div>
         </aside>
-        <div className="min-w-0 flex-1 overflow-hidden border-l bg-background">
+        <div className="min-w-0 flex-1 overflow-hidden border-l border-border/40 bg-background">
           <main
             className={`${tab === "logs" ? "w-full" : "w-[var(--sysdiagnose-content-width)] max-w-full"} flex h-full min-h-0 flex-col py-4`}
           >
