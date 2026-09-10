@@ -221,7 +221,7 @@ export default csr(function SysdiagnosePage() {
                 />
               ) : null}
               {tab === "wifi" ? <WifiTab analysis={wifi} /> : null}
-              {tab === "storage" ? <StorageTab /> : null}
+              {tab === "storage" ? <StorageTab entries={entries} /> : null}
               {tab === "thermal" ? <ThermalTab /> : null}
               {tab === "device" ? <DeviceTab entries={entries} /> : null}
               {tab === "crashes" ? <CrashesTab /> : null}
