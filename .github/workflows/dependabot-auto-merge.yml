@@ -8,7 +8,8 @@ on:
       - completed
 
 # This workflow never checks out or runs pull-request code. It only asks GitHub
-# to merge the exact Dependabot commit whose CI run succeeded.
+# to merge the exact Dependabot commit whose CI run succeeded, then removes its
+# same-repository branch.
 permissions:
   contents: write
   pull-requests: write
@@ -64,4 +65,25 @@ jobs:
 
             if (!result.merged) {
               core.setFailed(result.message);
+              return;
+            }
+
+            if (pullRequest.head.repo?.full_name !== `${context.repo.owner}/${context.repo.repo}`) {
+              core.info(`Not deleting branch from forked repository: ${pullRequest.head.ref}`);
+              return;
+            }
+
+            try {
+              await github.rest.git.deleteRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `heads/${pullRequest.head.ref}`,
+              });
+              core.info(`Deleted merged Dependabot branch: ${pullRequest.head.ref}`);
+            } catch (error) {
+              if (error.status === 422 && error.message.includes('Reference does not exist')) {
+                core.info(`Merged Dependabot branch was already deleted: ${pullRequest.head.ref}`);
+                return;
+              }
+              throw error;
             }
