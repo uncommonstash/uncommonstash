@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import {
   extractBatteryFromPlist,
+  extractDeviceData,
   findBatteryPlistEntry,
   inferSysdiagnoseCaptureTime,
   parseBatteryText,
@@ -81,6 +82,46 @@ function buildTar(
 }
 
 describe("sysdiagnose lib", () => {
+  it("extracts device identity without mapping model identifiers", () => {
+    const enc = new TextEncoder();
+    const entry = (path: string, data: string) => ({
+      path,
+      size: data.length,
+      mtime: 0,
+      kind: "text" as const,
+      data: enc.encode(data),
+    });
+    const device = extractDeviceData([
+      entry(
+        "logs/SystemVersion/SystemVersion.plist",
+        '<?xml version="1.0"?><plist><dict><key>ProductName</key><string>iPhone OS</string><key>ProductVersion</key><string>26.6.1</string><key>ProductBuildVersion</key><string>23G83</string></dict></plist>',
+      ),
+      entry(
+        "ioreg/IODeviceTree.txt",
+        '  |   "model" = <"iPhone17,1">\n  |   "IOPlatformSerialNumber" = "secret"',
+      ),
+      entry(
+        "ioreg/IOService.txt",
+        '  |   "IOKitBuildVersion" = "Darwin Kernel"',
+      ),
+      entry("ioreg/IOUSB.txt", "+-o Root\n  +-o USB"),
+    ]);
+    expect(device.identity).toEqual(
+      expect.arrayContaining([
+        { label: "Hardware identifier", value: "iPhone17,1" },
+        { label: "OS version", value: "26.6.1" },
+        { label: "Build", value: "23G83" },
+      ]),
+    );
+    expect(device.sensitiveIdentifiers).toContainEqual({
+      label: "Platform serial",
+      value: "secret",
+      sensitive: true,
+    });
+    expect(device.snapshots).toContainEqual(
+      expect.objectContaining({ label: "USB registry", entryCount: 2 }),
+    );
+  });
   it("parses battery csv", () => {
     const pts = parseBatteryText(
       "2024-05-01T10:00:00Z,92,com.a.app,5\n2024-05-01T10:10:00Z,88,com.a.app,9\n",
