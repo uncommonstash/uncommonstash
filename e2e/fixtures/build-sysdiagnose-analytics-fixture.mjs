@@ -234,7 +234,9 @@ try {
     {
       cwd: temp,
       file: fixturePath,
-      gzip: true,
+      // Stored deflate blocks trade fixture size for identical output
+      // across the zlib versions used by macOS and GitHub Actions.
+      gzip: { level: 0 },
       noMtime: true,
       portable: true,
     },
