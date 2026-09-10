@@ -336,9 +336,60 @@ test("a Battery UI selection leaves the component timeline fixed and updates the
   await expect(page.getByPlaceholder("Search messages")).toBeVisible();
   await page.getByRole("button", { name: "Files" }).click();
   await expect(page.getByText("Archive files")).toBeVisible();
+  await page.getByRole("button", { name: "Storage" }).click();
+  const storageTab = page.getByTestId("storage-tab");
+  await expect
+    .poll(() =>
+      storageTab.evaluate(
+        (element) =>
+          getComputedStyle(element).overflowY === "auto" &&
+          element.scrollHeight > element.clientHeight,
+      ),
+    )
+    .toBe(true);
+  await expect(
+    page.getByRole("table", { name: "Mounted volumes at capture" }),
+  ).toContainText("/private/var");
+  await expect(
+    page.getByRole("columnheader", { name: "Health" }),
+  ).toBeVisible();
+  await page.getByRole("row", { name: "View /dev/disk3s1 details" }).click();
+  const volumeDetail = page.getByRole("dialog");
+  await expect(
+    volumeDetail.getByRole("heading", { name: "/dev/disk3s1" }),
+  ).toBeVisible();
+  await expect(
+    volumeDetail.getByRole("heading", { name: "Filesystem checks" }),
+  ).toBeVisible();
+  await volumeDetail.getByRole("button", { name: "Close" }).click();
+  await expect(page.getByText("Write-pressure events")).toBeVisible();
+  await expect(page.getByText("APFS counters")).toBeVisible();
+  await expect
+    .poll(() =>
+      page
+        .getByText("APFSContainer: disk3", { exact: true })
+        .evaluate(
+          (element) =>
+            (element.closest("details") as HTMLDetailsElement | null)?.open ??
+            true,
+        ),
+    )
+    .toBe(false);
+  await expect(page.getByText("File Provider diagnostics")).toBeVisible();
+  await page.getByText("SyntheticWriter", { exact: true }).click();
+  await expect(page.getByText("Writes limit:     100 MB")).toBeVisible();
+  await page.getByText("Source files (1)").click();
+  await page.getByText("com.example.drive/fileproviderctl_check.log").click();
+  await expect(
+    page.locator("pre").filter({ hasText: "FSSnapshot <-> FPSnapshot" }),
+  ).toBeVisible();
   for (const tabName of ["WiFi", "Storage", "Device", "Crashes"]) {
     await page.getByRole("button", { name: tabName }).click();
-    await expect(page.getByRole("heading", { name: tabName })).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        name: tabName === "Storage" ? "Volumes" : tabName,
+      }),
+    ).toBeVisible();
   }
   await expect(page.getByRole("button", { name: "Thermal" })).toHaveCount(0);
 });

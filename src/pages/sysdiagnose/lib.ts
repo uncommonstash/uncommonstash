@@ -25,6 +25,232 @@ export function findBatteryPlistEntry(
   );
 }
 
+function findArchiveEntry(
+  entries: ArchiveEntry[],
+  pattern: RegExp,
+  preferred?: RegExp,
+): ArchiveEntry | undefined {
+  const candidates = entries.filter((entry) => pattern.test(entry.path));
+  return (
+    candidates.find((entry) => preferred?.test(entry.path)) ?? candidates[0]
+  );
+}
+
+function textFromEntry(entry: ArchiveEntry | undefined): string | null {
+  if (!entry) return null;
+  try {
+    return new TextDecoder().decode(entry.data);
+  } catch {
+    return null;
+  }
+}
+
+function stringFromRecord(
+  record: Record<string, unknown> | null,
+  key: string,
+): string | null {
+  const value = record?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function parseSysctl(text: string | null): Record<string, string> {
+  if (!text) return {};
+  const values: Record<string, string> = {};
+  for (const line of text.split(/\r?\n/)) {
+    const match = /^\s*([^:\s]+)\s*:\s*(.+?)\s*$/.exec(line);
+    if (match) values[match[1]] = match[2];
+  }
+  return values;
+}
+
+function extractRegistryProperty(
+  text: string | null,
+  key: string,
+): string | null {
+  if (!text) return null;
+  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = new RegExp(
+    `^\\s*\\|?\\s*"${escaped}"\\s*=\\s*(?:<"([^"\\n]+)">|"([^"\\n]+)")`,
+    "m",
+  ).exec(text);
+  return (match?.[1] ?? match?.[2] ?? null)?.trim() || null;
+}
+
+function extractKernelVersion(text: string | null): string | null {
+  return extractRegistryProperty(text, "IOKitBuildVersion");
+}
+
+function countRegistryEntries(text: string | null): number | null {
+  if (!text) return null;
+  const count = (text.match(/^\s*(?:\|\s*)?\+\-o\s+/gm) ?? []).length;
+  return count || null;
+}
+
+export interface DeviceField {
+  label: string;
+  value: string;
+  sensitive?: boolean;
+}
+
+export interface DeviceData {
+  captureTime: number;
+  identity: DeviceField[];
+  operatingSystem: DeviceField[];
+  hardware: DeviceField[];
+  sensitiveIdentifiers: DeviceField[];
+  proxiedDevice: DeviceField[];
+  snapshots: Array<{ label: string; path: string; entryCount: number | null }>;
+}
+
+/**
+ * Extracts only values present in the archive. Hardware model identifiers are
+ * intentionally left unmapped: Apple's registry keys change independently of
+ * the UI and an identifier is more truthful than a stale model-name table.
+ */
+export function extractDeviceData(entries: ArchiveEntry[]): DeviceData {
+  const systemVersion = findArchiveEntry(
+    entries,
+    /SystemVersion\.plist$/i,
+    /(?:^|\/)logs\/SystemVersion\/SystemVersion\.plist$/i,
+  );
+  let system: Record<string, unknown> | null = null;
+  try {
+    system = asRecord(systemVersion ? parsePlist(systemVersion.data) : null);
+  } catch {
+    // A malformed optional plist should not prevent the rest of Device loading.
+  }
+  const deviceTree = findArchiveEntry(entries, /ioreg\/IODeviceTree\.txt$/i);
+  const ioService = findArchiveEntry(entries, /ioreg\/IOService\.txt$/i);
+  const sysctl = findArchiveEntry(entries, /(?:^|\/)sysctl\.txt$/i);
+  const proxy = findArchiveEntry(entries, /deviceMetadata\.proxy$/i);
+  const deviceTreeText = textFromEntry(deviceTree);
+  const serviceText = textFromEntry(ioService);
+  const sysctlValues = parseSysctl(textFromEntry(sysctl));
+
+  let proxyValues: Record<string, unknown> | null = null;
+  try {
+    proxyValues = asRecord(proxy ? parsePlist(proxy.data) : null);
+  } catch {
+    // The proxy artifact is not guaranteed to be a plist on all OS releases.
+  }
+  const field = (label: string, value: string | null): DeviceField | null =>
+    value ? { label, value } : null;
+  const identifier = (
+    label: string,
+    value: string | null,
+  ): DeviceField | null => (value ? { label, value, sensitive: true } : null);
+  const compact = <T>(items: Array<T | null>): T[] =>
+    items.filter((item): item is T => item !== null);
+
+  const model = extractRegistryProperty(deviceTreeText, "model");
+  const productName = stringFromRecord(system, "ProductName");
+  const productVersion = stringFromRecord(system, "ProductVersion");
+  const productBuild = stringFromRecord(system, "ProductBuildVersion");
+  const registryBuild = extractRegistryProperty(
+    serviceText,
+    "OS Build Version",
+  );
+  const usb = findArchiveEntry(entries, /ioreg\/IOUSB\.txt$/i);
+  const power = findArchiveEntry(entries, /ioreg\/IOPower\.txt$/i);
+
+  return {
+    captureTime: inferSysdiagnoseCaptureTime(
+      entries,
+      systemVersion?.mtime ? systemVersion.mtime * 1000 : 0,
+    ),
+    identity: compact([
+      field("Product", productName),
+      field("Hardware identifier", model),
+      field("OS version", productVersion),
+      field("Build", productBuild ?? registryBuild),
+    ]),
+    operatingSystem: compact([
+      field("Product name", productName),
+      field("Product version", productVersion),
+      field("Product build", productBuild),
+      field("Registry build", registryBuild),
+      field("Kernel", extractKernelVersion(serviceText)),
+      field("System image ID", stringFromRecord(system, "SystemImageID")),
+      field("Build ID", stringFromRecord(system, "BuildID")),
+      field("Lockdown mode", sysctlValues["security.mac.lockdown_mode_state"]),
+    ]),
+    hardware: compact([
+      field("Model", model),
+      field(
+        "Target type",
+        extractRegistryProperty(deviceTreeText, "target-type"),
+      ),
+      field(
+        "Target subtype",
+        extractRegistryProperty(deviceTreeText, "target-sub-type"),
+      ),
+      field(
+        "Manufacturer",
+        extractRegistryProperty(deviceTreeText, "manufacturer"),
+      ),
+      field(
+        "Platform",
+        extractRegistryProperty(deviceTreeText, "platform-name"),
+      ),
+      field(
+        "Device tree",
+        extractRegistryProperty(deviceTreeText, "device-tree-tag"),
+      ),
+    ]),
+    sensitiveIdentifiers: compact([
+      identifier(
+        "Platform serial",
+        extractRegistryProperty(deviceTreeText, "IOPlatformSerialNumber"),
+      ),
+      identifier(
+        "Device-tree serial",
+        extractRegistryProperty(deviceTreeText, "serial-number"),
+      ),
+      identifier(
+        "Platform UUID",
+        extractRegistryProperty(deviceTreeText, "IOPlatformUUID"),
+      ),
+      identifier(
+        "Unique device ID",
+        extractRegistryProperty(deviceTreeText, "unique-device-id"),
+      ),
+      identifier(
+        "Unique chip ID",
+        extractRegistryProperty(deviceTreeText, "unique-chip-id"),
+      ),
+    ]),
+    proxiedDevice: compact([
+      field(
+        "Machine configuration",
+        stringFromRecord(proxyValues, "machine_config"),
+      ),
+      field(
+        "Product version",
+        stringFromRecord(proxyValues, "product_version"),
+      ),
+      field("OS train", stringFromRecord(proxyValues, "os_train")),
+      field("OS build", stringFromRecord(proxyValues, "os_version")),
+      field("Release type", stringFromRecord(proxyValues, "release_type")),
+    ]),
+    snapshots: compact([
+      usb
+        ? {
+            label: "USB registry",
+            path: usb.path,
+            entryCount: countRegistryEntries(textFromEntry(usb)),
+          }
+        : null,
+      power
+        ? {
+            label: "Power registry",
+            path: power.path,
+            entryCount: countRegistryEntries(textFromEntry(power)),
+          }
+        : null,
+    ]),
+  };
+}
+
 const SYSDIAGNOSE_CAPTURE_RE =
   /(?:^|\/)sysdiagnose_(\d{4})\.(\d{2})\.(\d{2})_(\d{2})-(\d{2})-(\d{2})([+-]\d{4})(?:_|\/|$)/i;
 
@@ -192,14 +418,6 @@ export function parseLogText(source: string, text: string): LogLine[] {
     });
   }
   return out;
-}
-
-const EMAIL = /[\w.+-]+@[\w-]+\.[\w.]+/g;
-const MAC = /\b([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b/g;
-
-export function redact(text: string, enabled: boolean): string {
-  if (!enabled) return text;
-  return text.replace(EMAIL, "[redacted-email]").replace(MAC, "[redacted-mac]");
 }
 
 export interface BatteryPoint {

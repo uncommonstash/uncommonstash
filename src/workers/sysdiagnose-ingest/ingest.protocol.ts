@@ -2,6 +2,8 @@
 // Imported by both the worker and the main-thread client — shapes are defined
 // exactly once. All messages carry v: 1 so future versions can coexist.
 
+import type { WifiAnalysis } from "@/workers/sysdiagnose-wifi/analysis";
+
 export const INGEST_PROTOCOL_VERSION = 1 as const;
 
 export type IngestStage =
@@ -36,6 +38,7 @@ export interface IngestDoneMsg {
   kind: "ingest/done";
   id: number;
   entries: IngestEntryMsg[];
+  wifi: WifiAnalysis;
 }
 
 export interface IngestErrorMsg {
@@ -81,7 +84,11 @@ export function isWorkerOutMsg(v: unknown): v is WorkerOut {
         typeof v["fraction"] === "number"
       );
     case "ingest/done":
-      return typeof v["id"] === "number" && Array.isArray(v["entries"]);
+      return (
+        typeof v["id"] === "number" &&
+        Array.isArray(v["entries"]) &&
+        isRecord(v["wifi"])
+      );
     case "ingest/error":
       return typeof v["id"] === "number" && typeof v["message"] === "string";
     default:

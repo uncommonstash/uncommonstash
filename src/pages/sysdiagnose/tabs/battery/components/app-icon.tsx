@@ -130,6 +130,7 @@ export function AppIcon({
     return (
       <img
         src={artworkUrl}
+        crossOrigin="anonymous"
         alt=""
         loading="lazy"
         width={28}
