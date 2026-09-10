@@ -196,9 +196,9 @@ export default csr(function SysdiagnosePage() {
         </aside>
         <div className="min-w-0 flex-1 overflow-hidden border-l bg-background">
           <main
-            className={`${tab === "logs" ? "w-full" : "w-[var(--sysdiagnose-content-width)] max-w-full border-r"} flex h-full min-h-0 flex-col px-4 py-4 sm:px-6`}
+            className={`${tab === "logs" ? "w-full" : "w-[var(--sysdiagnose-content-width)] max-w-full border-r"} flex h-full min-h-0 flex-col py-4`}
           >
-            <div className="mb-6 flex shrink-0 items-center justify-between gap-4">
+            <div className="mb-6 flex shrink-0 items-center justify-between gap-4 px-4 sm:px-6">
               <h1 className="text-xl font-semibold">Sysdiagnose</h1>
               {tab === "battery" && battery ? (
                 <BatteryViewToggle

@@ -127,7 +127,7 @@ export function ComponentTotalsChart({
       }
     : null;
   return (
-    <section className="shrink-0 space-y-2">
+    <section className="shrink-0 space-y-2 px-4 sm:px-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <h2 className="text-base font-semibold">Energy by component</h2>

@@ -26,7 +26,7 @@ export function LogsTab({ entries }: { entries: ArchiveEntry[] }) {
   );
   return (
     <section className="flex h-full min-h-0 flex-col gap-3">
-      <div className="flex shrink-0 items-center justify-between gap-3">
+      <div className="flex shrink-0 items-center justify-between gap-3 px-4 sm:px-6">
         <div>
           <h2 className="text-base font-semibold">Log entries</h2>
           <p className="text-xs text-muted-foreground">
@@ -60,7 +60,7 @@ export function LogsTab({ entries }: { entries: ArchiveEntry[] }) {
         {lines.map((line) => (
           <details
             key={`${line.source}:${line.ts}:${line.process}:${line.message}`}
-            className="border-b px-2 py-1"
+            className="border-b px-4 py-1 sm:px-6"
           >
             <summary className="cursor-pointer truncate">
               {line.process} — {redact(line.message.slice(0, 160), redaction)}

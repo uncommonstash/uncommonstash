@@ -34,7 +34,7 @@ export function BatteryOverview({ battery }: { battery: BatteryPlistData }) {
   const failure = energy.state === "error" || runtime.state === "error";
   return (
     <div className="flex h-full min-h-0 flex-col gap-6">
-      <section className="shrink-0 space-y-2">
+      <section className="shrink-0 space-y-2 px-4 sm:px-6">
         <div>
           <h2 className="text-base font-semibold">
             Battery level from Battery UI

@@ -70,7 +70,7 @@ export function AppTable({
 
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-2">
-      <div className="shrink-0">
+      <div className="shrink-0 px-4 sm:px-6">
         <h3 className="text-base font-semibold">App attribution and runtime</h3>
       </div>
       <ScrollArea
@@ -84,12 +84,12 @@ export function AppTable({
           </TableCaption>
           <TableHeader>
             <TableRow>
-              <TableHead className="pl-0">App</TableHead>
+              <TableHead className="pl-4 sm:pl-6">App</TableHead>
               <TableHead className="text-right" aria-sort="descending">
                 Energy (mWh)
               </TableHead>
               <TableHead className="text-right">Foreground (min)</TableHead>
-              <TableHead className="pr-0 text-right">
+              <TableHead className="pr-4 text-right sm:pr-6">
                 Background (min)
               </TableHead>
             </TableRow>
@@ -120,7 +120,7 @@ export function AppTable({
                     }
                   }}
                 >
-                  <TableCell className="pl-0">
+                  <TableCell className="pl-4 sm:pl-6">
                     <div className="flex items-center gap-2">
                       <AppIcon
                         name={app.name}
@@ -159,7 +159,7 @@ export function AppTable({
                       ? `${(times.foregroundSec / 60).toFixed(0)} min`
                       : "—"}
                   </TableCell>
-                  <TableCell className="pr-0 text-right tabular-nums">
+                  <TableCell className="pr-4 text-right tabular-nums sm:pr-6">
                     {times
                       ? `${(times.backgroundSec / 60).toFixed(0)} min`
                       : "—"}

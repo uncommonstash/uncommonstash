@@ -108,6 +108,25 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
   await expect
     .poll(() => appTableViewport.evaluate((element) => element.clientHeight))
     .toBeGreaterThan(0);
+  const contentPanel = page.locator("main");
+  const contentPanelBox = await contentPanel.boundingBox();
+  const appTableScrollBox = await page
+    .getByTestId("app-table-scroll")
+    .boundingBox();
+  expect(contentPanelBox).not.toBeNull();
+  expect(appTableScrollBox).not.toBeNull();
+  if (!contentPanelBox || !appTableScrollBox)
+    throw new Error("content panel or app table scroll area is missing");
+  expect(Math.abs(appTableScrollBox.x - contentPanelBox.x)).toBeLessThanOrEqual(
+    1,
+  );
+  expect(
+    Math.abs(
+      appTableScrollBox.x +
+        appTableScrollBox.width -
+        (contentPanelBox.x + contentPanelBox.width),
+    ),
+  ).toBeLessThanOrEqual(1);
   await safari.getByText("Safari", { exact: true }).hover();
   await expect(page.getByRole("tooltip")).toHaveText("com.apple.mobilesafari");
   await safari.click();
