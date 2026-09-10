@@ -62,6 +62,12 @@ export function BatteryChart({
       onPointerUp={(event) => {
         if (dragStart.current === null) return;
         const end = timeAt(event);
+        const clickThresholdMs = ((max - min) / width) * 8;
+        if (Math.abs(end - dragStart.current) <= clickThresholdMs) {
+          onRangeChange({ startMs: min, endMs: max });
+          dragStart.current = null;
+          return;
+        }
         onRangeChange({
           startMs: Math.min(dragStart.current, end),
           endMs: Math.max(dragStart.current, end),

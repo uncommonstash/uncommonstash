@@ -86,6 +86,19 @@ test("a selected Battery UI range returns complete overlapping Powerlog interval
   await page.mouse.up();
   const resetRange = page.getByRole("button", { name: "Reset range" });
   await expect(resetRange).toBeEnabled();
+
+  // A click in the chart has always meant "clear this selected range"; it
+  // must not leave behind a zero-width selection.
+  await chart.click({ position: { x: box.width * 0.7, y: box.height / 2 } });
+  await expect(resetRange).toBeDisabled();
+
+  await page.mouse.move(box.x + box.width * 0.32, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.54, box.y + box.height / 2, {
+    steps: 5,
+  });
+  await page.mouse.up();
+  await expect(resetRange).toBeEnabled();
   await resetRange.click();
   await expect(resetRange).toBeDisabled();
 

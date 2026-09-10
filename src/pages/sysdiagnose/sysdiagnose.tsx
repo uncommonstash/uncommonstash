@@ -149,7 +149,7 @@ export default csr(function SysdiagnosePage() {
           type="always"
           className="min-w-0 flex-1 border-l bg-background"
         >
-          <main className="mx-auto max-w-6xl px-6 py-4">
+          <main className="mx-auto w-full max-w-5xl px-6 py-4">
             <h1 className="mb-6 text-xl font-semibold">Sysdiagnose</h1>
             {tab === "battery" ? (
               <BatteryTab battery={battery} powerlog={powerlog} />
