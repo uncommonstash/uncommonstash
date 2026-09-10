@@ -230,9 +230,16 @@ try {
     expectedPath,
     `${JSON.stringify({ appEnergyMWh: powerlog.expected, componentEnergyMWh: powerlog.expectedComponents, componentIntervals: powerlog.expectedComponentIntervals }, null, 2)}\n`,
   );
-  await create({ cwd: temp, file: fixturePath, gzip: true, portable: true }, [
-    archiveRoot,
-  ]);
+  await create(
+    {
+      cwd: temp,
+      file: fixturePath,
+      gzip: true,
+      noMtime: true,
+      portable: true,
+    },
+    [archiveRoot],
+  );
   console.log(
     `Wrote ${fixturePath} (${readFileSync(fixturePath).byteLength} bytes)`,
   );
