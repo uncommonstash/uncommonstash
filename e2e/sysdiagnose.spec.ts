@@ -115,7 +115,29 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
   await expect(
     appDetail.getByRole("heading", { name: "Safari" }),
   ).toBeVisible();
+  const appDetailBox = await appDetail.boundingBox();
+  expect(appDetailBox).not.toBeNull();
+  if (!appDetailBox) throw new Error("app detail sheet is missing");
+  expect(appDetailBox.width).toBeGreaterThanOrEqual(850);
   await expect(appDetail.getByText("com.apple.mobilesafari")).toBeVisible();
+  const appEnergyChart = appDetail.getByRole("img", {
+    name: "App energy over time by component",
+  });
+  await expect(appEnergyChart).toBeVisible();
+  const appEnergyInterval = appEnergyChart
+    .locator("g[data-interval-start-ms]")
+    .first();
+  await expect(appEnergyInterval).toBeVisible();
+  const appEnergyIntervalBox = await appEnergyInterval.boundingBox();
+  expect(appEnergyIntervalBox).not.toBeNull();
+  if (!appEnergyIntervalBox) throw new Error("app energy interval is missing");
+  await page.mouse.move(
+    appEnergyIntervalBox.x + appEnergyIntervalBox.width / 2,
+    appEnergyIntervalBox.y + appEnergyIntervalBox.height / 2,
+  );
+  await expect(page.getByTestId("chart-sample-tooltip")).toContainText(
+    "Total:",
+  );
   await expect(appDetail.getByText("Energy records")).toBeVisible();
   await appDetail.getByRole("button", { name: "Close" }).click();
   await expect(page.getByText(/^Source:/)).toHaveCount(0);

@@ -11,6 +11,7 @@ import type {
   AppIdentity,
   AppRuntimeRow,
 } from "@/workers/sysdiagnose-query/query.protocol";
+import { AppEnergyChart } from "./app-energy-chart";
 import { AppIcon } from "./app-icon";
 
 function formatInterval({
@@ -58,7 +59,7 @@ export function AppDetailSheet({
   return (
     <Sheet open={Boolean(app)} onOpenChange={onOpenChange}>
       {app ? (
-        <SheetContent className="gap-6 overflow-y-auto sm:max-w-2xl">
+        <SheetContent className="gap-6 overflow-y-auto sm:max-w-4xl">
           <SheetHeader>
             <div className="flex items-center gap-3 pr-8">
               <AppIcon
@@ -74,6 +75,11 @@ export function AppDetailSheet({
               </div>
             </div>
           </SheetHeader>
+
+          <section className="space-y-2">
+            <h3 className="text-sm font-semibold">Energy over time</h3>
+            <AppEnergyChart rows={appEnergyRows} />
+          </section>
 
           <section className="space-y-2">
             <h3 className="text-sm font-semibold">Energy records</h3>
