@@ -11,6 +11,10 @@ The table definitions in [powerlog-schema.md](./powerlog-schema.md) were read
 from the supplied Powerlog database. They are a schema snapshot, not a promise
 about another iOS version.
 
+[external-research.md](./external-research.md) records what independent
+forensic researchers and Apple’s public documentation say, and—equally
+important—what those sources do not prove about this archive.
+
 ## Evidence labels
 
 | Label | Meaning |
