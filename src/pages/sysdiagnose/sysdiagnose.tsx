@@ -8,7 +8,6 @@ import {
 } from "react";
 import { BackLink } from "@/components/back-link";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
 import { csr } from "@/lib/compat";
 import { IngestClient } from "@/workers/sysdiagnose-ingest/ingest.client";
@@ -160,21 +159,20 @@ export default csr(function SysdiagnosePage() {
             </nav>
           </div>
         </aside>
-        <ScrollArea
-          type="always"
-          className="h-full min-w-0 flex-1 border-l bg-background"
-        >
+        <div className="min-w-0 flex-1 overflow-hidden border-l bg-background">
           <main
-            className={`${tab === "logs" ? "w-full" : "w-[var(--sysdiagnose-content-width)] max-w-full border-r"} px-4 py-4 sm:px-6`}
+            className={`${tab === "logs" ? "w-full" : "w-[var(--sysdiagnose-content-width)] max-w-full border-r"} flex h-full min-h-0 flex-col px-4 py-4 sm:px-6`}
           >
-            <h1 className="mb-6 text-xl font-semibold">Sysdiagnose</h1>
-            {tab === "battery" ? (
-              <BatteryTab battery={battery} powerlog={powerlog} />
-            ) : null}
-            {tab === "logs" ? <LogsTab entries={entries} /> : null}
-            {tab === "files" ? <FilesTab entries={entries} /> : null}
+            <h1 className="mb-6 shrink-0 text-xl font-semibold">Sysdiagnose</h1>
+            <div className="min-h-0 flex-1">
+              {tab === "battery" ? (
+                <BatteryTab battery={battery} powerlog={powerlog} />
+              ) : null}
+              {tab === "logs" ? <LogsTab entries={entries} /> : null}
+              {tab === "files" ? <FilesTab entries={entries} /> : null}
+            </div>
           </main>
-        </ScrollArea>
+        </div>
       </div>
     </div>
   );

@@ -41,6 +41,7 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
   const batteryChartBox = await batteryChart.boundingBox();
   expect(batteryChartBox).not.toBeNull();
   if (!batteryChartBox) throw new Error("battery chart is missing");
+  expect(batteryChartBox.height).toBeCloseTo(256, 0);
   await page.mouse.move(
     batteryChartBox.x + batteryChartBox.width * 0.25,
     batteryChartBox.y + batteryChartBox.height * 0.5,
@@ -71,6 +72,22 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
   await expect(
     appSummary.getByRole("columnheader", { name: "Energy (mWh)" }),
   ).toHaveAttribute("aria-sort", "descending");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollHeight <= window.innerHeight,
+    ),
+  ).toBe(true);
+  const appTableViewport = page
+    .getByTestId("app-table-scroll")
+    .locator("[data-radix-scroll-area-viewport]")
+    .first();
+  await expect
+    .poll(() =>
+      appTableViewport.evaluate(
+        (element) => element.scrollHeight > element.clientHeight,
+      ),
+    )
+    .toBe(true);
   await safari.getByText("Safari", { exact: true }).hover();
   await expect(page.getByRole("tooltip")).toHaveText("com.apple.mobilesafari");
   await safari.click();

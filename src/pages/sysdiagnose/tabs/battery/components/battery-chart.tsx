@@ -84,8 +84,9 @@ export function BatteryChart({
     <div className="relative">
       <svg
         viewBox={`0 0 ${width} ${height}`}
-        className="h-auto w-full"
+        className="h-64 w-full"
         aria-label="Battery level from Battery UI plist"
+        preserveAspectRatio="none"
         onPointerDown={(event) => {
           dragStart.current = timeAt(event);
           event.currentTarget.setPointerCapture(event.pointerId);

@@ -25,8 +25,8 @@ export function LogsTab({ entries }: { entries: ArchiveEntry[] }) {
     [entries, query],
   );
   return (
-    <section className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
+    <section className="flex h-full min-h-0 flex-col gap-3">
+      <div className="flex shrink-0 items-center justify-between gap-3">
         <div>
           <h2 className="text-base font-semibold">Log entries</h2>
           <p className="text-xs text-muted-foreground">
@@ -54,12 +54,12 @@ export function LogsTab({ entries }: { entries: ArchiveEntry[] }) {
       </div>
       <ScrollArea
         type="always"
-        className="h-[calc(100vh-12rem)] border-y"
+        className="min-h-0 flex-1 border-y"
         viewportClassName="font-mono text-xs"
       >
-        {lines.map((line, index) => (
+        {lines.map((line) => (
           <details
-            key={`${line.source}-${index}`}
+            key={`${line.source}:${line.ts}:${line.process}:${line.message}`}
             className="border-b px-2 py-1"
           >
             <summary className="cursor-pointer truncate">

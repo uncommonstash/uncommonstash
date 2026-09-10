@@ -31,8 +31,8 @@ export function BatteryTab({
       powerlog={powerlog?.data ?? null}
       initialRange={initialRange}
     >
-      <div className="space-y-6">
-        <div className="flex justify-end">
+      <div className="flex h-full min-h-0 flex-col gap-6">
+        <div className="flex shrink-0 justify-end">
           <div
             role="group"
             aria-label="Battery view"
@@ -56,11 +56,13 @@ export function BatteryTab({
             </Button>
           </div>
         </div>
-        {view === "battery" ? (
-          <BatteryOverview battery={battery} />
-        ) : (
-          <EnergyOverview battery={battery} />
-        )}
+        <div className="min-h-0 flex-1">
+          {view === "battery" ? (
+            <BatteryOverview battery={battery} />
+          ) : (
+            <EnergyOverview battery={battery} />
+          )}
+        </div>
       </div>
     </QueryStoreProvider>
   );

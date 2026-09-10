@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import type { BatteryPlistData } from "../../lib";
 import type { AppIdentity } from "@/workers/sysdiagnose-query/query.protocol";
-import { usePowerlogQuery, useQueryStore } from "./query-store";
-import { isAppEnergyAttributionRow, isAppRuntimeRow } from "./query-row-guards";
+import type { BatteryPlistData } from "../../lib";
 import { AppTable } from "./components/app-table";
 import { BatteryChart } from "./components/battery-chart";
+import { isAppEnergyAttributionRow, isAppRuntimeRow } from "./query-row-guards";
+import { usePowerlogQuery, useQueryStore } from "./query-store";
 
 export function BatteryOverview({ battery }: { battery: BatteryPlistData }) {
   const { state, setRange } = useQueryStore();
@@ -49,8 +49,8 @@ export function BatteryOverview({ battery }: { battery: BatteryPlistData }) {
     state.range.startMs === fullRange.startMs &&
     state.range.endMs === fullRange.endMs;
   return (
-    <div className="space-y-10">
-      <section className="space-y-2">
+    <div className="flex h-full min-h-0 flex-col gap-6">
+      <section className="shrink-0 space-y-2">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <h2 className="text-base font-semibold">

@@ -1,15 +1,15 @@
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import type { BatteryPlistData } from "../../lib";
 import type { AppIdentity } from "@/workers/sysdiagnose-query/query.protocol";
-import { usePowerlogQuery, useQueryStore } from "./query-store";
+import type { BatteryPlistData } from "../../lib";
+import { AppTable } from "./components/app-table";
+import { ComponentTotalsChart } from "./components/component-totals-chart";
 import {
   isAppEnergyAttributionRow,
   isAppRuntimeRow,
   isComponentTotalRow,
 } from "./query-row-guards";
-import { AppTable } from "./components/app-table";
-import { ComponentTotalsChart } from "./components/component-totals-chart";
+import { usePowerlogQuery, useQueryStore } from "./query-store";
 
 export function EnergyOverview({ battery }: { battery: BatteryPlistData }) {
   const { state, setRange } = useQueryStore();
@@ -62,8 +62,8 @@ export function EnergyOverview({ battery }: { battery: BatteryPlistData }) {
     state.range.startMs === fullRange.startMs &&
     state.range.endMs === fullRange.endMs;
   return (
-    <div className="space-y-10">
-      <div className="flex justify-end">
+    <div className="flex h-full min-h-0 flex-col gap-6">
+      <div className="flex shrink-0 justify-end">
         <Button
           size="sm"
           variant="outline"

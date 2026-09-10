@@ -98,7 +98,7 @@ export function ComponentTotalsChart({
       }
     : null;
   return (
-    <section className="space-y-2">
+    <section className="shrink-0 space-y-2">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <h2 className="text-base font-semibold">Powerlog component totals</h2>
@@ -118,8 +118,9 @@ export function ComponentTotalsChart({
           <div className="relative">
             <svg
               viewBox={`0 0 ${width} ${height}`}
-              className="h-auto w-full"
+              className="h-64 w-full"
               aria-label="Powerlog component totals chart"
+              preserveAspectRatio="none"
               onPointerLeave={() => setHoveredIntervalKey(null)}
             >
               {[0, 0.25, 0.5, 0.75, 1].map((tick) => {
