@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import type { BatteryPlistData } from "../../lib";
 import type { AppIdentity } from "@/workers/sysdiagnose-query/query.protocol";
 import { usePowerlogQuery, useQueryStore } from "./query-store";
+import { isAppEnergyAttributionRow, isAppRuntimeRow } from "./query-row-guards";
 import { AppTable } from "./components/app-table";
 import { BatteryChart } from "./components/battery-chart";
 
@@ -82,22 +83,12 @@ export function BatteryOverview({ battery }: { battery: BatteryPlistData }) {
           apps={apps}
           energyRows={
             energy.state === "ready"
-              ? energy.result.rows.filter(
-                  (
-                    row,
-                  ): row is import("@/workers/sysdiagnose-query/query.protocol").AppEnergyAttributionRow =>
-                    "consumerNode" in row,
-                )
+              ? energy.result.rows.filter(isAppEnergyAttributionRow)
               : []
           }
           runtimeRows={
             runtime.state === "ready"
-              ? runtime.result.rows.filter(
-                  (
-                    row,
-                  ): row is import("@/workers/sysdiagnose-query/query.protocol").AppRuntimeRow =>
-                    "bundleId" in row,
-                )
+              ? runtime.result.rows.filter(isAppRuntimeRow)
               : []
           }
           energyProvenance={

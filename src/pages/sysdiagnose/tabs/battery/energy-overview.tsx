@@ -1,11 +1,13 @@
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import type { BatteryPlistData } from "../../lib";
-import type {
-  AppIdentity,
-  ComponentTotalRow,
-} from "@/workers/sysdiagnose-query/query.protocol";
+import type { AppIdentity } from "@/workers/sysdiagnose-query/query.protocol";
 import { usePowerlogQuery, useQueryStore } from "./query-store";
+import {
+  isAppEnergyAttributionRow,
+  isAppRuntimeRow,
+  isComponentTotalRow,
+} from "./query-row-guards";
 import { AppTable } from "./components/app-table";
 import { ComponentTotalsChart } from "./components/component-totals-chart";
 
@@ -77,10 +79,7 @@ export function EnergyOverview({ battery }: { battery: BatteryPlistData }) {
         <ComponentTotalsChart
           rows={
             components.state === "ready"
-              ? components.result.rows.filter(
-                  (row): row is ComponentTotalRow =>
-                    "rootNode" in row && !("consumerNode" in row),
-                )
+              ? components.result.rows.filter(isComponentTotalRow)
               : []
           }
           provenance={
@@ -97,22 +96,12 @@ export function EnergyOverview({ battery }: { battery: BatteryPlistData }) {
           apps={apps}
           energyRows={
             energy.state === "ready"
-              ? energy.result.rows.filter(
-                  (
-                    row,
-                  ): row is import("@/workers/sysdiagnose-query/query.protocol").AppEnergyAttributionRow =>
-                    "consumerNode" in row,
-                )
+              ? energy.result.rows.filter(isAppEnergyAttributionRow)
               : []
           }
           runtimeRows={
             runtime.state === "ready"
-              ? runtime.result.rows.filter(
-                  (
-                    row,
-                  ): row is import("@/workers/sysdiagnose-query/query.protocol").AppRuntimeRow =>
-                    "bundleId" in row,
-                )
+              ? runtime.result.rows.filter(isAppRuntimeRow)
               : []
           }
           energyProvenance={
