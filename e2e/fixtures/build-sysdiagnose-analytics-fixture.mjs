@@ -217,8 +217,14 @@ try {
   const root = join(temp, archiveRoot);
   const powerlogDir = join(root, "logs/powerlogs");
   const plistDir = join(root, "logs/BatteryUIPlist");
+  const fsckDir = join(root, "logs/fsck");
+  const crashDir = join(root, "crashes_and_spins");
+  const fileProviderDir = join(root, "FileProvider/com.example.drive");
   mkdirSync(powerlogDir, { recursive: true });
   mkdirSync(plistDir, { recursive: true });
+  mkdirSync(fsckDir, { recursive: true });
+  mkdirSync(crashDir, { recursive: true });
+  mkdirSync(fileProviderDir, { recursive: true });
   const databasePath = join(
     powerlogDir,
     "powerlog_2026-09-07_17-43_MOCK.PLSQL",
@@ -226,6 +232,26 @@ try {
   const powerlog = powerlogSql();
   execFileSync("sqlite3", [databasePath], { input: powerlog.sql });
   writeFileSync(join(plistDir, "BatteryUISysdiagnose.plist"), batteryPlist());
+  writeFileSync(
+    join(root, "disks.txt"),
+    "Filesystem  Size  Used  Avail Capacity iused ifree %iused Mounted on\n/dev/disk3s1  128G  64G  64G  50%  10k  1M  1%  /private/var\n",
+  );
+  writeFileSync(
+    join(root, "apfs_stats.txt"),
+    "Device: disk0, block size 4096\nAPFSContainer: disk3\n  Metadata: Number of write errors = 0\n  Object cache: Number of hits = 42\n",
+  );
+  writeFileSync(
+    join(fsckDir, "fsck_apfs.log"),
+    "/dev/disk3s1: fsck_apfs started at Sun Sep 7 17:00:00 2026\n/dev/disk3s1: ** The volume /dev/rdisk3s1 appears to be OK.\n/dev/disk3s1: fsck_apfs completed at Sun Sep 7 17:00:01 2026\n",
+  );
+  writeFileSync(
+    join(crashDir, "SyntheticWriter.diskwrites_resource-2026-09-07-141318.ips"),
+    `${JSON.stringify({ app_name: "SyntheticWriter", timestamp: "2026-09-07 14:13:18.00 -0700", bug_type: "145" })}\nCommand:          SyntheticWriter\nEvent:            disk writes\nWrites limit:     100 MB\n`,
+  );
+  writeFileSync(
+    join(fileProviderDir, "fileproviderctl_check.log"),
+    "✅ FSSnapshot <-> FPSnapshot succeeded on 2 files.\n❌ disk <-> FSSnapshot failed on 1/2 files.\n",
+  );
   writeFileSync(
     expectedPath,
     `${JSON.stringify({ appEnergyMWh: powerlog.expected, componentEnergyMWh: powerlog.expectedComponents, componentIntervals: powerlog.expectedComponentIntervals }, null, 2)}\n`,
