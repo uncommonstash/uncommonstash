@@ -1,6 +1,7 @@
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -12,6 +13,7 @@ import type {
   AppRuntimeRow,
   QueryProvenance,
 } from "@/workers/sysdiagnose-query/query.protocol";
+import { AppIcon, useAppIcons } from "./app-icon";
 import { SourceStatus } from "./source-status";
 
 export function AppTable({
@@ -27,6 +29,7 @@ export function AppTable({
   energyProvenance?: QueryProvenance;
   runtimeProvenance?: QueryProvenance;
 }) {
+  const appIcons = useAppIcons(apps.map((app) => app.bundleId));
   const energy = new Map<string, number>();
   for (const row of energyRows)
     energy.set(
@@ -57,6 +60,9 @@ export function AppTable({
         <SourceStatus provenance={runtimeProvenance} />
       </div>
       <Table>
+        <TableCaption className="sr-only">
+          Direct Powerlog app attribution and AppRunTime source rows
+        </TableCaption>
         <TableHeader>
           <TableRow>
             <TableHead className="pl-0">App</TableHead>
@@ -77,11 +83,20 @@ export function AppTable({
             </TableRow>
           ) : (
             rows.map(({ app, rawEnergy, runtime: times }) => (
-              <TableRow key={app.bundleId}>
-                <TableCell className="pl-0 font-medium">
-                  {app.name}
-                  <div className="font-mono text-xs text-muted-foreground">
-                    {app.bundleId}
+              <TableRow key={app.bundleId} className="hover:bg-muted/40">
+                <TableCell className="pl-0">
+                  <div className="flex items-center gap-2">
+                    <AppIcon
+                      name={app.name}
+                      bundleId={app.bundleId}
+                      artworkUrl={appIcons[app.bundleId] || undefined}
+                    />
+                    <div>
+                      <div className="font-medium">{app.name}</div>
+                      <div className="font-mono text-xs text-muted-foreground">
+                        {app.bundleId}
+                      </div>
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
