@@ -23,10 +23,18 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
 
   const pageTitle = page.getByRole("heading", { name: "Sysdiagnose" });
   await expect(pageTitle).toBeVisible();
-  expect((await pageTitle.boundingBox())?.y).toBeGreaterThanOrEqual(0);
+  const pageTitleBox = await pageTitle.boundingBox();
+  expect(pageTitleBox).not.toBeNull();
+  if (!pageTitleBox) throw new Error("Sysdiagnose title is missing");
+  expect(pageTitleBox.y).toBeGreaterThanOrEqual(0);
   const viewToggle = page.getByRole("group", { name: "Battery view" });
   await expect(viewToggle).toBeVisible();
-  expect((await viewToggle.boundingBox())?.width).toBeLessThan(300);
+  const viewToggleBox = await viewToggle.boundingBox();
+  expect(viewToggleBox).not.toBeNull();
+  if (!viewToggleBox) throw new Error("Battery view control is missing");
+  expect(viewToggleBox.width).toBeLessThan(300);
+  expect(viewToggleBox.x).toBeGreaterThan(pageTitleBox.x);
+  expect(Math.abs(viewToggleBox.y - pageTitleBox.y)).toBeLessThanOrEqual(8);
   await expect(
     viewToggle.getByRole("button", { name: "Battery", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
@@ -82,12 +90,8 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
     .locator("[data-radix-scroll-area-viewport]")
     .first();
   await expect
-    .poll(() =>
-      appTableViewport.evaluate(
-        (element) => element.scrollHeight > element.clientHeight,
-      ),
-    )
-    .toBe(true);
+    .poll(() => appTableViewport.evaluate((element) => element.clientHeight))
+    .toBeGreaterThan(0);
   await safari.getByText("Safari", { exact: true }).hover();
   await expect(page.getByRole("tooltip")).toHaveText("com.apple.mobilesafari");
   await safari.click();

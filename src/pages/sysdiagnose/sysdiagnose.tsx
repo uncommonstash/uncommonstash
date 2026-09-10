@@ -19,7 +19,11 @@ import {
   type IngestProgress,
   parsePlist,
 } from "./lib";
-import { BatteryTab } from "./tabs/battery/battery-tab";
+import {
+  BatteryTab,
+  type BatteryView,
+  BatteryViewToggle,
+} from "./tabs/battery/battery-tab";
 import { FilesTab } from "./tabs/files/files-tab";
 import { LogsTab } from "./tabs/logs/logs-tab";
 
@@ -51,6 +55,7 @@ export default csr(function SysdiagnosePage() {
   const [fileName, setFileName] = useState("");
   const [dragging, setDragging] = useState(false);
   const [tab, setTab] = useState<Tab>("battery");
+  const [batteryView, setBatteryView] = useState<BatteryView>("battery");
   const fileRef = useRef<HTMLInputElement>(null);
   const ingestRef = useRef<IngestClient | null>(null);
 
@@ -76,6 +81,7 @@ export default csr(function SysdiagnosePage() {
     ingestRef.current = null;
     setEntries([]);
     setTab("battery");
+    setBatteryView("battery");
   };
 
   const battery = useMemo<BatteryPlistData | null>(() => {
@@ -163,10 +169,22 @@ export default csr(function SysdiagnosePage() {
           <main
             className={`${tab === "logs" ? "w-full" : "w-[var(--sysdiagnose-content-width)] max-w-full border-r"} flex h-full min-h-0 flex-col px-4 py-4 sm:px-6`}
           >
-            <h1 className="mb-6 shrink-0 text-xl font-semibold">Sysdiagnose</h1>
+            <div className="mb-6 flex shrink-0 items-center justify-between gap-4">
+              <h1 className="text-xl font-semibold">Sysdiagnose</h1>
+              {tab === "battery" && battery ? (
+                <BatteryViewToggle
+                  view={batteryView}
+                  onViewChange={setBatteryView}
+                />
+              ) : null}
+            </div>
             <div className="min-h-0 flex-1">
               {tab === "battery" ? (
-                <BatteryTab battery={battery} powerlog={powerlog} />
+                <BatteryTab
+                  battery={battery}
+                  powerlog={powerlog}
+                  view={batteryView}
+                />
               ) : null}
               {tab === "logs" ? <LogsTab entries={entries} /> : null}
               {tab === "files" ? <FilesTab entries={entries} /> : null}
