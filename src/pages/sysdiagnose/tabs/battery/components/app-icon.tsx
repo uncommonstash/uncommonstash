@@ -1,9 +1,9 @@
 import {
+  type LucideIcon,
   Radio,
   Settings,
   SignalLow,
   Trash2,
-  type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 

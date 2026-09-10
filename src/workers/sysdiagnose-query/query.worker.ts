@@ -3,17 +3,17 @@
 import sqlite3InitModule from "@sqlite.org/sqlite-wasm";
 import sqliteWasmUrl from "@sqlite.org/sqlite-wasm/sqlite3.wasm?url";
 import {
+  isSysdiagnoseQueryIn,
   SYS_DIAGNOSE_QUERY_PROTOCOL_VERSION,
   type SysdiagnoseQueryIn,
   type SysdiagnoseQueryOut,
-  isSysdiagnoseQueryIn,
 } from "./query.protocol";
 import {
   APP_RUNTIME_SOURCE,
   createTimeNormalizer,
   executeQueryPlan,
-  ROOT_NODE_ENERGY_SOURCE,
   type QueryRows,
+  ROOT_NODE_ENERGY_SOURCE,
 } from "./query.sql";
 
 type Sqlite = Awaited<ReturnType<typeof sqlite3InitModule>>;

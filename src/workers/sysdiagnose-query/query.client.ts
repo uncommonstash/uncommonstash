@@ -1,10 +1,10 @@
 import {
+  isSysdiagnoseQueryOut,
   SYS_DIAGNOSE_QUERY_PROTOCOL_VERSION,
   type SysdiagnoseQueryCatalog,
   type SysdiagnoseQueryOut,
   type SysdiagnoseQueryPlan,
   type SysdiagnoseQueryResult,
-  isSysdiagnoseQueryOut,
 } from "./query.protocol";
 
 export class SysdiagnoseQueryClient {

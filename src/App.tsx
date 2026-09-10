@@ -51,7 +51,9 @@ const MarkdownConverter = React.lazy(
 const VideoConverterClient = React.lazy(
   () => import("@/pages/videos/convert/client"),
 );
-const SysdiagnosePage = React.lazy(() => import("@/pages/sysdiagnose/sysdiagnose"));
+const SysdiagnosePage = React.lazy(
+  () => import("@/pages/sysdiagnose/sysdiagnose"),
+);
 
 void AudioCombiner;
 void AudioConverter;

@@ -1,7 +1,7 @@
 import {
-  SYS_DIAGNOSE_QUERY_PROTOCOL_VERSION,
   isSysdiagnoseQueryIn,
   isSysdiagnoseQueryPlan,
+  SYS_DIAGNOSE_QUERY_PROTOCOL_VERSION,
 } from "./query.protocol";
 
 describe("sysdiagnose query protocol", () => {
