@@ -32,9 +32,10 @@ Logs](https://developer.apple.com/feedback-assistant/profiles-and-logs/?name=sys
 and its [debug logging overview](https://developer.apple.com/news/?id=2o2p68bq).
 This is therefore a versioned forensic artifact, not an Apple SDK database.
 
-All names and SQLite types below were read from the supplied archive. “Meaning”
-and “unit” report the confidence of the interpretation; a SQLite `INTEGER` is
-not, by itself, a physical-unit declaration.
+All names and SQLite types below were read from a sampled sysdiagnose archive
+from my iPhone. “Meaning” and “unit” report the confidence of the
+interpretation; a SQLite `INTEGER` is not, by itself, a physical-unit
+declaration.
 
 | Label                       | Meaning                                                                                                                                     |
 | ---                         | ---                                                                                                                                         |
