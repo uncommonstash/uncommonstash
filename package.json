@@ -82,7 +82,7 @@
     "jest-canvas-mock": "^2.5.2",
     "jest-environment-jsdom": "^30.2.0",
     "js-yaml": "^5.2.3",
-    "marked": "^17.0.1",
+    "marked": "^18.0.11",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4",
     "tar": "7.5.22",
