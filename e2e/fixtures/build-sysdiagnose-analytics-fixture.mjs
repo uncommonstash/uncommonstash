@@ -84,6 +84,18 @@ function powerlogSql() {
   const seeded = random(0x5eed);
   const expectedRawByApp = new Map(apps.map(([, bundleId]) => [bundleId, 0]));
   const expectedRawByComponent = new Map();
+  const expectedRawByInterval = new Map();
+  const addComponentInterval = (rootId, startMs, endMs, energy) => {
+    const key = `${startMs}:${endMs}`;
+    const interval = expectedRawByInterval.get(key) ?? {
+      startMs,
+      endMs,
+      components: {},
+    };
+    const component = ["CPU", "DisplayDynamic", "DRAM"][componentIds.indexOf(rootId)];
+    interval.components[component] = (interval.components[component] ?? 0) + energy;
+    expectedRawByInterval.set(key, interval);
+  };
   const statements = [
     "PRAGMA journal_mode=OFF;",
     "CREATE TABLE PLCoalitionAgent_EventInterval_CoalitionInterval (timestamp REAL, timestampEnd REAL, BundleId TEXT, LaunchdName TEXT, energy REAL);",
@@ -133,6 +145,7 @@ function powerlogSql() {
           rootId,
           (expectedRawByComponent.get(rootId) ?? 0) + energy,
         );
+        addComponentInterval(rootId, wallStart, wallEnd, energy);
       }
     });
     apps.forEach(([, bundleId], appIndex) => {
@@ -164,6 +177,7 @@ function powerlogSql() {
             rootId,
             (expectedRawByComponent.get(rootId) ?? 0) + energy,
           );
+          addComponentInterval(rootId, wallStart, wallEnd, energy);
         }
       });
     });
@@ -182,6 +196,18 @@ function powerlogSql() {
         Number(((expectedRawByComponent.get(rootId) ?? 0) / 1000).toFixed(3)),
       ]),
     ),
+    expectedComponentIntervals: [...expectedRawByInterval.values()]
+      .sort((left, right) => left.startMs - right.startMs)
+      .map((interval) => ({
+        startMs: interval.startMs,
+        endMs: interval.endMs,
+        componentEnergyMWh: Object.fromEntries(
+          Object.entries(interval.components).map(([name, rawEnergy]) => [
+            name,
+            Number((rawEnergy / 1000).toFixed(3)),
+          ]),
+        ),
+      })),
   };
 }
 
@@ -201,7 +227,7 @@ try {
   writeFileSync(join(plistDir, "BatteryUISysdiagnose.plist"), batteryPlist());
   writeFileSync(
     expectedPath,
-    `${JSON.stringify({ appEnergyMWh: powerlog.expected, componentEnergyMWh: powerlog.expectedComponents }, null, 2)}\n`,
+    `${JSON.stringify({ appEnergyMWh: powerlog.expected, componentEnergyMWh: powerlog.expectedComponents, componentIntervals: powerlog.expectedComponentIntervals }, null, 2)}\n`,
   );
   await create({ cwd: temp, file: fixturePath, gzip: true, portable: true }, [
     archiveRoot,

@@ -4,6 +4,11 @@ import { expect, test } from "@playwright/test";
 const golden = JSON.parse(readFileSync("e2e/fixtures/sysdiagnose-query-mock.expected.json", "utf8")) as {
   appEnergyMWh: Record<string, number>;
   componentEnergyMWh: Record<string, number>;
+  componentIntervals: Array<{
+    startMs: number;
+    endMs: number;
+    componentEnergyMWh: Record<string, number>;
+  }>;
 };
 
 test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archive", async ({ page }) => {
@@ -23,6 +28,14 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
   await expect(page.getByText(/Hourly SUM\(Energy\), grouped by RootNodeID/)).toBeVisible();
   await expect(page.getByText(/Effective source range:/).first()).toBeVisible();
   await expect(chart.locator("rect").first()).toBeVisible();
+  const firstInterval = golden.componentIntervals[0];
+  const firstBar = chart.locator("g[data-interval-start-ms]").first();
+  await expect(firstBar).toHaveAttribute("data-interval-start-ms", String(firstInterval.startMs));
+  await expect(firstBar).toHaveAttribute("data-interval-end-ms", String(firstInterval.endMs));
+  const tooltip = await firstBar.locator("title").textContent();
+  for (const [component, energy] of Object.entries(firstInterval.componentEnergyMWh)) {
+    expect(tooltip).toContain(`${component}: ${energy.toFixed(3)} mWh`);
+  }
 });
 
 test("a selected Battery UI range returns complete overlapping Powerlog intervals", async ({ page }) => {
@@ -38,7 +51,15 @@ test("a selected Battery UI range returns complete overlapping Powerlog interval
   await page.mouse.move(box.x + box.width * 0.54, box.y + box.height / 2, { steps: 5 });
   await page.mouse.up();
   await page.getByRole("button", { name: "Energy overview" }).click();
-  await expect(page.getByText(/Effective source range:/).first()).toBeVisible();
+  const source = page.getByText(/Effective source range:/).first();
+  await expect(source).toBeVisible();
+  const requestedStart = Number(await source.getAttribute("data-requested-start-ms"));
+  const requestedEnd = Number(await source.getAttribute("data-requested-end-ms"));
+  const effectiveStart = Number(await source.getAttribute("data-effective-start-ms"));
+  const effectiveEnd = Number(await source.getAttribute("data-effective-end-ms"));
+  expect(effectiveStart).toBeLessThanOrEqual(requestedStart);
+  expect(effectiveEnd).toBeGreaterThanOrEqual(requestedEnd);
+  expect(effectiveStart < requestedStart || effectiveEnd > requestedEnd).toBe(true);
   await expect(page.locator('svg[aria-label="Powerlog component totals chart"] rect').first()).toBeVisible();
 
   await page.getByRole("button", { name: "logs" }).click();
