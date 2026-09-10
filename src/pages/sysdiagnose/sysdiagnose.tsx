@@ -1,4 +1,15 @@
-import { BatteryMedium, FileText, FolderTree, Upload } from "lucide-react";
+import {
+  BatteryMedium,
+  CircleAlert,
+  FileText,
+  FolderTree,
+  HardDrive,
+  type LucideIcon,
+  Smartphone,
+  Thermometer,
+  Upload,
+  Wifi,
+} from "lucide-react";
 import {
   type CSSProperties,
   useEffect,
@@ -24,10 +35,23 @@ import {
   type BatteryView,
   BatteryViewToggle,
 } from "./tabs/battery/battery-tab";
+import { CrashesTab } from "./tabs/crashes/crashes-tab";
+import { DeviceTab } from "./tabs/device/device-tab";
 import { FilesTab } from "./tabs/files/files-tab";
 import { LogsTab } from "./tabs/logs/logs-tab";
+import { StorageTab } from "./tabs/storage/storage-tab";
+import { ThermalTab } from "./tabs/thermal/thermal-tab";
+import { WifiTab } from "./tabs/wifi/wifi-tab";
 
-type Tab = "battery" | "logs" | "files";
+type Tab =
+  | "battery"
+  | "wifi"
+  | "storage"
+  | "thermal"
+  | "device"
+  | "crashes"
+  | "logs"
+  | "files";
 
 function formatMB(bytes: number): string {
   if (!bytes || bytes <= 0) return "0 MB";
@@ -119,11 +143,16 @@ export default csr(function SysdiagnosePage() {
   const navigation: Array<{
     id: Tab;
     label: string;
-    Icon: typeof BatteryMedium;
+    Icon: LucideIcon;
   }> = [
-    { id: "battery", label: "battery", Icon: BatteryMedium },
-    { id: "logs", label: "logs", Icon: FileText },
-    { id: "files", label: "files", Icon: FolderTree },
+    { id: "battery", label: "Battery", Icon: BatteryMedium },
+    { id: "wifi", label: "WiFi", Icon: Wifi },
+    { id: "storage", label: "Storage", Icon: HardDrive },
+    { id: "thermal", label: "Thermal", Icon: Thermometer },
+    { id: "device", label: "Device", Icon: Smartphone },
+    { id: "crashes", label: "Crashes", Icon: CircleAlert },
+    { id: "logs", label: "Logs", Icon: FileText },
+    { id: "files", label: "Files", Icon: FolderTree },
   ];
   return (
     <div className="h-screen overflow-hidden bg-secondary/30 [&_*]:shadow-none">
@@ -186,6 +215,11 @@ export default csr(function SysdiagnosePage() {
                   view={batteryView}
                 />
               ) : null}
+              {tab === "wifi" ? <WifiTab /> : null}
+              {tab === "storage" ? <StorageTab /> : null}
+              {tab === "thermal" ? <ThermalTab /> : null}
+              {tab === "device" ? <DeviceTab /> : null}
+              {tab === "crashes" ? <CrashesTab /> : null}
               {tab === "logs" ? <LogsTab entries={entries} /> : null}
               {tab === "files" ? <FilesTab entries={entries} /> : null}
             </div>

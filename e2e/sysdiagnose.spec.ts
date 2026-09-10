@@ -281,8 +281,12 @@ test("a Battery UI selection leaves the component timeline fixed and updates the
       .first(),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "logs" }).click();
+  await page.getByRole("button", { name: "Logs" }).click();
   await expect(page.getByPlaceholder("Search messages")).toBeVisible();
-  await page.getByRole("button", { name: "files" }).click();
+  await page.getByRole("button", { name: "Files" }).click();
   await expect(page.getByText("Archive files")).toBeVisible();
+  for (const tabName of ["WiFi", "Storage", "Thermal", "Device", "Crashes"]) {
+    await page.getByRole("button", { name: tabName }).click();
+    await expect(page.getByRole("heading", { name: tabName })).toBeVisible();
+  }
 });
