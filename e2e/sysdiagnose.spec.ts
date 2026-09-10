@@ -27,6 +27,9 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
   const viewToggle = page.getByRole("group", { name: "Battery view" });
   await expect(viewToggle).toBeVisible();
   expect((await viewToggle.boundingBox())?.width).toBeLessThan(300);
+  await expect(
+    page.getByRole("button", { name: "Battery overview" }),
+  ).toHaveAttribute("aria-pressed", "true");
 
   await expect(page.getByText("Battery level from Battery UI")).toBeVisible();
   await expect(

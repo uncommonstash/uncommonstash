@@ -40,15 +40,17 @@ export function BatteryTab({
           >
             <Button
               size="sm"
-              variant={view === "battery" ? "secondary" : "plain"}
+              variant={view === "battery" ? "default" : "plain"}
               onClick={() => setView("battery")}
+              aria-pressed={view === "battery"}
             >
               Battery overview
             </Button>
             <Button
               size="sm"
-              variant={view === "energy" ? "secondary" : "plain"}
+              variant={view === "energy" ? "default" : "plain"}
               onClick={() => setView("energy")}
+              aria-pressed={view === "energy"}
             >
               Energy overview
             </Button>
