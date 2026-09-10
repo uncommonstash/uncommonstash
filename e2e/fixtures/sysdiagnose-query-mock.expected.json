@@ -1,0 +1,14 @@
+{
+  "appEnergyMWh": {
+    "com.apple.mobilesafari": 141.054,
+    "com.cardify.tinder": 152.303,
+    "com.facebook.stellaapp": 155.689,
+    "com.google.ios.youtubemusic": 169.422,
+    "com.apple.Maps": 157.751
+  },
+  "componentEnergyMWh": {
+    "CPU": 1393.12,
+    "DisplayDynamic": 1361.294,
+    "DRAM": 1359.777
+  }
+}

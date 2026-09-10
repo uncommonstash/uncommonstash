@@ -11,11 +11,11 @@ import { join } from "node:path";
 import { create } from "tar";
 
 const fixturePath = new URL(
-  "./sysdiagnose-analytics-range.tar.gz",
+  "./sysdiagnose-query-mock.tar.gz",
   import.meta.url,
 ).pathname;
 const expectedPath = new URL(
-  "./sysdiagnose-analytics-range.expected.json",
+  "./sysdiagnose-query-mock.expected.json",
   import.meta.url,
 ).pathname;
 const archiveRoot =
@@ -83,12 +83,13 @@ function batteryPlist() {
 function powerlogSql() {
   const seeded = random(0x5eed);
   const expectedRawByApp = new Map(apps.map(([, bundleId]) => [bundleId, 0]));
+  const expectedRawByComponent = new Map();
   const statements = [
     "PRAGMA journal_mode=OFF;",
     "CREATE TABLE PLCoalitionAgent_EventInterval_CoalitionInterval (timestamp REAL, timestampEnd REAL, BundleId TEXT, LaunchdName TEXT, energy REAL);",
     // The device schema also has timestamp here. Keeping it in the mock makes
     // root-energy joins fail if the worker leaves aggregate columns unqualified.
-    "CREATE TABLE PLAccountingOperator_EventNone_Nodes (ID INTEGER PRIMARY KEY, timestamp REAL, Name TEXT);",
+    "CREATE TABLE PLAccountingOperator_EventNone_Nodes (ID INTEGER PRIMARY KEY, timestamp REAL, Name TEXT, IsPermanent INTEGER);",
     "CREATE TABLE PLAccountingOperator_Aggregate_RootNodeEnergy (timestamp REAL, timeInterval REAL, Energy REAL, NodeID INTEGER, RootNodeID INTEGER);",
     "CREATE TABLE PLAppTimeService_Aggregate_AppRunTime (timestamp REAL, timeInterval REAL, ScreenOnTime REAL, BackgroundTime REAL, BundleID TEXT);",
     "CREATE TABLE PLStorageOperator_EventForward_TimeOffset (timestamp REAL, system REAL);",
@@ -105,12 +106,12 @@ function powerlogSql() {
   const componentIds = [900, 901, 902];
   ["CPU", "DisplayDynamic", "DRAM"].forEach((name, index) => {
     statements.push(
-      `INSERT INTO PLAccountingOperator_EventNone_Nodes (ID, timestamp, Name) VALUES (${componentIds[index]}, ${powerlogStart}, '${name}');`,
+      `INSERT INTO PLAccountingOperator_EventNone_Nodes (ID, timestamp, Name, IsPermanent) VALUES (${componentIds[index]}, ${powerlogStart}, '${name}', 1);`,
     );
   });
   apps.forEach(([, bundleId], index) => {
     statements.push(
-      `INSERT INTO PLAccountingOperator_EventNone_Nodes (ID, timestamp, Name) VALUES (${index + 1}, ${powerlogStart}, '${bundleId}');`,
+      `INSERT INTO PLAccountingOperator_EventNone_Nodes (ID, timestamp, Name, IsPermanent) VALUES (${index + 1}, ${powerlogStart}, '${bundleId}', 0);`,
     );
   });
   for (let hour = 0; hour < 24; hour += 1) {
@@ -120,6 +121,19 @@ function powerlogSql() {
       statements.push(
         `INSERT INTO PLAccountingOperator_Aggregate_RootNodeEnergy VALUES (${timestamp + 3600}, 3600, ${energy}, ${rootId}, ${rootId});`,
       );
+      const wallStart =
+        (timestamp + initialOffset + (hour >= 12 ? 2 : 0)) * 1000;
+      const wallEnd =
+        (timestamp + 3600 + initialOffset + (hour >= 11 ? 2 : 0)) * 1000;
+      if (
+        wallEnd > (batteryWindowEnd - 24 * 3600) * 1000 &&
+        wallStart < batteryWindowEnd * 1000
+      ) {
+        expectedRawByComponent.set(
+          rootId,
+          (expectedRawByComponent.get(rootId) ?? 0) + energy,
+        );
+      }
     });
     apps.forEach(([, bundleId], appIndex) => {
       const coalitionEnergy = 10_000 + Math.round(seeded() * 20_000);
@@ -146,6 +160,10 @@ function powerlogSql() {
             bundleId,
             (expectedRawByApp.get(bundleId) ?? 0) + energy,
           );
+          expectedRawByComponent.set(
+            rootId,
+            (expectedRawByComponent.get(rootId) ?? 0) + energy,
+          );
         }
       });
     });
@@ -156,6 +174,12 @@ function powerlogSql() {
       [...expectedRawByApp].map(([key, value]) => [
         key,
         Number((value / 1000).toFixed(3)),
+      ]),
+    ),
+    expectedComponents: Object.fromEntries(
+      componentIds.map((rootId, index) => [
+        ["CPU", "DisplayDynamic", "DRAM"][index],
+        Number(((expectedRawByComponent.get(rootId) ?? 0) / 1000).toFixed(3)),
       ]),
     ),
   };
@@ -177,7 +201,7 @@ try {
   writeFileSync(join(plistDir, "BatteryUISysdiagnose.plist"), batteryPlist());
   writeFileSync(
     expectedPath,
-    `${JSON.stringify({ appEnergyMWh: powerlog.expected }, null, 2)}\n`,
+    `${JSON.stringify({ appEnergyMWh: powerlog.expected, componentEnergyMWh: powerlog.expectedComponents }, null, 2)}\n`,
   );
   await create({ cwd: temp, file: fixturePath, gzip: true, portable: true }, [
     archiveRoot,
