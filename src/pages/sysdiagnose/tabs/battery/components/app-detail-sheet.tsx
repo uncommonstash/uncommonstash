@@ -76,12 +76,10 @@ export function AppDetailSheet({
           </SheetHeader>
 
           <section className="space-y-2">
-            <h3 className="text-sm font-semibold">
-              Direct Powerlog attribution records
-            </h3>
+            <h3 className="text-sm font-semibold">Energy records</h3>
             {appEnergyRows.length === 0 ? (
               <DirectRowsEmpty>
-                No attribution source rows for this app in the selected range.
+                No energy records for this app in the selected range.
               </DirectRowsEmpty>
             ) : (
               <div className="overflow-x-auto rounded-md border">
@@ -128,10 +126,10 @@ export function AppDetailSheet({
           </section>
 
           <section className="space-y-2">
-            <h3 className="text-sm font-semibold">Direct AppRunTime records</h3>
+            <h3 className="text-sm font-semibold">Runtime records</h3>
             {appRuntimeRows.length === 0 ? (
               <DirectRowsEmpty>
-                No runtime source rows for this app in the selected range.
+                No runtime records for this app in the selected range.
               </DirectRowsEmpty>
             ) : (
               <div className="overflow-x-auto rounded-md border">

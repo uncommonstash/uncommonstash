@@ -55,7 +55,7 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
     `${golden.appEnergyMWh["com.apple.mobilesafari"].toFixed(2)} mWh`,
   );
   const appSummary = page.getByRole("table", {
-    name: "Powerlog app attribution summary",
+    name: "App energy and runtime",
   });
   const appEnergy = await appSummary
     .getByRole("row")
@@ -96,20 +96,17 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
     appDetail.getByRole("heading", { name: "Safari" }),
   ).toBeVisible();
   await expect(appDetail.getByText("com.apple.mobilesafari")).toBeVisible();
-  await expect(
-    appDetail.getByText("Direct Powerlog attribution records"),
-  ).toBeVisible();
+  await expect(appDetail.getByText("Energy records")).toBeVisible();
   await appDetail.getByRole("button", { name: "Close" }).click();
   await expect(page.getByText(/^Source:/)).toHaveCount(0);
 
   await page.getByRole("button", { name: "Energy overview" }).click();
-  const chart = page.locator(
-    'svg[aria-label="Powerlog component totals chart"]',
-  );
+  const chart = page.locator('svg[aria-label="Energy by component chart"]');
   await expect(chart).toBeVisible();
-  await expect(
-    page.getByText(/Hourly SUM\(Energy\), grouped by RootNodeID/),
-  ).toBeVisible();
+  await expect(page.getByText("Energy by component")).toBeVisible();
+  await expect(page.getByText(/Hourly SUM\(Energy\)|RootNodeID/)).toHaveCount(
+    0,
+  );
   await expect(chart.locator("rect").first()).toBeVisible();
   const firstInterval = golden.componentIntervals[0];
   const firstBar = chart.locator("g[data-interval-start-ms]").first();
@@ -183,9 +180,7 @@ test("a selected Battery UI range returns complete overlapping Powerlog interval
   });
   await page.mouse.up();
   await page.getByRole("button", { name: "Energy overview" }).click();
-  const source = page.locator(
-    'svg[aria-label="Powerlog component totals chart"]',
-  );
+  const source = page.locator('svg[aria-label="Energy by component chart"]');
   await expect(source).toBeVisible();
   const requestedStart = Number(
     await source.getAttribute("data-requested-start-ms"),
@@ -205,9 +200,7 @@ test("a selected Battery UI range returns complete overlapping Powerlog interval
     true,
   );
   await expect(
-    page
-      .locator('svg[aria-label="Powerlog component totals chart"] rect')
-      .first(),
+    page.locator('svg[aria-label="Energy by component chart"] rect').first(),
   ).toBeVisible();
 
   await page.getByRole("button", { name: "logs" }).click();

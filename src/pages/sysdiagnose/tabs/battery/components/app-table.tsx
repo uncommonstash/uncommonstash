@@ -78,10 +78,9 @@ export function AppTable({
         data-testid="app-table-scroll"
         className="min-h-0 flex-1"
       >
-        <Table aria-label="Powerlog app attribution summary">
+        <Table aria-label="App energy and runtime">
           <TableCaption className="sr-only">
-            Apps sorted by direct Powerlog energy descending, then total
-            runtime.
+            Apps ranked by energy use, then total runtime.
           </TableCaption>
           <TableHeader>
             <TableRow>
@@ -102,7 +101,7 @@ export function AppTable({
                   colSpan={4}
                   className="py-8 text-center text-sm text-muted-foreground"
                 >
-                  No Powerlog app rows in this range.
+                  No app activity in this range.
                 </TableCell>
               </TableRow>
             ) : (
@@ -110,7 +109,7 @@ export function AppTable({
                 <TableRow
                   key={app.bundleId}
                   tabIndex={0}
-                  aria-label={`View ${app.name} Powerlog records`}
+                  aria-label={`View ${app.name} details`}
                   aria-selected={selectedBundleId === app.bundleId}
                   className="cursor-pointer aria-selected:bg-muted/60 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                   onClick={() => setSelectedBundleId(app.bundleId)}

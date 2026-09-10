@@ -100,16 +100,12 @@ export function ComponentTotalsChart({
     <section className="shrink-0 space-y-2">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <h2 className="text-base font-semibold">Powerlog component totals</h2>
-          <p className="text-xs text-muted-foreground">
-            Hourly SUM(Energy), grouped by RootNodeID. Values are raw source
-            units; the display converts uWh to mWh.
-          </p>
+          <h2 className="text-base font-semibold">Energy by component</h2>
         </div>
       </div>
       {intervals.length === 0 ? (
         <p className="py-10 text-sm text-muted-foreground">
-          No complete Powerlog intervals overlap this range.
+          No energy data in this range.
         </p>
       ) : (
         <>
@@ -117,7 +113,7 @@ export function ComponentTotalsChart({
             <svg
               viewBox={`0 0 ${width} ${height}`}
               className="h-64 w-full"
-              aria-label="Powerlog component totals chart"
+              aria-label="Energy by component chart"
               preserveAspectRatio="none"
               data-requested-start-ms={provenance?.requestedRange.startMs}
               data-requested-end-ms={provenance?.requestedRange.endMs}

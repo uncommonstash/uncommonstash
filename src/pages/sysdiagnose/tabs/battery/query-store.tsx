@@ -102,7 +102,7 @@ export function QueryStoreProvider({
       () => dispatch({ type: "ready", ready: "error" }),
     );
     return () => next.terminate();
-  }, [powerlog]);
+  }, [initialRange, powerlog]);
 
   const run = useCallback(
     (plan: SysdiagnoseQueryPlan) => {
@@ -154,9 +154,9 @@ export function useQueryStore() {
 export function usePowerlogQuery(plan: SysdiagnoseQueryPlan): QueryState {
   const { state, run } = useQueryStore();
   const key = JSON.stringify(plan);
-  useEffect(() => run(plan), [key, run]);
+  useEffect(() => run(plan), [plan, run]);
   if (state.queries[key]) return state.queries[key];
   return state.ready === "error"
-    ? { state: "error", message: "Powerlog query worker unavailable" }
+    ? { state: "error", message: "Energy data is unavailable." }
     : { state: "idle" };
 }

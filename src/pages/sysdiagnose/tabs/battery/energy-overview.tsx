@@ -52,12 +52,7 @@ export function EnergyOverview({ battery }: { battery: BatteryPlistData }) {
       [apps, state.range],
     ),
   );
-  const failure =
-    energy.state === "error"
-      ? energy.message
-      : runtime.state === "error"
-        ? runtime.message
-        : null;
+  const failure = energy.state === "error" || runtime.state === "error";
   const isFullRange =
     state.range.startMs === fullRange.startMs &&
     state.range.endMs === fullRange.endMs;
@@ -74,7 +69,9 @@ export function EnergyOverview({ battery }: { battery: BatteryPlistData }) {
         </Button>
       </div>
       {components.state === "error" ? (
-        <p className="text-sm text-destructive">{components.message}</p>
+        <p className="text-sm text-destructive">
+          Energy component data is unavailable.
+        </p>
       ) : (
         <ComponentTotalsChart
           rows={
@@ -90,7 +87,9 @@ export function EnergyOverview({ battery }: { battery: BatteryPlistData }) {
         />
       )}
       {failure ? (
-        <p className="text-sm text-destructive">{failure}</p>
+        <p className="text-sm text-destructive">
+          App activity data is unavailable.
+        </p>
       ) : (
         <AppTable
           apps={apps}

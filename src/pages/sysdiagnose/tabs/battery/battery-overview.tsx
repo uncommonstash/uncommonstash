@@ -39,12 +39,7 @@ export function BatteryOverview({ battery }: { battery: BatteryPlistData }) {
       [apps, state.range],
     ),
   );
-  const failure =
-    energy.state === "error"
-      ? energy.message
-      : runtime.state === "error"
-        ? runtime.message
-        : null;
+  const failure = energy.state === "error" || runtime.state === "error";
   const isFullRange =
     state.range.startMs === fullRange.startMs &&
     state.range.endMs === fullRange.endMs;
@@ -57,8 +52,7 @@ export function BatteryOverview({ battery }: { battery: BatteryPlistData }) {
               Battery level from Battery UI
             </h2>
             <p className="text-xs text-muted-foreground">
-              Curve and app roster source: BatteryUISysdiagnose.plist. Drag
-              across the curve to query a range.
+              Drag across the chart to focus on a time range.
             </p>
           </div>
           <Button
@@ -77,7 +71,9 @@ export function BatteryOverview({ battery }: { battery: BatteryPlistData }) {
         />
       </section>
       {failure ? (
-        <p className="text-sm text-destructive">{failure}</p>
+        <p className="text-sm text-destructive">
+          App activity data is unavailable.
+        </p>
       ) : (
         <AppTable
           apps={apps}
