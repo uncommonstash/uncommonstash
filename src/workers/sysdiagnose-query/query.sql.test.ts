@@ -98,6 +98,41 @@ describe("Powerlog query SQL", () => {
     ]);
   });
 
+  it("orders every typed result by normalized interval and source identity", () => {
+    const reverseSourceOrder: QueryRows = (sql) => {
+      if (sql.includes("timestamp AS monotonicSec")) return offsets;
+      return [...rows(sql)].reverse();
+    };
+    const range = { startMs: 0, endMs: 30_000_000 };
+    const apps = [{ bundleId: "com.example.app", name: "Example" }];
+
+    const components = executeQueryPlan(reverseSourceOrder, {
+      kind: "root-node-component-totals",
+      range,
+    });
+    expect(components.rows.map((row) => row.interval.startMs)).toEqual([
+      5_700_000, 9_301_000, 16_501_000,
+    ]);
+
+    const attribution = executeQueryPlan(reverseSourceOrder, {
+      kind: "app-energy-attribution",
+      range,
+      apps,
+    });
+    expect(attribution.rows.map((row) => row.interval.startMs)).toEqual([
+      5_700_000,
+    ]);
+
+    const runtime = executeQueryPlan(reverseSourceOrder, {
+      kind: "app-runtime",
+      range,
+      apps,
+    });
+    expect(runtime.rows.map((row) => row.interval.startMs)).toEqual([
+      5_700_000,
+    ]);
+  });
+
   it("preserves consumer and root identities for app attribution and source seconds for runtime", () => {
     const plan = {
       range: { startMs: 8_000_000, endMs: 9_000_000 },

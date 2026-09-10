@@ -55,7 +55,21 @@ export function AppTable({
       rawEnergy: energy.get(app.bundleId),
       runtime: runtime.get(app.bundleId),
     }))
-    .filter((row) => row.rawEnergy !== undefined || row.runtime);
+    .filter((row) => row.rawEnergy !== undefined || row.runtime)
+    .sort((left, right) => {
+      const energyOrder = (right.rawEnergy ?? 0) - (left.rawEnergy ?? 0);
+      if (energyOrder) return energyOrder;
+
+      const leftRuntime =
+        (left.runtime?.foregroundSec ?? 0) + (left.runtime?.backgroundSec ?? 0);
+      const rightRuntime =
+        (right.runtime?.foregroundSec ?? 0) +
+        (right.runtime?.backgroundSec ?? 0);
+      return (
+        rightRuntime - leftRuntime ||
+        left.app.name.localeCompare(right.app.name)
+      );
+    });
   const selectedApp =
     apps.find((app) => app.bundleId === selectedBundleId) ?? null;
 
@@ -66,14 +80,16 @@ export function AppTable({
         <SourceStatus provenance={energyProvenance} />
         <SourceStatus provenance={runtimeProvenance} />
       </div>
-      <Table>
+      <Table aria-label="Powerlog app attribution summary">
         <TableCaption className="sr-only">
-          Direct Powerlog app attribution and AppRunTime source rows
+          Apps sorted by direct Powerlog energy descending, then total runtime.
         </TableCaption>
         <TableHeader>
           <TableRow>
             <TableHead className="pl-0">App</TableHead>
-            <TableHead className="text-right">Energy (mWh)</TableHead>
+            <TableHead className="text-right" aria-sort="descending">
+              Energy (mWh)
+            </TableHead>
             <TableHead className="text-right">Foreground (min)</TableHead>
             <TableHead className="pr-0 text-right">Background (min)</TableHead>
           </TableRow>

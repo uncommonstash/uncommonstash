@@ -155,6 +155,36 @@ function rejectDuplicateRows(rows: SysdiagnoseQueryRow[]) {
   return rows;
 }
 
+/**
+ * SQL orders the raw monotonic source columns, but a TimeOffset can change the
+ * corresponding wall-clock order. The public query protocol therefore orders
+ * after endpoint normalization as well, with source identity as a stable tie
+ * breaker. No values are allocated, combined, or discarded here.
+ */
+function orderSourceRows<T extends SysdiagnoseQueryRow>(rows: T[]): T[] {
+  return [...rows].sort((left, right) => {
+    const intervalOrder =
+      left.interval.startMs - right.interval.startMs ||
+      left.interval.endMs - right.interval.endMs;
+    if (intervalOrder) return intervalOrder;
+
+    if ("consumerNode" in left && "consumerNode" in right) {
+      return (
+        left.consumerNode.name.localeCompare(right.consumerNode.name) ||
+        left.consumerNode.id - right.consumerNode.id ||
+        left.rootNode.id - right.rootNode.id
+      );
+    }
+    if ("rootNode" in left && "rootNode" in right) {
+      return left.rootNode.id - right.rootNode.id;
+    }
+    if ("bundleId" in left && "bundleId" in right) {
+      return left.bundleId.localeCompare(right.bundleId);
+    }
+    return 0;
+  });
+}
+
 function interval(
   row: Record<string, unknown>,
   normalize: (timestamp: number) => number,
@@ -189,8 +219,9 @@ export function executeQueryPlan(
 ): { provenance: QueryProvenance; rows: SysdiagnoseQueryRow[] } {
   const normalize = createTimeNormalizer(queryRows);
   if (plan.kind === "root-node-component-totals") {
-    const all = queryRows(
-      `SELECT energy.timestamp AS endSec, energy.timeInterval AS intervalSec,
+    const all = orderSourceRows(
+      queryRows(
+        `SELECT energy.timestamp AS endSec, energy.timeInterval AS intervalSec,
               energy.RootNodeID AS rootNodeId, root.Name AS rootNodeName,
               root.IsPermanent AS rootNodePermanent, SUM(energy.Energy) AS rawEnergy
          FROM PLAccountingOperator_Aggregate_RootNodeEnergy AS energy
@@ -199,13 +230,14 @@ export function executeQueryPlan(
         GROUP BY energy.timestamp, energy.timeInterval, energy.RootNodeID,
                  root.Name, root.IsPermanent
         ORDER BY energy.timestamp ASC, energy.RootNodeID ASC`,
-      [HOURLY_SECONDS],
-    ).map(
-      (row): ComponentTotalRow => ({
-        interval: interval(row, normalize),
-        rootNode: node(row, "root"),
-        rawEnergy: numberField(row, "rawEnergy"),
-      }),
+        [HOURLY_SECONDS],
+      ).map(
+        (row): ComponentTotalRow => ({
+          interval: interval(row, normalize),
+          rootNode: node(row, "root"),
+          rawEnergy: numberField(row, "rawEnergy"),
+        }),
+      ),
     );
     const rows = rejectDuplicateRows(
       all.filter((row) => overlaps(row.interval, plan.range)),
@@ -233,8 +265,9 @@ export function executeQueryPlan(
   }
   const placeholders = apps.map(() => "?").join(",");
   if (plan.kind === "app-energy-attribution") {
-    const all = queryRows(
-      `SELECT energy.timestamp AS endSec, energy.timeInterval AS intervalSec,
+    const all = orderSourceRows(
+      queryRows(
+        `SELECT energy.timestamp AS endSec, energy.timeInterval AS intervalSec,
               energy.RootNodeID AS rootNodeId, root.Name AS rootNodeName,
               root.IsPermanent AS rootNodePermanent, energy.NodeID AS consumerNodeId,
               consumer.Name AS consumerNodeName, consumer.IsPermanent AS consumerNodePermanent,
@@ -246,14 +279,15 @@ export function executeQueryPlan(
         GROUP BY energy.timestamp, energy.timeInterval, energy.RootNodeID, energy.NodeID,
                  root.Name, root.IsPermanent, consumer.Name, consumer.IsPermanent
         ORDER BY energy.timestamp ASC, consumer.Name ASC, energy.RootNodeID ASC`,
-      [...apps, HOURLY_SECONDS],
-    ).map(
-      (row): AppEnergyAttributionRow => ({
-        interval: interval(row, normalize),
-        rootNode: node(row, "root"),
-        consumerNode: node(row, "consumer"),
-        rawEnergy: numberField(row, "rawEnergy"),
-      }),
+        [...apps, HOURLY_SECONDS],
+      ).map(
+        (row): AppEnergyAttributionRow => ({
+          interval: interval(row, normalize),
+          rootNode: node(row, "root"),
+          consumerNode: node(row, "consumer"),
+          rawEnergy: numberField(row, "rawEnergy"),
+        }),
+      ),
     );
     const rows = rejectDuplicateRows(
       all.filter((row) => overlaps(row.interval, plan.range)),
@@ -269,22 +303,24 @@ export function executeQueryPlan(
       ]),
     };
   }
-  const all = queryRows(
-    `SELECT timestamp AS endSec, timeInterval AS intervalSec, BundleID AS bundleId,
+  const all = orderSourceRows(
+    queryRows(
+      `SELECT timestamp AS endSec, timeInterval AS intervalSec, BundleID AS bundleId,
             SUM(COALESCE(ScreenOnTime, 0)) AS foregroundSec,
             SUM(COALESCE(BackgroundTime, 0)) AS backgroundSec
        FROM PLAppTimeService_Aggregate_AppRunTime
       WHERE BundleID IN (${placeholders}) AND timeInterval = ? ${CALIBRATED_RUNTIME_INTERVAL}
       GROUP BY timestamp, timeInterval, BundleID
       ORDER BY timestamp ASC, BundleID ASC`,
-    [...apps, HOURLY_SECONDS],
-  ).map(
-    (row): AppRuntimeRow => ({
-      interval: interval(row, normalize),
-      bundleId: textField(row, "bundleId"),
-      foregroundSec: numberField(row, "foregroundSec"),
-      backgroundSec: numberField(row, "backgroundSec"),
-    }),
+      [...apps, HOURLY_SECONDS],
+    ).map(
+      (row): AppRuntimeRow => ({
+        interval: interval(row, normalize),
+        bundleId: textField(row, "bundleId"),
+        foregroundSec: numberField(row, "foregroundSec"),
+        backgroundSec: numberField(row, "backgroundSec"),
+      }),
+    ),
   );
   const rows = rejectDuplicateRows(
     all.filter((row) => overlaps(row.interval, plan.range)),

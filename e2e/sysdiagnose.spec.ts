@@ -53,6 +53,24 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
   await expect(safari.getByRole("cell").nth(1)).toHaveText(
     `${golden.appEnergyMWh["com.apple.mobilesafari"].toFixed(2)} mWh`,
   );
+  const appSummary = page.getByRole("table", {
+    name: "Powerlog app attribution summary",
+  });
+  const appEnergy = await appSummary
+    .getByRole("row")
+    .evaluateAll((rows) =>
+      rows
+        .slice(1)
+        .map((row) => Number.parseFloat(row.cells[1]?.textContent ?? "0") || 0),
+    );
+  expect(appEnergy).toEqual([...appEnergy].sort((left, right) => right - left));
+  expect(appEnergy[0]).toBeCloseTo(
+    Math.max(...Object.values(golden.appEnergyMWh)),
+    2,
+  );
+  await expect(
+    appSummary.getByRole("columnheader", { name: "Energy (mWh)" }),
+  ).toHaveAttribute("aria-sort", "descending");
   await safari.getByText("Safari", { exact: true }).hover();
   await expect(page.getByRole("tooltip")).toHaveText("com.apple.mobilesafari");
   await safari.click();
