@@ -4,6 +4,7 @@
 // asset (see src/workers/README.md). Receives a Blob, runs the shared
 // pipeline, reports progress, and transfers entry buffers back zero-copy.
 
+import { analyzeWifiEntries } from "@/workers/sysdiagnose-wifi/analysis";
 import {
   type IngestEntryMsg,
   isIngestStartMsg,
@@ -26,6 +27,10 @@ async function handleStart(msg: Extract<WorkerIn, { kind: "ingest/start" }>) {
         filesFound: p.filesFound,
       }),
     );
+    // Analytics Store exports are nested gzip/TAR containers. Decode them
+    // while this worker still owns the archive buffers, before transferring
+    // the outer archive index to the main thread.
+    const wifi = await analyzeWifiEntries(entries);
     const out: IngestEntryMsg[] = entries.map((e) => {
       // Transfer the backing buffer zero-copy. Only safe when the view
       // covers its buffer exactly; otherwise compact first (parseTar
@@ -45,7 +50,10 @@ async function handleStart(msg: Extract<WorkerIn, { kind: "ingest/start" }>) {
       };
     });
     const transfer = out.map((e) => e.data);
-    postMessage({ v: 1, kind: "ingest/done", id, entries: out }, transfer);
+    postMessage(
+      { v: 1, kind: "ingest/done", id, entries: out, wifi },
+      transfer,
+    );
   } catch (err) {
     postMessage({
       v: 1,

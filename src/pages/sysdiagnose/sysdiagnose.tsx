@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { csr } from "@/lib/compat";
 import { IngestClient } from "@/workers/sysdiagnose-ingest/ingest.client";
+import type { WifiAnalysis } from "@/workers/sysdiagnose-wifi/analysis";
 import {
   type ArchiveEntry,
   type BatteryPlistData,
@@ -74,6 +75,7 @@ function stageLabel(progress: IngestProgress): string {
 
 export default csr(function SysdiagnosePage() {
   const [entries, setEntries] = useState<ArchiveEntry[]>([]);
+  const [wifi, setWifi] = useState<WifiAnalysis | null>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<IngestProgress | null>(null);
   const [fileName, setFileName] = useState("");
@@ -94,7 +96,9 @@ export default csr(function SysdiagnosePage() {
     setProgress(null);
     setFileName((file as File).name ?? "sysdiagnose archive");
     try {
-      setEntries(await ingestClient().start(file, setProgress));
+      const result = await ingestClient().start(file, setProgress);
+      setEntries(result.entries);
+      setWifi(result.wifi);
     } finally {
       setBusy(false);
       setProgress(null);
@@ -104,6 +108,7 @@ export default csr(function SysdiagnosePage() {
     ingestRef.current?.terminate();
     ingestRef.current = null;
     setEntries([]);
+    setWifi(null);
     setTab("battery");
     setBatteryView("battery");
   };
@@ -215,11 +220,11 @@ export default csr(function SysdiagnosePage() {
                   view={batteryView}
                 />
               ) : null}
-              {tab === "wifi" ? <WifiTab /> : null}
-              {tab === "storage" ? <StorageTab /> : null}
+              {tab === "wifi" ? <WifiTab analysis={wifi} /> : null}
+              {tab === "storage" ? <StorageTab entries={entries} /> : null}
               {tab === "thermal" ? <ThermalTab /> : null}
-              {tab === "device" ? <DeviceTab /> : null}
-              {tab === "crashes" ? <CrashesTab /> : null}
+              {tab === "device" ? <DeviceTab entries={entries} /> : null}
+              {tab === "crashes" ? <CrashesTab entries={entries} /> : null}
               {tab === "logs" ? <LogsTab entries={entries} /> : null}
               {tab === "files" ? <FilesTab entries={entries} /> : null}
             </div>

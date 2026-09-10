@@ -1,0 +1,67 @@
+name: Dependabot auto-merge
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+
+# This workflow never checks out or runs pull-request code. It only asks GitHub
+# to merge the exact Dependabot commit whose CI run succeeded.
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Merge the validated Dependabot pull request
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          CI_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        with:
+          script: |
+            const pullRequests = context.payload.workflow_run.pull_requests ?? [];
+            if (pullRequests.length !== 1) {
+              core.info('The CI run is not associated with exactly one pull request.');
+              return;
+            }
+
+            const pullNumber = pullRequests[0].number;
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pullNumber,
+            });
+
+            if (pullRequest.user?.login !== 'dependabot[bot]') {
+              core.info(`Pull request #${pullNumber} was not opened by Dependabot.`);
+              return;
+            }
+
+            if (pullRequest.state !== 'open' || pullRequest.draft) {
+              core.info(`Pull request #${pullNumber} is no longer mergeable.`);
+              return;
+            }
+
+            if (pullRequest.head.sha !== process.env.CI_HEAD_SHA) {
+              core.info(`Pull request #${pullNumber} changed after CI completed.`);
+              return;
+            }
+
+            const { data: result } = await github.rest.pulls.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pullNumber,
+              sha: pullRequest.head.sha,
+              merge_method: 'squash',
+            });
+
+            if (!result.merged) {
+              core.setFailed(result.message);
+            }

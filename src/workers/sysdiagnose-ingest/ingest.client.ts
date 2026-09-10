@@ -3,6 +3,7 @@
 // correlates requests by id, and drops stale completions.
 
 import type { ArchiveEntry } from "@/pages/sysdiagnose/lib";
+import type { WifiAnalysis } from "@/workers/sysdiagnose-wifi/analysis";
 import {
   type IngestProgressMsg,
   isWorkerOutMsg,
@@ -10,13 +11,18 @@ import {
 } from "./ingest.protocol";
 import type { IngestProgress } from "./pipeline";
 
+export interface IngestResult {
+  entries: ArchiveEntry[];
+  wifi: WifiAnalysis;
+}
+
 export class IngestClient {
   private worker: Worker | null = null;
   private nextId = 1;
   private pending = new Map<
     number,
     {
-      resolve: (entries: ArchiveEntry[]) => void;
+      resolve: (result: IngestResult) => void;
       reject: (err: Error) => void;
       onProgress?: (p: IngestProgress) => void;
     }
@@ -65,7 +71,7 @@ export class IngestClient {
         kind: e.kind,
         data: new Uint8Array(e.data),
       }));
-      p.resolve(entries);
+      p.resolve({ entries, wifi: msg.wifi });
     } else {
       p.reject(new Error(msg.message || "ingest failed"));
     }
@@ -74,10 +80,10 @@ export class IngestClient {
   start(
     file: File | Blob,
     onProgress?: (p: IngestProgress) => void,
-  ): Promise<ArchiveEntry[]> {
+  ): Promise<IngestResult> {
     const id = this.nextId++;
     const worker = this.ensureWorker();
-    const promise = new Promise<ArchiveEntry[]>((resolve, reject) => {
+    const promise = new Promise<IngestResult>((resolve, reject) => {
       this.pending.set(id, { resolve, reject, onProgress });
     });
     worker.postMessage({ v: 1, kind: "ingest/start", id, file });
