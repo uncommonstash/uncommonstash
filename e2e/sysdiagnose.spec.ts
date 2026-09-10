@@ -40,6 +40,18 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
   await expect(safari.getByRole("cell").nth(1)).toHaveText(
     `${golden.appEnergyMWh["com.apple.mobilesafari"].toFixed(2)} mWh`,
   );
+  await safari.getByText("Safari", { exact: true }).hover();
+  await expect(page.getByRole("tooltip")).toHaveText("com.apple.mobilesafari");
+  await safari.click();
+  const appDetail = page.getByRole("dialog");
+  await expect(
+    appDetail.getByRole("heading", { name: "Safari" }),
+  ).toBeVisible();
+  await expect(appDetail.getByText("com.apple.mobilesafari")).toBeVisible();
+  await expect(
+    appDetail.getByText("Direct Powerlog attribution records"),
+  ).toBeVisible();
+  await appDetail.getByRole("button", { name: "Close" }).click();
   await expect(
     page
       .getByText(/Source: PLAccountingOperator_Aggregate_RootNodeEnergy/)

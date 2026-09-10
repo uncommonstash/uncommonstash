@@ -1,3 +1,5 @@
+import * as HoverCard from "@radix-ui/react-hover-card";
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -8,11 +10,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type {
-  AppIdentity,
   AppEnergyAttributionRow,
+  AppIdentity,
   AppRuntimeRow,
   QueryProvenance,
 } from "@/workers/sysdiagnose-query/query.protocol";
+import { AppDetailSheet } from "./app-detail-sheet";
 import { AppIcon, useAppIcons } from "./app-icon";
 import { SourceStatus } from "./source-status";
 
@@ -29,6 +32,7 @@ export function AppTable({
   energyProvenance?: QueryProvenance;
   runtimeProvenance?: QueryProvenance;
 }) {
+  const [selectedBundleId, setSelectedBundleId] = useState<string | null>(null);
   const appIcons = useAppIcons(apps.map((app) => app.bundleId));
   const energy = new Map<string, number>();
   for (const row of energyRows)
@@ -52,6 +56,9 @@ export function AppTable({
       runtime: runtime.get(app.bundleId),
     }))
     .filter((row) => row.rawEnergy !== undefined || row.runtime);
+  const selectedApp =
+    apps.find((app) => app.bundleId === selectedBundleId) ?? null;
+
   return (
     <section className="space-y-2">
       <div>
@@ -83,7 +90,20 @@ export function AppTable({
             </TableRow>
           ) : (
             rows.map(({ app, rawEnergy, runtime: times }) => (
-              <TableRow key={app.bundleId} className="hover:bg-muted/40">
+              <TableRow
+                key={app.bundleId}
+                tabIndex={0}
+                aria-label={`View ${app.name} Powerlog records`}
+                aria-selected={selectedBundleId === app.bundleId}
+                className="cursor-pointer aria-selected:bg-muted/60 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                onClick={() => setSelectedBundleId(app.bundleId)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setSelectedBundleId(app.bundleId);
+                  }
+                }}
+              >
                 <TableCell className="pl-0">
                   <div className="flex items-center gap-2">
                     <AppIcon
@@ -92,10 +112,24 @@ export function AppTable({
                       artworkUrl={appIcons[app.bundleId] || undefined}
                     />
                     <div>
-                      <div className="font-medium">{app.name}</div>
-                      <div className="font-mono text-xs text-muted-foreground">
-                        {app.bundleId}
-                      </div>
+                      <HoverCard.Root openDelay={200} closeDelay={100}>
+                        <HoverCard.Trigger asChild>
+                          <span className="cursor-default font-medium underline decoration-dotted decoration-muted-foreground/50 underline-offset-4">
+                            {app.name}
+                          </span>
+                        </HoverCard.Trigger>
+                        <HoverCard.Portal>
+                          <HoverCard.Content
+                            role="tooltip"
+                            side="top"
+                            sideOffset={6}
+                            className="z-50 rounded-md border bg-popover px-2.5 py-1.5 font-mono text-[11px] text-popover-foreground shadow-md"
+                          >
+                            {app.bundleId}
+                            <HoverCard.Arrow className="fill-border" />
+                          </HoverCard.Content>
+                        </HoverCard.Portal>
+                      </HoverCard.Root>
                     </div>
                   </div>
                 </TableCell>
@@ -115,6 +149,19 @@ export function AppTable({
           )}
         </TableBody>
       </Table>
+      <AppDetailSheet
+        app={selectedApp}
+        artworkUrl={
+          selectedApp ? appIcons[selectedApp.bundleId] || undefined : undefined
+        }
+        energyRows={energyRows}
+        runtimeRows={runtimeRows}
+        energyProvenance={energyProvenance}
+        runtimeProvenance={runtimeProvenance}
+        onOpenChange={(open) => {
+          if (!open) setSelectedBundleId(null);
+        }}
+      />
     </section>
   );
 }
