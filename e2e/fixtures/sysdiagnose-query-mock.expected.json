@@ -1,0 +1,178 @@
+{
+  "appEnergyMWh": {
+    "com.apple.mobilesafari": 141.054,
+    "com.cardify.tinder": 152.303,
+    "com.facebook.stellaapp": 155.689,
+    "com.google.ios.youtubemusic": 169.422,
+    "com.apple.Maps": 157.751
+  },
+  "componentEnergyMWh": {
+    "CPU": 1393.12,
+    "DisplayDynamic": 1361.294,
+    "DRAM": 1359.777
+  },
+  "componentIntervals": [
+    {
+      "startMs": 1788763359000,
+      "endMs": 1788766959000,
+      "componentEnergyMWh": {
+        "CPU": 79.471,
+        "DisplayDynamic": 60.997,
+        "DRAM": 109.056
+      }
+    },
+    {
+      "startMs": 1788766959000,
+      "endMs": 1788770559000,
+      "componentEnergyMWh": {
+        "CPU": 63.828,
+        "DisplayDynamic": 43.174,
+        "DRAM": 60.903
+      }
+    },
+    {
+      "startMs": 1788770559000,
+      "endMs": 1788774159000,
+      "componentEnergyMWh": {
+        "CPU": 110.659,
+        "DisplayDynamic": 40.303,
+        "DRAM": 94.348
+      }
+    },
+    {
+      "startMs": 1788774159000,
+      "endMs": 1788777759000,
+      "componentEnergyMWh": {
+        "CPU": 81.704,
+        "DisplayDynamic": 112.224,
+        "DRAM": 101.702
+      }
+    },
+    {
+      "startMs": 1788777759000,
+      "endMs": 1788781359000,
+      "componentEnergyMWh": {
+        "CPU": 90.046,
+        "DisplayDynamic": 70.258,
+        "DRAM": 108.696
+      }
+    },
+    {
+      "startMs": 1788781359000,
+      "endMs": 1788784961000,
+      "componentEnergyMWh": {
+        "CPU": 57.818,
+        "DisplayDynamic": 46.803,
+        "DRAM": 70.229
+      }
+    },
+    {
+      "startMs": 1788784961000,
+      "endMs": 1788788561000,
+      "componentEnergyMWh": {
+        "CPU": 37.564,
+        "DisplayDynamic": 99.089,
+        "DRAM": 103.587
+      }
+    },
+    {
+      "startMs": 1788788561000,
+      "endMs": 1788792161000,
+      "componentEnergyMWh": {
+        "CPU": 100.129,
+        "DisplayDynamic": 106.808,
+        "DRAM": 92.71
+      }
+    },
+    {
+      "startMs": 1788792161000,
+      "endMs": 1788795761000,
+      "componentEnergyMWh": {
+        "CPU": 110.706,
+        "DisplayDynamic": 107.241,
+        "DRAM": 86.242
+      }
+    },
+    {
+      "startMs": 1788795761000,
+      "endMs": 1788799361000,
+      "componentEnergyMWh": {
+        "CPU": 62.059,
+        "DisplayDynamic": 110.222,
+        "DRAM": 55.582
+      }
+    },
+    {
+      "startMs": 1788799361000,
+      "endMs": 1788802961000,
+      "componentEnergyMWh": {
+        "CPU": 101.272,
+        "DisplayDynamic": 39.988,
+        "DRAM": 67.61
+      }
+    },
+    {
+      "startMs": 1788802961000,
+      "endMs": 1788806561000,
+      "componentEnergyMWh": {
+        "CPU": 75.789,
+        "DisplayDynamic": 106.492,
+        "DRAM": 48.66
+      }
+    },
+    {
+      "startMs": 1788806561000,
+      "endMs": 1788810161000,
+      "componentEnergyMWh": {
+        "CPU": 78.749,
+        "DisplayDynamic": 65.498,
+        "DRAM": 67.83
+      }
+    },
+    {
+      "startMs": 1788810161000,
+      "endMs": 1788813761000,
+      "componentEnergyMWh": {
+        "CPU": 79.033,
+        "DisplayDynamic": 34.14,
+        "DRAM": 40.845
+      }
+    },
+    {
+      "startMs": 1788813761000,
+      "endMs": 1788817361000,
+      "componentEnergyMWh": {
+        "CPU": 80.361,
+        "DisplayDynamic": 107.117,
+        "DRAM": 38.335
+      }
+    },
+    {
+      "startMs": 1788817361000,
+      "endMs": 1788820961000,
+      "componentEnergyMWh": {
+        "CPU": 74.34,
+        "DisplayDynamic": 54.514,
+        "DRAM": 67.782
+      }
+    },
+    {
+      "startMs": 1788820961000,
+      "endMs": 1788824561000,
+      "componentEnergyMWh": {
+        "CPU": 48.286,
+        "DisplayDynamic": 82.531,
+        "DRAM": 93.632
+      }
+    },
+    {
+      "startMs": 1788824561000,
+      "endMs": 1788828161000,
+      "componentEnergyMWh": {
+        "CPU": 61.306,
+        "DisplayDynamic": 73.895,
+        "DRAM": 52.028
+      }
+    }
+  ]
+}

@@ -51,6 +51,9 @@ const MarkdownConverter = React.lazy(
 const VideoConverterClient = React.lazy(
   () => import("@/pages/videos/convert/client"),
 );
+const SysdiagnosePage = React.lazy(
+  () => import("@/pages/sysdiagnose/sysdiagnose"),
+);
 
 void AudioCombiner;
 void AudioConverter;
@@ -417,6 +420,17 @@ export default function App() {
                   description="Convert videos to different formats like MP4, WebM, GIF, and more."
                 >
                   <VideoConverterClient ssr={true} />
+                </RouteWithMeta>
+              }
+            />
+            <Route
+              path="/sysdiagnose"
+              element={
+                <RouteWithMeta
+                  title="Sysdiagnose"
+                  description="Analyze iPhone sysdiagnose archives locally — battery and logs."
+                >
+                  <SysdiagnosePage ssr={true} />
                 </RouteWithMeta>
               }
             />
