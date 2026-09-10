@@ -6,7 +6,6 @@ import {
   HardDrive,
   type LucideIcon,
   Smartphone,
-  Thermometer,
   Upload,
   Wifi,
 } from "lucide-react";
@@ -41,14 +40,12 @@ import { DeviceTab } from "./tabs/device/device-tab";
 import { FilesTab } from "./tabs/files/files-tab";
 import { LogsTab } from "./tabs/logs/logs-tab";
 import { StorageTab } from "./tabs/storage/storage-tab";
-import { ThermalTab } from "./tabs/thermal/thermal-tab";
 import { WifiTab } from "./tabs/wifi/wifi-tab";
 
 type Tab =
   | "battery"
   | "wifi"
   | "storage"
-  | "thermal"
   | "device"
   | "crashes"
   | "logs"
@@ -153,7 +150,6 @@ export default csr(function SysdiagnosePage() {
     { id: "battery", label: "Battery", Icon: BatteryMedium },
     { id: "wifi", label: "WiFi", Icon: Wifi },
     { id: "storage", label: "Storage", Icon: HardDrive },
-    { id: "thermal", label: "Thermal", Icon: Thermometer },
     { id: "device", label: "Device", Icon: Smartphone },
     { id: "crashes", label: "Crashes", Icon: CircleAlert },
     { id: "logs", label: "Logs", Icon: FileText },
@@ -222,7 +218,6 @@ export default csr(function SysdiagnosePage() {
               ) : null}
               {tab === "wifi" ? <WifiTab analysis={wifi} /> : null}
               {tab === "storage" ? <StorageTab entries={entries} /> : null}
-              {tab === "thermal" ? <ThermalTab /> : null}
               {tab === "device" ? <DeviceTab entries={entries} /> : null}
               {tab === "crashes" ? <CrashesTab entries={entries} /> : null}
               {tab === "logs" ? <LogsTab entries={entries} /> : null}

@@ -383,7 +383,7 @@ test("a Battery UI selection leaves the component timeline fixed and updates the
   await expect(
     page.locator("pre").filter({ hasText: "FSSnapshot <-> FPSnapshot" }),
   ).toBeVisible();
-  for (const tabName of ["WiFi", "Storage", "Thermal", "Device", "Crashes"]) {
+  for (const tabName of ["WiFi", "Storage", "Device", "Crashes"]) {
     await page.getByRole("button", { name: tabName }).click();
     await expect(
       page.getByRole("heading", {
@@ -391,4 +391,5 @@ test("a Battery UI selection leaves the component timeline fixed and updates the
       }),
     ).toBeVisible();
   }
+  await expect(page.getByRole("button", { name: "Thermal" })).toHaveCount(0);
 });
