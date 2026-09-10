@@ -128,6 +128,7 @@ test("sysdiagnose extracts randomized Powerlog app activity for a selected range
   const barX = Number(await firstBar.getAttribute("x"));
   const barWidth = Number(await firstBar.getAttribute("width"));
   expect(Math.abs(guideX - (barX + barWidth / 2))).toBeLessThan(0.01);
+  await expect(page.getByRole("tooltip").getByText(/^CPU:/)).toBeVisible();
 });
 
 test("sysdiagnose renders the Powerlog overlap when a selected range extends past coverage", async ({

@@ -384,6 +384,16 @@ function BatteryChart({
           title: `${formatPointTime(hoveredEnergy.startMs)}–${formatPointTime(hoveredEnergy.endMs)}`,
           lines: [
             `Total: ${formatEnergy(hoveredEnergy.energy)}`,
+            ...Object.entries(hoveredEnergy.components)
+              .filter(([, value]) => value > 0)
+              .sort(
+                ([leftKey, leftValue], [rightKey, rightValue]) =>
+                  rightValue - leftValue || leftKey.localeCompare(rightKey),
+              )
+              .map(
+                ([key, value]) =>
+                  `${componentLabel(key)}: ${formatEnergy(value)}`,
+              ),
             ...(nearestAppPoint && hoveredAppName
               ? [`${hoveredAppName}: ${formatEnergy(nearestAppPoint.energy)}`]
               : []),
