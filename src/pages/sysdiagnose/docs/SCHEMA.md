@@ -139,10 +139,7 @@ offset is not valid.
 
 ## `PLAccountingOperator_EventInterval_EnergyEstimateEvents`
 
-Fine-grained estimated-energy intervals. This archive contains 113,193 rows;
-durations range from 9 microseconds to about 21.6 seconds. These records are
-not yet used for charting because their distribution/correction semantics have
-not been validated.
+Fine-grained estimated-energy intervals.
 
 | Column                     | SQLite type          | Meaning                                                           | Unit                                |
 | ---                        | ---                  | ---                                                               | ---                                 |
