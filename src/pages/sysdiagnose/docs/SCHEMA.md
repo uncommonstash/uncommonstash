@@ -117,11 +117,9 @@ Energy     = component → consumer attribution for an aggregate interval
 | `RootNodeID`   | INTEGER              | Component/account being distributed; join to `Nodes.ID`.                  | Identifier                                                 |
 
 `NodeID = RootNodeID` selects the root's own allocation. It is **not** the sum
-of all consumers under that component. In the sampled archive's final hour,
-root-self entries totalled 9.4 mWh while all rows totalled 247.1 mWh. The exact
-device-wide aggregation rule still requires validation against the
-distribution/qualification records before the UI can call a component chart a
-total.
+of all consumers under that component. The exact device-wide aggregation rule
+still requires validation against the distribution/qualification records before
+the UI can call a component chart a total.
 
 ## `PLStorageOperator_EventForward_TimeOffset`
 
