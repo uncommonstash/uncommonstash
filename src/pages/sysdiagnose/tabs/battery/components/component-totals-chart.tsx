@@ -103,13 +103,19 @@ export function ComponentTotalsChart({
     ? {
         title: intervalLabel(hoveredInterval.start, hoveredInterval.end),
         lines: [
-          `Total: ${((hoveredTotal ?? 0) * 0.001).toFixed(3)} mWh`,
+          {
+            label: `Total: ${((hoveredTotal ?? 0) * 0.001).toFixed(3)} mWh`,
+          },
           ...[...hoveredInterval.components]
-            .sort((a, b) => a.rootNode.name.localeCompare(b.rootNode.name))
-            .map(
-              (row) =>
-                `${row.rootNode.name}: ${(row.rawEnergy * 0.001).toFixed(3)} mWh`,
-            ),
+            .sort(
+              (left, right) =>
+                right.rawEnergy - left.rawEnergy ||
+                left.rootNode.name.localeCompare(right.rootNode.name),
+            )
+            .map((row) => ({
+              label: `${row.rootNode.name}: ${(row.rawEnergy * 0.001).toFixed(3)} mWh`,
+              color: color(row.rootNode.name),
+            })),
         ],
       }
     : null;

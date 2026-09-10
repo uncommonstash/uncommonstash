@@ -204,6 +204,19 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
   )) {
     expect(tooltip).toContain(`${component}: ${energy.toFixed(3)} mWh`);
   }
+  const tooltipEntries = await page
+    .getByTestId("chart-tooltip-entry")
+    .allTextContents();
+  const expectedRankedEntries = Object.entries(firstInterval.componentEnergyMWh)
+    .sort(
+      ([leftName, leftEnergy], [rightName, rightEnergy]) =>
+        rightEnergy - leftEnergy || leftName.localeCompare(rightName),
+    )
+    .map(([component, energy]) => `${component}: ${energy.toFixed(3)} mWh`);
+  expect(tooltipEntries.slice(1)).toEqual(expectedRankedEntries);
+  await expect(page.getByTestId("chart-tooltip-dot")).toHaveCount(
+    expectedRankedEntries.length,
+  );
 });
 
 test("a Battery UI selection leaves the component timeline fixed and updates the app table", async ({

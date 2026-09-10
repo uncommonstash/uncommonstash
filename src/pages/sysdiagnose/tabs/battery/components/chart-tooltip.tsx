@@ -1,6 +1,11 @@
 export interface ChartTooltipData {
   title: string;
-  lines: string[];
+  lines: ChartTooltipLine[];
+}
+
+export interface ChartTooltipLine {
+  label: string;
+  color?: string;
 }
 
 export interface ChartTooltipAnchor {
@@ -36,10 +41,19 @@ export function ChartTooltip({
       <div className="font-medium">{tooltip.title}</div>
       {tooltip.lines.map((line) => (
         <div
-          key={`${tooltip.title}-${line}`}
-          className="mt-0.5 tabular-nums text-muted-foreground"
+          key={`${tooltip.title}-${line.label}`}
+          data-testid="chart-tooltip-entry"
+          className="mt-0.5 flex items-center gap-1.5 tabular-nums text-muted-foreground"
         >
-          {line}
+          {line.color ? (
+            <span
+              aria-hidden="true"
+              data-testid="chart-tooltip-dot"
+              className="h-2 w-2 shrink-0 rounded-full"
+              style={{ backgroundColor: line.color }}
+            />
+          ) : null}
+          <span>{line.label}</span>
         </div>
       ))}
     </div>

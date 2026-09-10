@@ -142,13 +142,17 @@ export function AppEnergyChart({ rows }: { rows: AppEnergyAttributionRow[] }) {
     ? {
         title: intervalLabel(hovered.start, hovered.end),
         lines: [
-          `Total: ${formatEnergy(hoveredTotal ?? 0)}`,
+          { label: `Total: ${formatEnergy(hoveredTotal ?? 0)}` },
           ...[...hovered.components]
-            .sort((left, right) => right.rawEnergy - left.rawEnergy)
-            .map(
-              (component) =>
-                `${component.name}: ${formatEnergy(component.rawEnergy)}`,
-            ),
+            .sort(
+              (left, right) =>
+                right.rawEnergy - left.rawEnergy ||
+                left.name.localeCompare(right.name),
+            )
+            .map((component) => ({
+              label: `${component.name}: ${formatEnergy(component.rawEnergy)}`,
+              color: color(component.id),
+            })),
         ],
       }
     : null;

@@ -71,7 +71,7 @@ export function BatteryChart({
           hour: "numeric",
           minute: "2-digit",
         }).format(new Date(hoveredPoint.ts)),
-        lines: [`${hoveredPoint.level}% battery`],
+        lines: [{ label: `${hoveredPoint.level}% battery` }],
       }
     : null;
   const tooltipAnchor = hoveredPoint
