@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { type PointerEvent, useMemo, useRef, useState } from "react";
 import type {
   ComponentTotalRow,
   QueryProvenance,
@@ -40,11 +40,13 @@ export function ComponentTotalsChart({
   rows,
   provenance,
   selectedRange,
+  onRangeChange,
 }: {
   domain: QueryRange;
   rows: ComponentTotalRow[];
   provenance?: QueryProvenance;
   selectedRange: QueryRange;
+  onRangeChange: (range: QueryRange) => void;
 }) {
   const [hoveredIntervalKey, setHoveredIntervalKey] = useState<string | null>(
     null,
@@ -92,6 +94,30 @@ export function ComponentTotalsChart({
     sourceStart,
     Math.min(sourceEnd, selectedRange.endMs),
   );
+  const dragStart = useRef<number | null>(null);
+  const timeAt = (event: PointerEvent<SVGSVGElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const fraction = Math.max(
+      0,
+      Math.min(
+        1,
+        (event.clientX - rect.left - (padding.left / width) * rect.width) /
+          Math.max(
+            1,
+            ((width - padding.left - padding.right) / width) * rect.width,
+          ),
+      ),
+    );
+    return sourceStart + fraction * (sourceEnd - sourceStart);
+  };
+  const updateHoveredInterval = (time: number) => {
+    const interval = intervals.find(
+      (group) => time >= group.start && time <= group.end,
+    );
+    setHoveredIntervalKey(
+      interval ? `${interval.start}-${interval.end}` : null,
+    );
+  };
   const hoveredInterval = intervals.find(
     (group) => `${group.start}-${group.end}` === hoveredIntervalKey,
   );
@@ -148,7 +174,7 @@ export function ComponentTotalsChart({
           <div className="relative">
             <svg
               viewBox={`0 0 ${width} ${height}`}
-              className="h-80 w-full"
+              className="h-80 w-full touch-none"
               aria-label="Energy by component chart"
               preserveAspectRatio="none"
               data-requested-start-ms={provenance?.requestedRange.startMs}
@@ -159,7 +185,28 @@ export function ComponentTotalsChart({
               data-selected-end-ms={selectedRange.endMs}
               data-timeline-start-ms={sourceStart}
               data-timeline-end-ms={sourceEnd}
+              onPointerDown={(event) => {
+                dragStart.current = timeAt(event);
+                event.currentTarget.setPointerCapture(event.pointerId);
+                updateHoveredInterval(dragStart.current);
+              }}
+              onPointerMove={(event) => updateHoveredInterval(timeAt(event))}
               onPointerLeave={() => setHoveredIntervalKey(null)}
+              onPointerUp={(event) => {
+                if (dragStart.current === null) return;
+                const end = timeAt(event);
+                const clickThresholdMs =
+                  ((sourceEnd - sourceStart) / width) * 8;
+                if (Math.abs(end - dragStart.current) <= clickThresholdMs) {
+                  onRangeChange({ startMs: sourceStart, endMs: sourceEnd });
+                } else {
+                  onRangeChange({
+                    startMs: Math.min(dragStart.current, end),
+                    endMs: Math.max(dragStart.current, end),
+                  });
+                }
+                dragStart.current = null;
+              }}
             >
               <defs>
                 <clipPath id="component-totals-plot">

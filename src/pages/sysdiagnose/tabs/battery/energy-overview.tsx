@@ -11,7 +11,7 @@ import {
 import { usePowerlogQuery, useQueryStore } from "./query-store";
 
 export function EnergyOverview({ battery }: { battery: BatteryPlistData }) {
-  const { state } = useQueryStore();
+  const { state, setRange } = useQueryStore();
   const timelineRange = useMemo(
     () => ({
       startMs: battery.points[0]?.ts ?? state.range.startMs,
@@ -76,6 +76,7 @@ export function EnergyOverview({ battery }: { battery: BatteryPlistData }) {
               : undefined
           }
           selectedRange={state.range}
+          onRangeChange={setRange}
         />
       )}
       {failure ? (

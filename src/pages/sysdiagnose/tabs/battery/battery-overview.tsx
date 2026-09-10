@@ -39,9 +39,6 @@ export function BatteryOverview({ battery }: { battery: BatteryPlistData }) {
           <h2 className="text-base font-semibold">
             Battery level from Battery UI
           </h2>
-          <p className="text-xs text-muted-foreground">
-            Drag across the chart to focus on a time range.
-          </p>
         </div>
         <BatteryChart
           points={battery.points}

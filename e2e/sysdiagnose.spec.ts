@@ -313,6 +313,24 @@ test("a Battery UI selection leaves the component timeline fixed and updates the
       .locator("g[data-interval-start-ms] rect")
       .first(),
   ).toBeVisible();
+  const energyChartBox = await source.boundingBox();
+  expect(energyChartBox).not.toBeNull();
+  if (!energyChartBox) throw new Error("component chart is missing");
+  await page.mouse.move(
+    energyChartBox.x + energyChartBox.width * 0.15,
+    energyChartBox.y + energyChartBox.height * 0.5,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    energyChartBox.x + energyChartBox.width * 0.29,
+    energyChartBox.y + energyChartBox.height * 0.5,
+    { steps: 5 },
+  );
+  await page.mouse.up();
+  await expect(source).not.toHaveAttribute(
+    "data-selected-start-ms",
+    selectedStart,
+  );
 
   await page.getByRole("button", { name: "Logs" }).click();
   await expect(page.getByPlaceholder("Search messages")).toBeVisible();
