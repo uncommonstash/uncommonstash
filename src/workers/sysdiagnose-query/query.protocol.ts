@@ -90,9 +90,7 @@ export interface SysdiagnoseQueryRequest {
   plan: SysdiagnoseQueryPlan;
 }
 
-export type SysdiagnoseQueryIn =
-  | SysdiagnoseQueryInit
-  | SysdiagnoseQueryRequest;
+export type SysdiagnoseQueryIn = SysdiagnoseQueryInit | SysdiagnoseQueryRequest;
 
 export interface SysdiagnoseQueryCatalog {
   v: typeof SYS_DIAGNOSE_QUERY_PROTOCOL_VERSION;
@@ -179,7 +177,8 @@ export function isSysdiagnoseQueryIn(
     typeof value["id"] !== "number"
   )
     return false;
-  if (value["kind"] === "query/init") return value["powerlog"] instanceof ArrayBuffer;
+  if (value["kind"] === "query/init")
+    return value["powerlog"] instanceof ArrayBuffer;
   return value["kind"] === "query/run" && isSysdiagnoseQueryPlan(value["plan"]);
 }
 

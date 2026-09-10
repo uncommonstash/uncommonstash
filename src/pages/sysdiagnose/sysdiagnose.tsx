@@ -26,10 +26,16 @@ function formatMB(bytes: number): string {
 }
 
 function stageLabel(progress: IngestProgress): string {
-  if (progress.stage === "reading") return progress.bytesTotal > 0 ? `Reading ${formatMB(progress.bytesRead)} of ${formatMB(progress.bytesTotal)}` : `Reading ${formatMB(progress.bytesRead)}`;
-  if (progress.stage === "decompressing") return `Decompressing ${formatMB(progress.bytesRead)} streamed`;
-  if (progress.stage === "storing") return `Indexing ${progress.filesFound.toLocaleString()} files`;
-  if (progress.stage === "done") return `${progress.filesFound.toLocaleString()} files ready`;
+  if (progress.stage === "reading")
+    return progress.bytesTotal > 0
+      ? `Reading ${formatMB(progress.bytesRead)} of ${formatMB(progress.bytesTotal)}`
+      : `Reading ${formatMB(progress.bytesRead)}`;
+  if (progress.stage === "decompressing")
+    return `Decompressing ${formatMB(progress.bytesRead)} streamed`;
+  if (progress.stage === "storing")
+    return `Indexing ${progress.filesFound.toLocaleString()} files`;
+  if (progress.stage === "done")
+    return `${progress.filesFound.toLocaleString()} files ready`;
   return "Indexing archive";
 }
 
@@ -76,17 +82,194 @@ export default csr(function SysdiagnosePage() {
       return null;
     }
   }, [entries]);
-  const powerlog = useMemo(() => entries.find((entry) => entry.kind === "sqlite" && /powerlog.*\.plsql$/i.test(entry.path)) ?? entries.find((entry) => entry.kind === "sqlite") ?? null, [entries]);
+  const powerlog = useMemo(
+    () =>
+      entries.find(
+        (entry) =>
+          entry.kind === "sqlite" && /powerlog.*\.plsql$/i.test(entry.path),
+      ) ??
+      entries.find((entry) => entry.kind === "sqlite") ??
+      null,
+    [entries],
+  );
 
-  if (entries.length === 0) return <UploadView busy={busy} dragging={dragging} fileName={fileName} fileRef={fileRef} progress={progress} onDragChange={setDragging} onLoad={load} />;
-  const navigation: Array<{ id: Tab; label: string; Icon: typeof BatteryMedium }> = [
+  if (entries.length === 0)
+    return (
+      <UploadView
+        busy={busy}
+        dragging={dragging}
+        fileName={fileName}
+        fileRef={fileRef}
+        progress={progress}
+        onDragChange={setDragging}
+        onLoad={load}
+      />
+    );
+  const navigation: Array<{
+    id: Tab;
+    label: string;
+    Icon: typeof BatteryMedium;
+  }> = [
     { id: "battery", label: "battery", Icon: BatteryMedium },
     { id: "logs", label: "logs", Icon: FileText },
     { id: "files", label: "files", Icon: FolderTree },
   ];
-  return <div className="h-screen overflow-hidden bg-secondary/30 [&_*]:shadow-none"><div className="flex h-full"><aside className="w-56 shrink-0 overflow-y-auto p-4" aria-label="Sections"><BackLink /><Button size="sm" className="mt-6 w-full justify-start gap-2 rounded-full px-3" onClick={reset}><Upload className="h-4 w-4" />Upload</Button><nav className="mt-5 space-y-1">{navigation.map(({ id, label, Icon }) => <button key={id} type="button" onClick={() => setTab(id)} aria-current={tab === id ? "page" : undefined} className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors ${tab === id ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"}`}><Icon className="h-4 w-4" />{label}</button>)}</nav></aside><ScrollArea type="always" className="min-w-0 flex-1 border-l bg-background"><main className="mx-auto max-w-6xl px-6 py-4"><h1 className="mb-6 text-xl font-semibold">Sysdiagnose</h1>{tab === "battery" ? <BatteryTab battery={battery} powerlog={powerlog} /> : null}{tab === "logs" ? <LogsTab entries={entries} /> : null}{tab === "files" ? <FilesTab entries={entries} /> : null}</main></ScrollArea></div></div>;
+  return (
+    <div className="h-screen overflow-hidden bg-secondary/30 [&_*]:shadow-none">
+      <div className="flex h-full">
+        <aside
+          className="w-56 shrink-0 overflow-y-auto p-4"
+          aria-label="Sections"
+        >
+          <BackLink />
+          <Button
+            size="sm"
+            className="mt-6 w-full justify-start gap-2 rounded-full px-3"
+            onClick={reset}
+          >
+            <Upload className="h-4 w-4" />
+            Upload
+          </Button>
+          <nav className="mt-5 space-y-1">
+            {navigation.map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTab(id)}
+                aria-current={tab === id ? "page" : undefined}
+                className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors ${tab === id ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"}`}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </button>
+            ))}
+          </nav>
+        </aside>
+        <ScrollArea
+          type="always"
+          className="min-w-0 flex-1 border-l bg-background"
+        >
+          <main className="mx-auto max-w-6xl px-6 py-4">
+            <h1 className="mb-6 text-xl font-semibold">Sysdiagnose</h1>
+            {tab === "battery" ? (
+              <BatteryTab battery={battery} powerlog={powerlog} />
+            ) : null}
+            {tab === "logs" ? <LogsTab entries={entries} /> : null}
+            {tab === "files" ? <FilesTab entries={entries} /> : null}
+          </main>
+        </ScrollArea>
+      </div>
+    </div>
+  );
 });
 
-function UploadView({ busy, dragging, fileName, fileRef, progress, onDragChange, onLoad }: { busy: boolean; dragging: boolean; fileName: string; fileRef: React.RefObject<HTMLInputElement | null>; progress: IngestProgress | null; onDragChange: (dragging: boolean) => void; onLoad: (file: File) => void }) {
-  return <div className="min-h-screen bg-secondary/30 p-4 [&_*]:shadow-none" onDragOver={(event) => event.preventDefault()} onDrop={(event) => event.preventDefault()}><div className="mx-auto max-w-6xl"><BackLink /><div className="flex min-h-[80vh] items-center justify-center"><div className="w-full max-w-xl space-y-4">{busy ? <div className="w-full p-10 text-center" role="status" aria-live="polite"><Spinner size="md" className="mx-auto" value={progress?.fraction}><span className="sr-only">Loading sysdiagnose</span></Spinner><div className="mt-4 truncate text-lg font-semibold">{fileName}</div><div className="mt-1 text-sm text-muted-foreground">{progress ? stageLabel(progress) : "Starting"}</div><div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-secondary"><div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${Math.round((progress?.fraction ?? 0) * 100)}%` }} /></div><div className="mt-2 text-xs text-muted-foreground">Processing locally — nothing is uploaded</div></div> : <button type="button" onClick={() => fileRef.current?.click()} onDragOver={(event) => { event.preventDefault(); onDragChange(true); }} onDragLeave={() => onDragChange(false)} onDrop={(event) => { event.preventDefault(); onDragChange(false); const file = event.dataTransfer.files?.[0]; if (file) onLoad(file); }} className={`flex min-h-64 w-full flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition ${dragging ? "border-primary bg-background" : "hover:bg-background"}`}><div className="text-lg font-semibold">Drop sysdiagnose_*.tar.gz here</div><div className="text-sm text-muted-foreground">or click to browse</div></button>}<input ref={fileRef} type="file" accept=".tar.gz,.tgz,.tar,.gz" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) onLoad(file); }} /><ol className="mx-auto w-fit max-w-full list-decimal space-y-1 pl-5 text-sm text-muted-foreground"><li>iPhone: press Vol Up + Vol Down + hold Side 1s, wait about 10 min.</li><li>Settings → Privacy & Security → Analytics → Analytics Data → sysdiagnose_[date].</li><li>Share via AirDrop, then drop the .tar.gz above.</li></ol></div></div></div></div>;
+function UploadView({
+  busy,
+  dragging,
+  fileName,
+  fileRef,
+  progress,
+  onDragChange,
+  onLoad,
+}: {
+  busy: boolean;
+  dragging: boolean;
+  fileName: string;
+  fileRef: React.RefObject<HTMLInputElement | null>;
+  progress: IngestProgress | null;
+  onDragChange: (dragging: boolean) => void;
+  onLoad: (file: File) => void;
+}) {
+  return (
+    <div
+      className="min-h-screen bg-secondary/30 p-4 [&_*]:shadow-none"
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={(event) => event.preventDefault()}
+    >
+      <div className="mx-auto max-w-6xl">
+        <BackLink />
+        <div className="flex min-h-[80vh] items-center justify-center">
+          <div className="w-full max-w-xl space-y-4">
+            {busy ? (
+              <div
+                className="w-full p-10 text-center"
+                role="status"
+                aria-live="polite"
+              >
+                <Spinner
+                  size="md"
+                  className="mx-auto"
+                  value={progress?.fraction}
+                >
+                  <span className="sr-only">Loading sysdiagnose</span>
+                </Spinner>
+                <div className="mt-4 truncate text-lg font-semibold">
+                  {fileName}
+                </div>
+                <div className="mt-1 text-sm text-muted-foreground">
+                  {progress ? stageLabel(progress) : "Starting"}
+                </div>
+                <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+                  <div
+                    className="h-full rounded-full bg-primary transition-[width]"
+                    style={{
+                      width: `${Math.round((progress?.fraction ?? 0) * 100)}%`,
+                    }}
+                  />
+                </div>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  Processing locally — nothing is uploaded
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  onDragChange(true);
+                }}
+                onDragLeave={() => onDragChange(false)}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  onDragChange(false);
+                  const file = event.dataTransfer.files?.[0];
+                  if (file) onLoad(file);
+                }}
+                className={`flex min-h-64 w-full flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition ${dragging ? "border-primary bg-background" : "hover:bg-background"}`}
+              >
+                <div className="text-lg font-semibold">
+                  Drop sysdiagnose_*.tar.gz here
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  or click to browse
+                </div>
+              </button>
+            )}
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".tar.gz,.tgz,.tar,.gz"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) onLoad(file);
+              }}
+            />
+            <ol className="mx-auto w-fit max-w-full list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+              <li>
+                iPhone: press Vol Up + Vol Down + hold Side 1s, wait about 10
+                min.
+              </li>
+              <li>
+                Settings → Privacy & Security → Analytics → Analytics Data →
+                sysdiagnose_[date].
+              </li>
+              <li>Share via AirDrop, then drop the .tar.gz above.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

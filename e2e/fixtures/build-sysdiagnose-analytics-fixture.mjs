@@ -10,10 +10,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { create } from "tar";
 
-const fixturePath = new URL(
-  "./sysdiagnose-query-mock.tar.gz",
-  import.meta.url,
-).pathname;
+const fixturePath = new URL("./sysdiagnose-query-mock.tar.gz", import.meta.url)
+  .pathname;
 const expectedPath = new URL(
   "./sysdiagnose-query-mock.expected.json",
   import.meta.url,
@@ -92,8 +90,11 @@ function powerlogSql() {
       endMs,
       components: {},
     };
-    const component = ["CPU", "DisplayDynamic", "DRAM"][componentIds.indexOf(rootId)];
-    interval.components[component] = (interval.components[component] ?? 0) + energy;
+    const component = ["CPU", "DisplayDynamic", "DRAM"][
+      componentIds.indexOf(rootId)
+    ];
+    interval.components[component] =
+      (interval.components[component] ?? 0) + energy;
     expectedRawByInterval.set(key, interval);
   };
   const statements = [

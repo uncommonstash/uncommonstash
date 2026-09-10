@@ -63,7 +63,10 @@ function textField(row: Record<string, unknown>, field: string): string {
   return value;
 }
 
-function node(row: Record<string, unknown>, prefix: "root" | "consumer"): NodeIdentity {
+function node(
+  row: Record<string, unknown>,
+  prefix: "root" | "consumer",
+): NodeIdentity {
   return {
     id: numberField(row, `${prefix}NodeId`),
     name: textField(row, `${prefix}NodeName`),
@@ -78,10 +81,13 @@ export function createTimeNormalizer(queryRows: QueryRows) {
       WHERE "system" IS NOT NULL
       ORDER BY timestamp ASC`,
     [],
-  ).map((row) => ({
-    monotonicSec: numberField(row, "monotonicSec"),
-    systemSec: numberField(row, "systemSec"),
-  } satisfies Offset));
+  ).map(
+    (row) =>
+      ({
+        monotonicSec: numberField(row, "monotonicSec"),
+        systemSec: numberField(row, "systemSec"),
+      }) satisfies Offset,
+  );
   if (offsets.length === 0) throw new Error("missing TimeOffset calibration");
   for (let index = 1; index < offsets.length; index += 1) {
     if (offsets[index - 1].monotonicSec >= offsets[index].monotonicSec) {
@@ -97,7 +103,8 @@ export function createTimeNormalizer(queryRows: QueryRows) {
     if (!selected) throw new Error("record predates TimeOffset calibration");
     return selected;
   };
-  return (timestamp: number) => (timestamp + offsetAt(timestamp).systemSec) * 1000;
+  return (timestamp: number) =>
+    (timestamp + offsetAt(timestamp).systemSec) * 1000;
 }
 
 function overlaps(interval: QueryRange, range: QueryRange) {
@@ -107,7 +114,9 @@ function overlaps(interval: QueryRange, range: QueryRange) {
 function coverage(rows: Array<{ interval: QueryRange }>): QueryRange[] {
   const sorted = [...rows]
     .map((row) => row.interval)
-    .sort((left, right) => left.startMs - right.startMs || left.endMs - right.endMs);
+    .sort(
+      (left, right) => left.startMs - right.startMs || left.endMs - right.endMs,
+    );
   const segments: QueryRange[] = [];
   for (const interval of sorted) {
     const previous = segments.at(-1);
@@ -120,7 +129,9 @@ function coverage(rows: Array<{ interval: QueryRange }>): QueryRange[] {
   return segments;
 }
 
-function effectiveRange(rows: Array<{ interval: QueryRange }>): QueryRange | null {
+function effectiveRange(
+  rows: Array<{ interval: QueryRange }>,
+): QueryRange | null {
   if (rows.length === 0) return null;
   return {
     startMs: Math.min(...rows.map((row) => row.interval.startMs)),
@@ -131,12 +142,14 @@ function effectiveRange(rows: Array<{ interval: QueryRange }>): QueryRange | nul
 function rejectDuplicateRows(rows: SysdiagnoseQueryRow[]) {
   const identities = new Set<string>();
   for (const row of rows) {
-    const identity = "rootNode" in row
-      ? "consumerNode" in row
-        ? `${row.interval.startMs}:${row.interval.endMs}:${row.rootNode.id}:${row.consumerNode.id}`
-        : `${row.interval.startMs}:${row.interval.endMs}:${row.rootNode.id}`
-      : `${row.interval.startMs}:${row.interval.endMs}:${row.bundleId}`;
-    if (identities.has(identity)) throw new Error(`duplicate source result: ${identity}`);
+    const identity =
+      "rootNode" in row
+        ? "consumerNode" in row
+          ? `${row.interval.startMs}:${row.interval.endMs}:${row.rootNode.id}:${row.consumerNode.id}`
+          : `${row.interval.startMs}:${row.interval.endMs}:${row.rootNode.id}`
+        : `${row.interval.startMs}:${row.interval.endMs}:${row.bundleId}`;
+    if (identities.has(identity))
+      throw new Error(`duplicate source result: ${identity}`);
     identities.add(identity);
   }
   return rows;
@@ -187,22 +200,35 @@ export function executeQueryPlan(
                  root.Name, root.IsPermanent
         ORDER BY energy.timestamp ASC, energy.RootNodeID ASC`,
       [HOURLY_SECONDS],
-    ).map((row): ComponentTotalRow => ({
-      interval: interval(row, normalize),
-      rootNode: node(row, "root"),
-      rawEnergy: numberField(row, "rawEnergy"),
-    }));
-    const rows = rejectDuplicateRows(all.filter((row) => overlaps(row.interval, plan.range)));
+    ).map(
+      (row): ComponentTotalRow => ({
+        interval: interval(row, normalize),
+        rootNode: node(row, "root"),
+        rawEnergy: numberField(row, "rawEnergy"),
+      }),
+    );
+    const rows = rejectDuplicateRows(
+      all.filter((row) => overlaps(row.interval, plan.range)),
+    );
     return {
       rows,
       provenance: provenance(ROOT_NODE_ENERGY_SOURCE, plan, rows, all, [
-        { operation: "sum", input: "Energy", groupBy: ["interval", "RootNodeID"] },
+        {
+          operation: "sum",
+          input: "Energy",
+          groupBy: ["interval", "RootNodeID"],
+        },
       ]),
     };
   }
-  const apps = [...new Set(plan.apps.map((app) => app.bundleId).filter(Boolean))];
+  const apps = [
+    ...new Set(plan.apps.map((app) => app.bundleId).filter(Boolean)),
+  ];
   if (apps.length === 0) {
-    const source = plan.kind === "app-runtime" ? APP_RUNTIME_SOURCE : ROOT_NODE_ENERGY_SOURCE;
+    const source =
+      plan.kind === "app-runtime"
+        ? APP_RUNTIME_SOURCE
+        : ROOT_NODE_ENERGY_SOURCE;
     return { rows: [], provenance: provenance(source, plan, [], [], []) };
   }
   const placeholders = apps.map(() => "?").join(",");
@@ -221,17 +247,25 @@ export function executeQueryPlan(
                  root.Name, root.IsPermanent, consumer.Name, consumer.IsPermanent
         ORDER BY energy.timestamp ASC, consumer.Name ASC, energy.RootNodeID ASC`,
       [...apps, HOURLY_SECONDS],
-    ).map((row): AppEnergyAttributionRow => ({
-      interval: interval(row, normalize),
-      rootNode: node(row, "root"),
-      consumerNode: node(row, "consumer"),
-      rawEnergy: numberField(row, "rawEnergy"),
-    }));
-    const rows = rejectDuplicateRows(all.filter((row) => overlaps(row.interval, plan.range)));
+    ).map(
+      (row): AppEnergyAttributionRow => ({
+        interval: interval(row, normalize),
+        rootNode: node(row, "root"),
+        consumerNode: node(row, "consumer"),
+        rawEnergy: numberField(row, "rawEnergy"),
+      }),
+    );
+    const rows = rejectDuplicateRows(
+      all.filter((row) => overlaps(row.interval, plan.range)),
+    );
     return {
       rows,
       provenance: provenance(ROOT_NODE_ENERGY_SOURCE, plan, rows, all, [
-        { operation: "sum", input: "Energy", groupBy: ["interval", "RootNodeID", "NodeID"] },
+        {
+          operation: "sum",
+          input: "Energy",
+          groupBy: ["interval", "RootNodeID", "NodeID"],
+        },
       ]),
     };
   }
@@ -244,18 +278,30 @@ export function executeQueryPlan(
       GROUP BY timestamp, timeInterval, BundleID
       ORDER BY timestamp ASC, BundleID ASC`,
     [...apps, HOURLY_SECONDS],
-  ).map((row): AppRuntimeRow => ({
-    interval: interval(row, normalize),
-    bundleId: textField(row, "bundleId"),
-    foregroundSec: numberField(row, "foregroundSec"),
-    backgroundSec: numberField(row, "backgroundSec"),
-  }));
-  const rows = rejectDuplicateRows(all.filter((row) => overlaps(row.interval, plan.range)));
+  ).map(
+    (row): AppRuntimeRow => ({
+      interval: interval(row, normalize),
+      bundleId: textField(row, "bundleId"),
+      foregroundSec: numberField(row, "foregroundSec"),
+      backgroundSec: numberField(row, "backgroundSec"),
+    }),
+  );
+  const rows = rejectDuplicateRows(
+    all.filter((row) => overlaps(row.interval, plan.range)),
+  );
   return {
     rows,
     provenance: provenance(APP_RUNTIME_SOURCE, plan, rows, all, [
-      { operation: "sum", input: "ScreenOnTime", groupBy: ["interval", "BundleID"] },
-      { operation: "sum", input: "BackgroundTime", groupBy: ["interval", "BundleID"] },
+      {
+        operation: "sum",
+        input: "ScreenOnTime",
+        groupBy: ["interval", "BundleID"],
+      },
+      {
+        operation: "sum",
+        input: "BackgroundTime",
+        groupBy: ["interval", "BundleID"],
+      },
     ]),
   };
 }
