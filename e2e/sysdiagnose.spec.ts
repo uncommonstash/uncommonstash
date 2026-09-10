@@ -147,29 +147,28 @@ test("a selected Battery UI range returns complete overlapping Powerlog interval
   const box = await chart.boundingBox();
   expect(box).not.toBeNull();
   if (!box) throw new Error("battery chart is missing");
+  const fullStart = await chart.getAttribute("data-selected-start-ms");
+  const fullEnd = await chart.getAttribute("data-selected-end-ms");
+  expect(fullStart).not.toBeNull();
+  expect(fullEnd).not.toBeNull();
+
   await page.mouse.move(box.x + box.width * 0.32, box.y + box.height / 2);
   await page.mouse.down();
   await page.mouse.move(box.x + box.width * 0.54, box.y + box.height / 2, {
     steps: 5,
   });
   await page.mouse.up();
-  const resetRange = page.getByRole("button", { name: "Reset range" });
-  await expect(resetRange).toBeEnabled();
+  await expect(chart).not.toHaveAttribute("data-selected-start-ms", fullStart);
+  await expect(chart).not.toHaveAttribute("data-selected-end-ms", fullEnd);
+  await expect(page.getByRole("button", { name: "Reset range" })).toHaveCount(
+    0,
+  );
 
   // A click in the chart has always meant "clear this selected range"; it
   // must not leave behind a zero-width selection.
   await chart.click({ position: { x: box.width * 0.7, y: box.height / 2 } });
-  await expect(resetRange).toBeDisabled();
-
-  await page.mouse.move(box.x + box.width * 0.32, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(box.x + box.width * 0.54, box.y + box.height / 2, {
-    steps: 5,
-  });
-  await page.mouse.up();
-  await expect(resetRange).toBeEnabled();
-  await resetRange.click();
-  await expect(resetRange).toBeDisabled();
+  await expect(chart).toHaveAttribute("data-selected-start-ms", fullStart);
+  await expect(chart).toHaveAttribute("data-selected-end-ms", fullEnd);
 
   // Select again so this assertion also proves full source intervals expand a
   // non-aligned Battery UI range.

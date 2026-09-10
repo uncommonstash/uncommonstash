@@ -86,6 +86,8 @@ export function BatteryChart({
         viewBox={`0 0 ${width} ${height}`}
         className="h-64 w-full"
         aria-label="Battery level from Battery UI plist"
+        data-selected-end-ms={selectedRange.endMs}
+        data-selected-start-ms={selectedRange.startMs}
         preserveAspectRatio="none"
         onPointerDown={(event) => {
           dragStart.current = timeAt(event);

@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { Button } from "@/components/ui/button";
 import type { AppIdentity } from "@/workers/sysdiagnose-query/query.protocol";
 import type { BatteryPlistData } from "../../lib";
 import { AppTable } from "./components/app-table";
@@ -9,13 +8,6 @@ import { usePowerlogQuery, useQueryStore } from "./query-store";
 
 export function BatteryOverview({ battery }: { battery: BatteryPlistData }) {
   const { state, setRange } = useQueryStore();
-  const fullRange = useMemo(
-    () => ({
-      startMs: battery.points[0]?.ts ?? state.range.startMs,
-      endMs: battery.points.at(-1)?.ts ?? state.range.endMs,
-    }),
-    [battery.points, state.range.endMs, state.range.startMs],
-  );
   const apps = useMemo<AppIdentity[]>(
     () =>
       battery.apps
@@ -40,29 +32,16 @@ export function BatteryOverview({ battery }: { battery: BatteryPlistData }) {
     ),
   );
   const failure = energy.state === "error" || runtime.state === "error";
-  const isFullRange =
-    state.range.startMs === fullRange.startMs &&
-    state.range.endMs === fullRange.endMs;
   return (
     <div className="flex h-full min-h-0 flex-col gap-6">
       <section className="shrink-0 space-y-2">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <h2 className="text-base font-semibold">
-              Battery level from Battery UI
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Drag across the chart to focus on a time range.
-            </p>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setRange(fullRange)}
-            disabled={isFullRange}
-          >
-            Reset range
-          </Button>
+        <div>
+          <h2 className="text-base font-semibold">
+            Battery level from Battery UI
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Drag across the chart to focus on a time range.
+          </p>
         </div>
         <BatteryChart
           points={battery.points}
