@@ -57,6 +57,22 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
   await expect(page.getByTestId("chart-sample-tooltip")).toContainText(
     /battery/,
   );
+  const batteryTooltipBox = await page
+    .getByTestId("chart-sample-tooltip")
+    .boundingBox();
+  expect(batteryTooltipBox).not.toBeNull();
+  if (!batteryTooltipBox) throw new Error("battery tooltip is missing");
+  expect(batteryTooltipBox.x).toBeLessThan(
+    batteryChartBox.x + batteryChartBox.width / 2,
+  );
+  expect(
+    Math.abs(
+      batteryTooltipBox.x +
+        batteryTooltipBox.width / 2 -
+        (batteryChartBox.x + batteryChartBox.width * 0.25),
+    ),
+  ).toBeLessThan(batteryChartBox.width * 0.12);
+  expect(batteryTooltipBox.y).toBeGreaterThan(batteryChartBox.y);
   const safari = page.getByRole("row", { name: /Safari/ });
   await expect(safari).toBeVisible();
   await expect(safari.getByRole("cell").nth(1)).toHaveText(

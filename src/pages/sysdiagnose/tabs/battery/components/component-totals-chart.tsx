@@ -95,11 +95,15 @@ export function ComponentTotalsChart({
   const hoveredInterval = intervals.find(
     (group) => `${group.start}-${group.end}` === hoveredIntervalKey,
   );
+  const hoveredTotal = hoveredInterval?.components.reduce(
+    (sum, row) => sum + row.rawEnergy,
+    0,
+  );
   const tooltip = hoveredInterval
     ? {
         title: intervalLabel(hoveredInterval.start, hoveredInterval.end),
         lines: [
-          `Total: ${(hoveredInterval.components.reduce((sum, row) => sum + row.rawEnergy, 0) * 0.001).toFixed(3)} mWh`,
+          `Total: ${((hoveredTotal ?? 0) * 0.001).toFixed(3)} mWh`,
           ...[...hoveredInterval.components]
             .sort((a, b) => a.rootNode.name.localeCompare(b.rootNode.name))
             .map(
@@ -107,6 +111,19 @@ export function ComponentTotalsChart({
                 `${row.rootNode.name}: ${(row.rawEnergy * 0.001).toFixed(3)} mWh`,
             ),
         ],
+      }
+    : null;
+  const tooltipAnchor = hoveredInterval
+    ? {
+        x:
+          ((x(hoveredInterval.start) + x(hoveredInterval.end)) / 2 / width) *
+          100,
+        y:
+          ((height -
+            padding.bottom -
+            ((hoveredTotal ?? 0) / maximum) * plotHeight) /
+            height) *
+          100,
       }
     : null;
   return (
@@ -252,7 +269,7 @@ export function ComponentTotalsChart({
                 {timeLabel(sourceEnd)}
               </text>
             </svg>
-            <ChartTooltip tooltip={tooltip} />
+            <ChartTooltip anchor={tooltipAnchor} tooltip={tooltip} />
           </div>
           <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
             {names.map((name) => (

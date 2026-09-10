@@ -74,6 +74,12 @@ export function BatteryChart({
         lines: [`${hoveredPoint.level}% battery`],
       }
     : null;
+  const tooltipAnchor = hoveredPoint
+    ? {
+        x: (x(hoveredPoint.ts) / width) * 100,
+        y: (y(hoveredPoint.level) / height) * 100,
+      }
+    : null;
   if (points.length < 2)
     return (
       <p className="py-8 text-sm text-muted-foreground">
@@ -177,7 +183,7 @@ export function BatteryChart({
           </>
         ) : null}
       </svg>
-      <ChartTooltip tooltip={tooltip} />
+      <ChartTooltip anchor={tooltipAnchor} tooltip={tooltip} />
     </div>
   );
 }
