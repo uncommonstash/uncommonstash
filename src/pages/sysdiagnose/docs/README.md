@@ -15,12 +15,12 @@ not prove about this archive.
 
 ## Evidence labels
 
-| Label | Meaning |
-| --- | --- |
-| **Schema-verified** | SQLite DDL, column type, or value relationship observed in this archive. |
-| **Archive-validated** | Independently checked against another artifact in this archive. |
-| **Forensic interpretation** | Supported by cited reverse-engineering work; not an Apple API guarantee. |
-| **Unknown** | The database exposes the field but neither Apple nor the available research gives it a reliable meaning/unit. The UI must not invent one. |
+| Label                       | Meaning                                                                                                                                   |
+| ---                         | ---                                                                                                                                       |
+| **Schema-verified**         | SQLite DDL, column type, or value relationship observed in this archive.                                                                  |
+| **Archive-validated**       | Independently checked against another artifact in this archive.                                                                           |
+| **Forensic interpretation** | Supported by cited reverse-engineering work; not an Apple API guarantee.                                                                  |
+| **Unknown**                 | The database exposes the field but neither Apple nor the available research gives it a reliable meaning/unit. The UI must not invent one. |
 
 ## The important correction
 
