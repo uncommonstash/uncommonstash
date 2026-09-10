@@ -1,4 +1,12 @@
+import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
+
+const analyticsGolden = JSON.parse(
+  readFileSync(
+    "e2e/fixtures/sysdiagnose-analytics-range.expected.json",
+    "utf8",
+  ),
+) as { appEnergyMWh: Record<string, number> };
 
 test("sysdiagnose battery graph renders from PAX archive", async ({ page }) => {
   await page.goto("/sysdiagnose");
@@ -40,7 +48,12 @@ test("sysdiagnose extracts randomized Powerlog app activity for a selected range
   const safariRow = page.getByRole("row", { name: /Safari/ });
   await expect(safariRow).toBeVisible();
   const safariEnergy = safariRow.getByRole("cell").nth(1);
-  await expect(safariEnergy).toHaveText("500 mWh");
+  // The golden file is produced independently by the seeded archive builder.
+  // This verifies direct RootNodeEnergy uWh -> mWh extraction, not a Battery
+  // UI allocation ratio.
+  await expect(safariEnergy).toHaveText(
+    `${analyticsGolden.appEnergyMWh["com.apple.mobilesafari"].toFixed(0)} mWh`,
+  );
 
   // Drag a six-hour interior range. This is deliberately away from the
   // Battery UI / Powerlog edge so Powerlog is the sole source of the result.
@@ -60,11 +73,12 @@ test("sysdiagnose extracts randomized Powerlog app activity for a selected range
   await page.mouse.move(box.x + box.width * 0.55, y, { steps: 8 });
   await page.mouse.up();
 
-  // The worker must replace the plist's 24h total with a nonzero selected
-  // Powerlog share, rather than clearing the table or retaining the summary.
+  // A partial drag expands to complete source aggregates and remains direct.
   await expect(page.getByText("No app activity in this range.")).toHaveCount(0);
-  await expect(safariEnergy).not.toHaveText("500 mWh");
-  await expect(safariEnergy).toHaveText(/^[1-4]\d\d mWh$/);
+  await expect(safariEnergy).not.toHaveText(
+    `${analyticsGolden.appEnergyMWh["com.apple.mobilesafari"].toFixed(0)} mWh`,
+  );
+  await expect(safariEnergy).toHaveText(/^\d+(?:\.\d)? mWh$/);
 
   // Root-node components are extracted from the same selected Powerlog range.
   // The fixture's joined node table deliberately also has `timestamp`, matching

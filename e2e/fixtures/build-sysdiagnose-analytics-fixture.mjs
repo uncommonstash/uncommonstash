@@ -14,6 +14,10 @@ const fixturePath = new URL(
   "./sysdiagnose-analytics-range.tar.gz",
   import.meta.url,
 ).pathname;
+const expectedPath = new URL(
+  "./sysdiagnose-analytics-range.expected.json",
+  import.meta.url,
+).pathname;
 const archiveRoot =
   "sysdiagnose_2026.09.07_17-42-39-0700_iPhone-OS_iPhone_23G83_mock_powerlog";
 const batteryWindowEnd = Date.parse("2026-09-08T00:00:00-07:00") / 1000;
@@ -78,6 +82,7 @@ function batteryPlist() {
 
 function powerlogSql() {
   const seeded = random(0x5eed);
+  const expectedRawByApp = new Map(apps.map(([, bundleId]) => [bundleId, 0]));
   const statements = [
     "PRAGMA journal_mode=OFF;",
     "CREATE TABLE PLCoalitionAgent_EventInterval_CoalitionInterval (timestamp REAL, timestampEnd REAL, BundleId TEXT, LaunchdName TEXT, energy REAL);",
@@ -85,11 +90,17 @@ function powerlogSql() {
     // root-energy joins fail if the worker leaves aggregate columns unqualified.
     "CREATE TABLE PLAccountingOperator_EventNone_Nodes (ID INTEGER PRIMARY KEY, timestamp REAL, Name TEXT);",
     "CREATE TABLE PLAccountingOperator_Aggregate_RootNodeEnergy (timestamp REAL, timeInterval REAL, Energy REAL, NodeID INTEGER, RootNodeID INTEGER);",
-    "CREATE TABLE PLAppTimeService_Aggregate_AppRunTime (timestamp REAL, timeInterval REAL, ScreenOnTime REAL, BundleID TEXT);",
+    "CREATE TABLE PLAppTimeService_Aggregate_AppRunTime (timestamp REAL, timeInterval REAL, ScreenOnTime REAL, BackgroundTime REAL, BundleID TEXT);",
     "CREATE TABLE PLStorageOperator_EventForward_TimeOffset (timestamp REAL, system REAL);",
   ];
+  const initialOffset = sysdiagnoseCaptureTime - powerlogEnd;
   statements.push(
-    `INSERT INTO PLStorageOperator_EventForward_TimeOffset VALUES (${powerlogEnd}, ${sysdiagnoseCaptureTime - powerlogEnd});`,
+    `INSERT INTO PLStorageOperator_EventForward_TimeOffset VALUES (${powerlogStart}, ${initialOffset});`,
+  );
+  // Real archives contain a history of TimeOffset values. A small shift keeps
+  // this mock aligned to the battery day while exercising piecewise lookup.
+  statements.push(
+    `INSERT INTO PLStorageOperator_EventForward_TimeOffset VALUES (${powerlogStart + 12 * 3600}, ${initialOffset + 2});`,
   );
   const componentIds = [900, 901, 902];
   ["CPU", "DisplayDynamic", "DRAM"].forEach((name, index) => {
@@ -104,23 +115,50 @@ function powerlogSql() {
   });
   for (let hour = 0; hour < 24; hour += 1) {
     const timestamp = powerlogStart + hour * 3600;
+    componentIds.forEach((rootId) => {
+      const energy = 20_000 + Math.round(seeded() * 80_000);
+      statements.push(
+        `INSERT INTO PLAccountingOperator_Aggregate_RootNodeEnergy VALUES (${timestamp + 3600}, 3600, ${energy}, ${rootId}, ${rootId});`,
+      );
+    });
     apps.forEach(([, bundleId], appIndex) => {
       const coalitionEnergy = 10_000 + Math.round(seeded() * 20_000);
       statements.push(
         `INSERT INTO PLCoalitionAgent_EventInterval_CoalitionInterval VALUES (${timestamp}, ${timestamp + 3600}, '${bundleId}', '${bundleId}', ${coalitionEnergy});`,
       );
       statements.push(
-        `INSERT INTO PLAppTimeService_Aggregate_AppRunTime VALUES (${timestamp + 3600}, 3600, ${300 + Math.round(seeded() * 1800)}, '${bundleId}');`,
+        `INSERT INTO PLAppTimeService_Aggregate_AppRunTime VALUES (${timestamp + 3600}, 3600, ${300 + Math.round(seeded() * 1800)}, ${Math.round(seeded() * 900)}, '${bundleId}');`,
       );
       componentIds.forEach((rootId) => {
         const energy = 800 + Math.round(seeded() * 4_000) + appIndex * 100;
         statements.push(
           `INSERT INTO PLAccountingOperator_Aggregate_RootNodeEnergy VALUES (${timestamp + 3600}, 3600, ${energy}, ${appIndex + 1}, ${rootId});`,
         );
+        const wallStart =
+          (timestamp + initialOffset + (hour >= 12 ? 2 : 0)) * 1000;
+        const wallEnd =
+          (timestamp + 3600 + initialOffset + (hour >= 11 ? 2 : 0)) * 1000;
+        if (
+          wallEnd > (batteryWindowEnd - 24 * 3600) * 1000 &&
+          wallStart < batteryWindowEnd * 1000
+        ) {
+          expectedRawByApp.set(
+            bundleId,
+            (expectedRawByApp.get(bundleId) ?? 0) + energy,
+          );
+        }
       });
     });
   }
-  return `${statements.join("\n")}\n`;
+  return {
+    sql: `${statements.join("\n")}\n`,
+    expected: Object.fromEntries(
+      [...expectedRawByApp].map(([key, value]) => [
+        key,
+        Number((value / 1000).toFixed(3)),
+      ]),
+    ),
+  };
 }
 
 const temp = mkdtempSync(join(tmpdir(), "uncommonstash-sysdiagnose-fixture-"));
@@ -134,8 +172,13 @@ try {
     powerlogDir,
     "powerlog_2026-09-07_17-43_MOCK.PLSQL",
   );
-  execFileSync("sqlite3", [databasePath], { input: powerlogSql() });
+  const powerlog = powerlogSql();
+  execFileSync("sqlite3", [databasePath], { input: powerlog.sql });
   writeFileSync(join(plistDir, "BatteryUISysdiagnose.plist"), batteryPlist());
+  writeFileSync(
+    expectedPath,
+    `${JSON.stringify({ appEnergyMWh: powerlog.expected }, null, 2)}\n`,
+  );
   await create({ cwd: temp, file: fixturePath, gzip: true, portable: true }, [
     archiveRoot,
   ]);

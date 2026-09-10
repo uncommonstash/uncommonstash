@@ -6,396 +6,344 @@ import type {
   AnalyticsDetail,
   AnalyticsDetailPoint,
   AnalyticsEnergyPoint,
+  AnalyticsRange,
 } from "./analytics.protocol";
 
-export interface PowerlogAggregate {
-  key: string;
-  rawEnergy: number;
-  activitySec: number;
+/** RootNodeEnergy stores micro-watt-hours on the iOS schema we support. */
+export const POWERLOG_MWH_PER_RAW_UNIT = 0.001;
+export const POWERLOG_INTERVAL_SECONDS = 3600;
+
+export interface TimeOffset {
+  monotonicSec: number;
+  systemSec: number;
 }
 
-export interface PowerlogEnergyEvent {
-  rootId: number;
-  timestamp: number;
-  startOffset: number;
-  endOffset: number;
+export interface RawEnergyInterval {
+  key: string;
+  component: string;
+  startSec: number;
+  endSec: number;
+  rawEnergy: number;
+}
+
+export interface RawRuntimeInterval {
+  key: string;
+  startSec: number;
+  endSec: number;
+  foregroundSec: number;
+  backgroundSec: number;
+}
+
+export interface DirectEnergyInterval {
+  key: string;
+  component: string;
+  startMs: number;
+  endMs: number;
+  rawEnergy: number;
   energy: number;
 }
 
-export interface PowerlogAppEnergyEvent extends PowerlogEnergyEvent {
-  appKey: string;
-}
-
-export interface PowerlogRuntimeEvent {
-  timestamp: number;
-  durationSec: number;
+export interface DirectRuntimeInterval {
+  key: string;
+  startMs: number;
+  endMs: number;
   foregroundSec: number;
+  backgroundSec: number;
 }
 
-export interface PowerlogNode {
-  id: number;
-  name: string;
-}
-
-export interface AnalyticsEnergyTimeline {
-  timeline: AnalyticsEnergyPoint[];
-  appSeries: Record<string, AnalyticsAppSeriesPoint[]>;
-}
-
-const ENERGY_BUCKET_SECONDS = 15 * 60;
-export const BATTERY_UI_WINDOW_MS = 24 * 60 * 60 * 1000;
-const OTHER_COMPONENT_KEY = "Other";
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
+function finite(value: number, label: string): number {
+  if (!Number.isFinite(value)) throw new Error(`invalid ${label}`);
+  return value;
 }
 
 /**
- * The Battery UI plist is already a calibrated snapshot for its complete
- * 24-hour window. Powerlog can end earlier than that window (for example,
- * when the sysdiagnose is captured before the local day ends), so this must
- * be checked against the requested range rather than a Powerlog-clamped one.
+ * Powerlog timestamps are monotonic. The table is a piecewise conversion to
+ * wall time: an event uses the newest offset written at or before itself.
  */
-export function isFullBatteryWindow(
-  requestedStartMs: number,
-  requestedEndMs: number,
-  batteryWindowEndTimeMs: number,
-): boolean {
-  return (
-    requestedStartMs <= batteryWindowEndTimeMs - BATTERY_UI_WINDOW_MS &&
-    requestedEndMs >= batteryWindowEndTimeMs
-  );
-}
-
-/**
- * Keep plist's calibrated daily mWh as the source of truth, then use
- * interval-level Powerlog activity to allocate it into a selected window.
- * This avoids presenting coalition energy units as if they were the UI's
- * calibrated app-energy values.
- */
-export function allocateAppsToRange(
-  apps: BatteryApp[],
-  full: PowerlogAggregate[],
-  selected: PowerlogAggregate[],
-): AnalyticsAppRow[] {
-  const fullByKey = new Map(full.map((row) => [row.key, row]));
-  const selectedByKey = new Map(selected.map((row) => [row.key, row]));
-  return apps
-    .map((app) => {
-      const fullRow = fullByKey.get(app.bundleId) ?? fullByKey.get(app.name);
-      const selectedRow =
-        selectedByKey.get(app.bundleId) ?? selectedByKey.get(app.name);
-      const fullEnergy = fullRow?.rawEnergy ?? 0;
-      const selectedEnergy = selectedRow?.rawEnergy ?? 0;
-      const fullRuntime = fullRow?.activitySec ?? 0;
-      const selectedRuntime = selectedRow?.activitySec ?? 0;
-      const energyShare =
-        fullEnergy > 0
-          ? clamp(selectedEnergy / fullEnergy, 0, 1)
-          : fullRuntime > 0
-            ? clamp(selectedRuntime / fullRuntime, 0, 1)
-            : 0;
-      const runtimeShare =
-        fullRuntime > 0
-          ? clamp(selectedRuntime / fullRuntime, 0, 1)
-          : energyShare;
-      return {
-        ...app,
-        energy: app.energy * energyShare,
-        foregroundSec: app.foregroundSec * runtimeShare,
-        backgroundSec: app.backgroundSec * runtimeShare,
-        components: app.components
-          ? Object.fromEntries(
-              Object.entries(app.components).map(([key, energy]) => [
-                key,
-                energy * energyShare,
-              ]),
-            )
-          : undefined,
-        activityShare: energyShare,
-      };
-    })
-    .filter((app) => app.activityShare > 0)
-    .sort((a, b) => b.energy - a.energy || a.name.localeCompare(b.name));
-}
-
-function eventBounds(event: PowerlogEnergyEvent): [number, number] | null {
-  const start = event.timestamp + event.startOffset / 1_000_000;
-  const end = event.timestamp + event.endOffset / 1_000_000;
-  return end > start ? [start, end] : null;
-}
-
-interface RawDetailData {
-  components: Map<string, number>;
-  buckets: Map<number, Map<string, number>>;
-}
-
-function collectForegroundBuckets(
-  events: PowerlogRuntimeEvent[],
-  startSec: number,
-  endSec: number,
-  bucketOriginSec: number,
-): Map<number, number> {
-  const buckets = new Map<number, number>();
-  for (const event of events) {
-    const duration = Math.max(0.001, event.durationSec);
-    const eventStart = event.timestamp;
-    const eventEnd = eventStart + duration;
-    const clippedStart = Math.max(startSec, eventStart);
-    const clippedEnd = Math.min(endSec, eventEnd);
-    if (clippedEnd <= clippedStart) continue;
-    const foregroundSec = clamp(event.foregroundSec, 0, duration);
-    let cursor = clippedStart;
-    while (cursor < clippedEnd) {
-      const bucketStart =
-        bucketOriginSec +
-        Math.floor((cursor - bucketOriginSec) / ENERGY_BUCKET_SECONDS) *
-          ENERGY_BUCKET_SECONDS;
-      const bucketEnd = Math.min(
-        clippedEnd,
-        bucketStart + ENERGY_BUCKET_SECONDS,
+export function createTimeNormalizer(offsets: TimeOffset[]) {
+  const ordered = [...offsets].sort((a, b) => a.monotonicSec - b.monotonicSec);
+  if (ordered.length === 0)
+    throw new Error("Powerlog has no TimeOffset records");
+  for (let index = 0; index < ordered.length; index += 1) {
+    finite(ordered[index].monotonicSec, "TimeOffset timestamp");
+    finite(ordered[index].systemSec, "TimeOffset system offset");
+    if (
+      index > 0 &&
+      ordered[index - 1].monotonicSec >= ordered[index].monotonicSec
+    ) {
+      throw new Error(
+        "Powerlog TimeOffset timestamps are not strictly ordered",
       );
-      const value = foregroundSec * ((bucketEnd - cursor) / duration);
-      buckets.set(
-        bucketStart,
-        Math.min(
-          ENERGY_BUCKET_SECONDS,
-          (buckets.get(bucketStart) ?? 0) + value,
-        ),
-      );
-      cursor = bucketEnd;
     }
   }
-  return buckets;
-}
-
-function collectDetailData(
-  events: PowerlogEnergyEvent[],
-  nodes: Map<number, string>,
-  startSec: number,
-  endSec: number,
-  bucketOriginSec: number,
-): RawDetailData {
-  const components = new Map<string, number>();
-  const buckets = new Map<number, Map<string, number>>();
-  for (const event of events) {
-    const bounds = eventBounds(event);
-    if (!bounds) continue;
-    const [eventStart, eventEnd] = bounds;
-    const clippedStart = Math.max(startSec, eventStart);
-    const clippedEnd = Math.min(endSec, eventEnd);
-    if (clippedEnd <= clippedStart) continue;
-    const duration = eventEnd - eventStart;
-    const component = nodes.get(event.rootId) ?? `Root ${event.rootId}`;
-    const add = (bucket: Map<string, number>, value: number) => {
-      bucket.set(component, (bucket.get(component) ?? 0) + value);
-    };
-    let cursor = clippedStart;
-    while (cursor < clippedEnd) {
-      const bucketStart =
-        bucketOriginSec +
-        Math.floor((cursor - bucketOriginSec) / ENERGY_BUCKET_SECONDS) *
-          ENERGY_BUCKET_SECONDS;
-      const bucketEnd = Math.min(
-        clippedEnd,
-        bucketStart + ENERGY_BUCKET_SECONDS,
-      );
-      const value =
-        Math.max(0, event.energy) * ((bucketEnd - cursor) / duration);
-      const bucket = buckets.get(bucketStart) ?? new Map<string, number>();
-      add(bucket, value);
-      buckets.set(bucketStart, bucket);
-      components.set(component, (components.get(component) ?? 0) + value);
-      cursor = bucketEnd;
+  const offsetAt = (monotonicSec: number): TimeOffset => {
+    let low = 0;
+    let high = ordered.length - 1;
+    if (monotonicSec < ordered[0].monotonicSec) {
+      throw new Error("Powerlog event predates TimeOffset coverage");
     }
-  }
-  return { components, buckets };
-}
-
-export function buildAppDetail(
-  app: AnalyticsAppRow,
-  selectedEvents: PowerlogEnergyEvent[],
-  selectedForegroundEvents: PowerlogRuntimeEvent[],
-  nodes: PowerlogNode[],
-  selectedStartSec: number,
-  selectedEndSec: number,
-  wallOffsetMs: number,
-): AnalyticsDetail {
-  const nodeMap = new Map(nodes.map((node) => [node.id, node.name]));
-  const selected = collectDetailData(
-    selectedEvents,
-    nodeMap,
-    selectedStartSec,
-    selectedEndSec,
-    selectedStartSec,
-  );
-  const foregroundBuckets = collectForegroundBuckets(
-    selectedForegroundEvents,
-    selectedStartSec,
-    selectedEndSec,
-    selectedStartSec,
-  );
-
-  const plistComponents = Object.entries(app.components ?? {}).filter(
-    ([key, energy]) =>
-      !key.startsWith("Foreground-") && key !== "Foreground" && energy > 0.01,
-  );
-  const componentTargets = plistComponents
-    .filter(([key]) => (selected.components.get(key) ?? 0) > 0)
-    .map(([key, energy]) => ({ key, energy }));
-  const targetTotal = componentTargets.reduce(
-    (sum, component) => sum + component.energy,
-    0,
-  );
-  const targetScale =
-    targetTotal > app.energy && targetTotal > 0 ? app.energy / targetTotal : 1;
-  const components: AnalyticsComponent[] = componentTargets
-    .map((component) => ({
-      key: component.key,
-      energy: component.energy * targetScale,
-    }))
-    .sort((a, b) => b.energy - a.energy);
-  const componentTotal = components.reduce(
-    (sum, component) => sum + component.energy,
-    0,
-  );
-  const unallocatedEnergy = Math.max(0, app.energy - componentTotal);
-  if (unallocatedEnergy > 0.01) {
-    components.push({
-      key: OTHER_COMPONENT_KEY,
-      energy: unallocatedEnergy,
-    });
-  }
-  const rawTotal = [...selected.components.values()].reduce(
-    (sum, value) => sum + value,
-    0,
-  );
-  const bucketStarts: number[] = [];
-  for (
-    let bucketStart = selectedStartSec;
-    bucketStart < selectedEndSec;
-    bucketStart += ENERGY_BUCKET_SECONDS
-  ) {
-    bucketStarts.push(bucketStart);
-  }
-  const points: AnalyticsDetailPoint[] = bucketStarts.map(
-    (bucketStart): AnalyticsDetailPoint => {
-      const rawComponents =
-        selected.buckets.get(bucketStart) ?? new Map<string, number>();
-      const pointComponents: Record<string, number> = {};
-      for (const component of components) {
-        if (component.key === OTHER_COMPONENT_KEY) continue;
-        const rawComponentTotal = selected.components.get(component.key) ?? 0;
-        const energy =
-          rawComponentTotal > 0
-            ? component.energy *
-              ((rawComponents.get(component.key) ?? 0) / rawComponentTotal)
-            : 0;
-        if (energy > 0.01) pointComponents[component.key] = energy;
-      }
-      const pointComponentEnergy = Object.values(pointComponents).reduce(
-        (sum, value) => sum + value,
-        0,
-      );
-      const pointRawTotal = [...rawComponents.values()].reduce(
-        (sum, value) => sum + value,
-        0,
-      );
-      const pointUnallocatedEnergy =
-        unallocatedEnergy * (pointRawTotal / Math.max(0.001, rawTotal));
-      if (pointUnallocatedEnergy > 0.01) {
-        pointComponents[OTHER_COMPONENT_KEY] = pointUnallocatedEnergy;
-      }
-      const pointEnergy = pointComponentEnergy + pointUnallocatedEnergy;
-      return {
-        ts: wallOffsetMs + bucketStart * 1000,
-        foregroundSec: foregroundBuckets.get(bucketStart) ?? 0,
-        energy: pointEnergy,
-        components: pointComponents,
-      };
-    },
-  );
+    while (low < high) {
+      const mid = Math.ceil((low + high) / 2);
+      if (ordered[mid].monotonicSec <= monotonicSec) low = mid;
+      else high = mid - 1;
+    }
+    return ordered[low];
+  };
   return {
-    app,
-    components,
-    points: rawTotal > 0 ? points : [],
-    sourceRange: {
-      startMs: wallOffsetMs + selectedStartSec * 1000,
-      endMs: wallOffsetMs + selectedEndSec * 1000,
+    offsets: ordered,
+    minMonotonicSec: ordered[0].monotonicSec,
+    toWallMs(monotonicSec: number): number {
+      return (
+        (finite(monotonicSec, "Powerlog timestamp") +
+          offsetAt(monotonicSec).systemSec) *
+        1000
+      );
     },
-    sourceRangeIsPartial: false,
   };
 }
 
-export function buildEnergyTimeline(
-  apps: AnalyticsAppRow[],
-  events: PowerlogAppEnergyEvent[],
-  nodes: PowerlogNode[],
-  selectedStartSec: number,
-  selectedEndSec: number,
-  wallOffsetMs: number,
-): AnalyticsEnergyTimeline {
-  const eventsByApp = new Map<string, PowerlogEnergyEvent[]>();
-  for (const event of events) {
-    const appEvents = eventsByApp.get(event.appKey) ?? [];
-    appEvents.push(event);
-    eventsByApp.set(event.appKey, appEvents);
-  }
-  const byTimestamp = new Map<number, AnalyticsEnergyPoint>();
-  const appSeries: Record<string, AnalyticsAppSeriesPoint[]> = {};
-  for (const app of apps) {
-    const appKey = app.bundleId || app.name;
-    const appEvents =
-      eventsByApp.get(app.bundleId) ?? eventsByApp.get(app.name) ?? [];
-    if (appEvents.length === 0) continue;
-    const detail = buildAppDetail(
-      app,
-      appEvents,
-      [],
-      nodes,
-      selectedStartSec,
-      selectedEndSec,
-      wallOffsetMs,
-    );
-    appSeries[appKey] = detail.points.map((point) => ({
-      ts: point.ts,
-      energy: point.energy,
-    }));
-    for (const point of detail.points) {
-      const current = byTimestamp.get(point.ts) ?? {
-        ts: point.ts,
-        energy: 0,
-        components: {},
-      };
-      current.energy += point.energy;
-      for (const [key, value] of Object.entries(point.components)) {
-        current.components[key] = (current.components[key] ?? 0) + value;
-      }
-      byTimestamp.set(point.ts, current);
+export function normalizeEnergyIntervals(
+  raw: RawEnergyInterval[],
+  toWallMs: (monotonicSec: number) => number,
+): DirectEnergyInterval[] {
+  const seen = new Set<string>();
+  return raw.map((event) => {
+    const startMs = toWallMs(event.startSec);
+    const endMs = toWallMs(event.endSec);
+    const rawEnergy = finite(event.rawEnergy, "RootNodeEnergy value");
+    if (!event.key || !event.component || endMs <= startMs || rawEnergy < 0) {
+      throw new Error("invalid RootNodeEnergy interval");
     }
-  }
+    const identity = `${event.key}\u0000${event.component}\u0000${event.startSec}\u0000${event.endSec}`;
+    if (seen.has(identity))
+      throw new Error("duplicate RootNodeEnergy interval");
+    seen.add(identity);
+    return {
+      key: event.key,
+      component: event.component,
+      startMs,
+      endMs,
+      rawEnergy,
+      energy: rawEnergy * POWERLOG_MWH_PER_RAW_UNIT,
+    };
+  });
+}
+
+export function normalizeRuntimeIntervals(
+  raw: RawRuntimeInterval[],
+  toWallMs: (monotonicSec: number) => number,
+): DirectRuntimeInterval[] {
+  return raw.flatMap((event) => {
+    const startMs = toWallMs(event.startSec);
+    const endMs = toWallMs(event.endSec);
+    if (!event.key || endMs <= startMs)
+      throw new Error("invalid AppRunTime interval");
+    return [
+      {
+        key: event.key,
+        startMs,
+        endMs,
+        foregroundSec: Math.max(
+          0,
+          finite(event.foregroundSec, "foreground runtime"),
+        ),
+        backgroundSec: Math.max(
+          0,
+          finite(event.backgroundSec, "background runtime"),
+        ),
+      },
+    ];
+  });
+}
+
+function overlaps(interval: AnalyticsRange, range: AnalyticsRange): boolean {
+  return interval.endMs > range.startMs && interval.startMs < range.endMs;
+}
+
+export function coverageOf(
+  intervals: Array<Pick<DirectEnergyInterval, "startMs" | "endMs">>,
+): AnalyticsRange | null {
+  if (intervals.length === 0) return null;
   return {
-    timeline: [...byTimestamp.values()].sort((a, b) => a.ts - b.ts),
+    startMs: Math.min(...intervals.map((interval) => interval.startMs)),
+    endMs: Math.max(...intervals.map((interval) => interval.endMs)),
+  };
+}
+
+/** Include full source records rather than prorating an hourly aggregate. */
+export function expandToSourceIntervals<
+  T extends Pick<DirectEnergyInterval, "startMs" | "endMs">,
+>(
+  intervals: T[],
+  requestedRange: AnalyticsRange,
+): { intervals: T[]; effectiveRange: AnalyticsRange | null } {
+  const selected = intervals.filter((interval) =>
+    overlaps(interval, requestedRange),
+  );
+  return { intervals: selected, effectiveRange: coverageOf(selected) };
+}
+
+function groupEnergyPoints(
+  intervals: DirectEnergyInterval[],
+): AnalyticsEnergyPoint[] {
+  const points = new Map<string, AnalyticsEnergyPoint>();
+  for (const interval of intervals) {
+    const key = `${interval.startMs}:${interval.endMs}`;
+    const point = points.get(key) ?? {
+      ts: interval.startMs,
+      startMs: interval.startMs,
+      endMs: interval.endMs,
+      rawEnergy: 0,
+      energy: 0,
+      components: {},
+    };
+    point.rawEnergy += interval.rawEnergy;
+    point.energy += interval.energy;
+    point.components[interval.component] =
+      (point.components[interval.component] ?? 0) + interval.energy;
+    points.set(key, point);
+  }
+  return [...points.values()].sort(
+    (a, b) => a.startMs - b.startMs || a.endMs - b.endMs,
+  );
+}
+
+function appSeriesFor(
+  intervals: DirectEnergyInterval[],
+): AnalyticsAppSeriesPoint[] {
+  const grouped = new Map<string, AnalyticsAppSeriesPoint>();
+  for (const interval of intervals) {
+    const key = `${interval.startMs}:${interval.endMs}`;
+    const point = grouped.get(key) ?? {
+      ts: interval.startMs,
+      startMs: interval.startMs,
+      endMs: interval.endMs,
+      rawEnergy: 0,
+      energy: 0,
+    };
+    point.rawEnergy += interval.rawEnergy;
+    point.energy += interval.energy;
+    grouped.set(key, point);
+  }
+  return [...grouped.values()].sort(
+    (a, b) => a.startMs - b.startMs || a.endMs - b.endMs,
+  );
+}
+
+export interface DirectAnalyticsResult {
+  effectiveRange: AnalyticsRange | null;
+  timeline: AnalyticsEnergyPoint[];
+  apps: AnalyticsAppRow[];
+  appSeries: Record<string, AnalyticsAppSeriesPoint[]>;
+}
+
+/**
+ * Metadata comes from Battery UI only. Every numeric value comes from the
+ * direct RootNodeEnergy/AppRunTime intervals supplied here.
+ */
+export function buildDirectAnalytics(
+  appMetadata: BatteryApp[],
+  deviceIntervals: DirectEnergyInterval[],
+  appIntervals: DirectEnergyInterval[],
+  runtimeIntervals: DirectRuntimeInterval[],
+  requestedRange: AnalyticsRange,
+): DirectAnalyticsResult {
+  const selectedDevice = expandToSourceIntervals(
+    deviceIntervals,
+    requestedRange,
+  );
+  if (!selectedDevice.effectiveRange) {
+    return { effectiveRange: null, timeline: [], apps: [], appSeries: {} };
+  }
+  const effectiveRange = selectedDevice.effectiveRange;
+  const selectedApp = appIntervals.filter((interval) =>
+    overlaps(interval, effectiveRange),
+  );
+  const selectedRuntime = runtimeIntervals.filter((interval) =>
+    overlaps(interval, effectiveRange),
+  );
+  const intervalsByApp = new Map<string, DirectEnergyInterval[]>();
+  for (const interval of selectedApp) {
+    const entries = intervalsByApp.get(interval.key) ?? [];
+    entries.push(interval);
+    intervalsByApp.set(interval.key, entries);
+  }
+  const runtimeByApp = new Map<string, DirectRuntimeInterval[]>();
+  for (const interval of selectedRuntime) {
+    const entries = runtimeByApp.get(interval.key) ?? [];
+    entries.push(interval);
+    runtimeByApp.set(interval.key, entries);
+  }
+  const appSeries: Record<string, AnalyticsAppSeriesPoint[]> = {};
+  const apps = appMetadata
+    .flatMap((metadata) => {
+      const key = metadata.bundleId || metadata.name;
+      const source = intervalsByApp.get(key) ?? [];
+      if (source.length === 0) return [];
+      const components: Record<string, number> = {};
+      let energy = 0;
+      for (const interval of source) {
+        energy += interval.energy;
+        components[interval.component] =
+          (components[interval.component] ?? 0) + interval.energy;
+      }
+      const runtime = runtimeByApp.get(key) ?? [];
+      appSeries[key] = appSeriesFor(source);
+      return [
+        {
+          ...metadata,
+          energy,
+          foregroundSec: runtime.reduce(
+            (sum, interval) => sum + interval.foregroundSec,
+            0,
+          ),
+          backgroundSec: runtime.reduce(
+            (sum, interval) => sum + interval.backgroundSec,
+            0,
+          ),
+          components,
+          activityShare: 1,
+        } satisfies AnalyticsAppRow,
+      ];
+    })
+    .sort((a, b) => b.energy - a.energy || a.name.localeCompare(b.name));
+  return {
+    effectiveRange,
+    timeline: groupEnergyPoints(selectedDevice.intervals),
+    apps,
     appSeries,
   };
 }
 
-export function normalizePowerlogRows(
-  rows: Array<Record<string, unknown>>,
-): PowerlogAggregate[] {
-  return rows.flatMap((row) => {
-    const key = typeof row["key"] === "string" ? row["key"] : "";
-    const rawEnergy = Number(row["rawEnergy"]);
-    const activitySec = Number(row["activitySec"]);
-    if (!key || !Number.isFinite(rawEnergy) || !Number.isFinite(activitySec)) {
-      return [];
-    }
-    return [
-      {
-        key,
-        rawEnergy: Math.max(0, rawEnergy),
-        activitySec: Math.max(0, activitySec),
-      },
-    ];
+export function buildDirectDetail(
+  app: AnalyticsAppRow,
+  intervals: DirectEnergyInterval[],
+  runtime: DirectRuntimeInterval[],
+  sourceRange: AnalyticsRange,
+): AnalyticsDetail {
+  const points = appSeriesFor(intervals).map((point): AnalyticsDetailPoint => {
+    const matching = intervals.filter(
+      (interval) =>
+        interval.startMs === point.startMs && interval.endMs === point.endMs,
+    );
+    const components: Record<string, number> = {};
+    for (const interval of matching)
+      components[interval.component] =
+        (components[interval.component] ?? 0) + interval.energy;
+    const matchingRuntime = runtime.filter(
+      (entry) => entry.startMs === point.startMs && entry.endMs === point.endMs,
+    );
+    return {
+      ...point,
+      foregroundSec: matchingRuntime.reduce(
+        (sum, entry) => sum + entry.foregroundSec,
+        0,
+      ),
+      components,
+    };
   });
+  const components: AnalyticsComponent[] = Object.entries(app.components ?? {})
+    .map(([key, energy]) => ({ key, energy }))
+    .sort((a, b) => b.energy - a.energy);
+  return { app, components, points, sourceRange, sourceRangeIsPartial: false };
 }

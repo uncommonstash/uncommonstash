@@ -1,10 +1,21 @@
-import { isAnalyticsIn, isAnalyticsOut } from "./analytics.protocol";
+import {
+  ANALYTICS_PROTOCOL_VERSION,
+  isAnalyticsIn,
+  isAnalyticsOut,
+} from "./analytics.protocol";
+
+const source = {
+  table: "PLAccountingOperator_Aggregate_RootNodeEnergy",
+  schema: "root-node-energy-v1",
+  rawUnit: "uWh",
+  mWhPerRawUnit: 0.001,
+} as const;
 
 describe("analytics protocol guards", () => {
   it("accepts valid init and query messages", () => {
     expect(
       isAnalyticsIn({
-        v: 1,
+        v: ANALYTICS_PROTOCOL_VERSION,
         kind: "analytics/init",
         id: 1,
         powerlog: new ArrayBuffer(8),
@@ -23,7 +34,7 @@ describe("analytics protocol guards", () => {
     ).toBe(true);
     expect(
       isAnalyticsIn({
-        v: 1,
+        v: ANALYTICS_PROTOCOL_VERSION,
         kind: "analytics/detail",
         id: 3,
         bundleId: "com.apple.Maps",
@@ -33,7 +44,7 @@ describe("analytics protocol guards", () => {
     ).toBe(true);
     expect(
       isAnalyticsIn({
-        v: 1,
+        v: ANALYTICS_PROTOCOL_VERSION,
         kind: "analytics/query",
         id: 2,
         startMs: 100,
@@ -47,7 +58,7 @@ describe("analytics protocol guards", () => {
     expect(isAnalyticsIn({ v: 2, kind: "analytics/query" })).toBe(false);
     expect(
       isAnalyticsIn({
-        v: 1,
+        v: ANALYTICS_PROTOCOL_VERSION,
         kind: "analytics/init",
         id: 1,
         powerlog: [],
@@ -57,7 +68,7 @@ describe("analytics protocol guards", () => {
     ).toBe(false);
     expect(
       isAnalyticsIn({
-        v: 1,
+        v: ANALYTICS_PROTOCOL_VERSION,
         kind: "analytics/query",
         id: 1,
         startMs: 20,
@@ -69,28 +80,38 @@ describe("analytics protocol guards", () => {
   it("accepts output and rejects unknown kinds", () => {
     expect(
       isAnalyticsOut({
-        v: 1,
+        v: ANALYTICS_PROTOCOL_VERSION,
         kind: "analytics/ready",
         id: 1,
         minMs: 1,
         maxMs: 2,
+        source,
       }),
     ).toBe(true);
     expect(
       isAnalyticsOut({
-        v: 1,
+        v: ANALYTICS_PROTOCOL_VERSION,
         kind: "analytics/detail-result",
         id: 2,
-        startMs: 1,
-        endMs: 2,
+        requestedRange: { startMs: 1, endMs: 2 },
+        effectiveRange: { startMs: 1, endMs: 2 },
         detail: null,
       }),
     ).toBe(true);
     expect(
-      isAnalyticsOut({ v: 1, kind: "analytics/error", id: 1, message: "bad" }),
+      isAnalyticsOut({
+        v: ANALYTICS_PROTOCOL_VERSION,
+        kind: "analytics/error",
+        id: 1,
+        message: "bad",
+      }),
     ).toBe(true);
-    expect(isAnalyticsOut({ v: 1, kind: "analytics/unknown", id: 1 })).toBe(
-      false,
-    );
+    expect(
+      isAnalyticsOut({
+        v: ANALYTICS_PROTOCOL_VERSION,
+        kind: "analytics/unknown",
+        id: 1,
+      }),
+    ).toBe(false);
   });
 });

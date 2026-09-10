@@ -386,20 +386,12 @@ function BatteryChart({
     : null;
   const energyY = (value: number) =>
     H - P.bottom - (value / energyMax) * (H - P.top - P.bottom);
-  const barWidth = Math.max(
-    3,
-    Math.min(
-      26,
-      ((W - P.left - P.right) * (15 * 60 * 1000)) /
-        Math.max(15 * 60 * 1000, geom.max - geom.min),
-    ),
-  );
   const appPath =
     mode === "energy" && hoveredAppSeries.length > 0
       ? hoveredAppSeries
           .map(
             (point, index) =>
-              `${index ? "L" : "M"}${geom.X(point.ts).toFixed(1)},${energyY(point.energy).toFixed(1)}`,
+              `${index ? "L" : "M"}${geom.X((point.startMs + point.endMs) / 2).toFixed(1)},${energyY(point.energy).toFixed(1)}`,
           )
           .join(" ")
       : null;
@@ -520,10 +512,11 @@ function BatteryChart({
         ) : (
           <>
             {energyTimeline.map((point) => {
-              const xStart = geom.X(point.ts) + (barWidth * 0.1) / 2;
+              const xStart = geom.X(point.startMs);
+              const width = Math.max(1, geom.X(point.endMs) - xStart);
               let baseline = 0;
               return (
-                <g key={point.ts}>
+                <g key={`${point.startMs}-${point.endMs}`}>
                   {componentKeys.map((key) => {
                     const value = Math.max(0, point.components[key] ?? 0);
                     const yTop = energyY(baseline + value);
@@ -532,9 +525,9 @@ function BatteryChart({
                     return value > 0 ? (
                       <rect
                         key={key}
-                        x={xStart}
+                        x={xStart + 0.5}
                         y={yTop}
-                        width={barWidth * 0.9}
+                        width={Math.max(1, width - 1)}
                         height={Math.max(0, yBottom - yTop)}
                         fill={COMPONENT_COLORS[key] ?? "#8e8e93"}
                         opacity={0.84}
@@ -543,9 +536,9 @@ function BatteryChart({
                     ) : null;
                   })}
                   <rect
-                    x={xStart}
+                    x={xStart + 0.5}
                     y={energyY(point.energy)}
-                    width={barWidth * 0.9}
+                    width={Math.max(1, width - 1)}
                     height={Math.max(0, energyY(0) - energyY(point.energy))}
                     fill="none"
                     stroke="#1d1d1f"
@@ -553,7 +546,9 @@ function BatteryChart({
                     pointerEvents="none"
                   >
                     <title>
-                      {formatPointTime(point.ts)} · {formatEnergy(point.energy)}
+                      {formatPointTime(point.startMs)}–
+                      {formatPointTime(point.endMs)} ·{" "}
+                      {formatEnergy(point.energy)}
                     </title>
                   </rect>
                 </g>
@@ -1392,6 +1387,11 @@ export default csr(function SysdiagnosePage() {
   const [analyticsCoverage, setAnalyticsCoverage] = useState<TimeRange | null>(
     null,
   );
+  const [effectiveEnergyRange, setEffectiveEnergyRange] =
+    useState<TimeRange | null>(null);
+  const [energyRangeNotice, setEnergyRangeNotice] = useState<string | null>(
+    null,
+  );
   const [selectedRange, setSelectedRange] = useState<TimeRange | null>(null);
   const [selectedApp, setSelectedApp] = useState<AnalyticsAppRow | null>(null);
   const [appDetail, setAppDetail] = useState<AnalyticsDetail | null>(null);
@@ -1423,6 +1423,8 @@ export default csr(function SysdiagnosePage() {
     setAppSeries({});
     setHoveredAppKey(null);
     setAnalyticsCoverage(null);
+    setEffectiveEnergyRange(null);
+    setEnergyRangeNotice(null);
     setEntries([]);
   }
 
@@ -1546,6 +1548,8 @@ export default csr(function SysdiagnosePage() {
     setAppSeries({});
     setHoveredAppKey(null);
     setAnalyticsCoverage(null);
+    setEffectiveEnergyRange(null);
+    setEnergyRangeNotice(null);
     setAnalyticsStatus("idle");
     if (!plistBattery || !powerlogEntry) return;
     const client = new AnalyticsClient();
@@ -1587,6 +1591,23 @@ export default csr(function SysdiagnosePage() {
           setRangeApps(result.apps);
           setEnergyTimeline(result.timeline);
           setAppSeries(result.appSeries);
+          setEffectiveEnergyRange(
+            result.effectiveRange
+              ? {
+                  start: result.effectiveRange.startMs,
+                  end: result.effectiveRange.endMs,
+                }
+              : null,
+          );
+          setAnalyticsCoverage({
+            start: result.sourceCoverage.startMs,
+            end: result.sourceCoverage.endMs,
+          });
+          setEnergyRangeNotice(
+            result.availability.state === "available"
+              ? null
+              : result.availability.reason,
+          );
         }
       })
       .catch(() => {
@@ -1634,8 +1655,12 @@ export default csr(function SysdiagnosePage() {
   const hoveredApp = hoveredAppKey
     ? displayApps.find((app) => (app.bundleId || app.name) === hoveredAppKey)
     : undefined;
+  const displayedRange =
+    chartMode === "energy" && effectiveEnergyRange
+      ? effectiveEnergyRange
+      : selectedRange;
   const rangeLabel =
-    selectedRange && chartRange ? formatRange(selectedRange) : chartDate;
+    displayedRange && chartRange ? formatRange(displayedRange) : chartDate;
   const handleRangeChange = (range: TimeRange) => {
     if (
       chartRange &&
@@ -1949,6 +1974,11 @@ export default csr(function SysdiagnosePage() {
                       <span className="text-xs text-muted-foreground">
                         {rangeLabel}
                       </span>
+                      {chartMode === "energy" && energyRangeNotice ? (
+                        <span className="text-xs text-muted-foreground">
+                          {energyRangeNotice}
+                        </span>
+                      ) : null}
                       {analyticsStatus === "loading" ? (
                         <span className="text-xs text-muted-foreground">
                           Analyzing Powerlog…
@@ -1989,7 +2019,11 @@ export default csr(function SysdiagnosePage() {
                   <BatteryChart
                     points={batteryPoints}
                     charging={plistBattery?.charging}
-                    selectedRange={selectedRange ?? undefined}
+                    selectedRange={
+                      chartMode === "energy"
+                        ? (effectiveEnergyRange ?? selectedRange ?? undefined)
+                        : (selectedRange ?? undefined)
+                    }
                     mode={chartMode}
                     energyTimeline={energyTimeline}
                     hoveredAppSeries={

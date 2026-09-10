@@ -1,5 +1,6 @@
 import type { BatteryApp } from "@/pages/sysdiagnose/lib";
 import {
+  ANALYTICS_PROTOCOL_VERSION,
   type AnalyticsDetailResultMsg,
   type AnalyticsOut,
   type AnalyticsResultMsg,
@@ -81,7 +82,7 @@ export class AnalyticsClient {
     const id = this.nextId++;
     return this.request(
       {
-        v: 1,
+        v: ANALYTICS_PROTOCOL_VERSION,
         kind: "analytics/init",
         id,
         powerlog,
@@ -97,7 +98,7 @@ export class AnalyticsClient {
     const id = this.nextId++;
     this.latestQueryId = id;
     return this.request({
-      v: 1,
+      v: ANALYTICS_PROTOCOL_VERSION,
       kind: "analytics/query",
       id,
       startMs,
@@ -113,7 +114,7 @@ export class AnalyticsClient {
     const id = this.nextId++;
     this.latestDetailId = id;
     return this.request({
-      v: 1,
+      v: ANALYTICS_PROTOCOL_VERSION,
       kind: "analytics/detail",
       id,
       bundleId,

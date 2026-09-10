@@ -1,6 +1,24 @@
 import type { BatteryApp } from "@/pages/sysdiagnose/lib";
 
-export const ANALYTICS_PROTOCOL_VERSION = 1 as const;
+/** Version 2 makes Powerlog provenance explicit. */
+export const ANALYTICS_PROTOCOL_VERSION = 2 as const;
+
+export interface AnalyticsRange {
+  startMs: number;
+  endMs: number;
+}
+
+export type AnalyticsAvailability =
+  | { state: "available" }
+  | { state: "partial"; reason: string }
+  | { state: "unavailable"; reason: string };
+
+export interface AnalyticsSource {
+  table: "PLAccountingOperator_Aggregate_RootNodeEnergy";
+  schema: "root-node-energy-v1";
+  rawUnit: "uWh";
+  mWhPerRawUnit: number;
+}
 
 export interface AnalyticsInitMsg {
   v: typeof ANALYTICS_PROTOCOL_VERSION;
@@ -20,13 +38,9 @@ export interface AnalyticsQueryMsg {
   endMs: number;
 }
 
-export interface AnalyticsDetailMsg {
-  v: typeof ANALYTICS_PROTOCOL_VERSION;
+export interface AnalyticsDetailMsg extends Omit<AnalyticsQueryMsg, "kind"> {
   kind: "analytics/detail";
-  id: number;
   bundleId: string;
-  startMs: number;
-  endMs: number;
 }
 
 export type AnalyticsIn =
@@ -40,32 +54,45 @@ export interface AnalyticsReadyMsg {
   id: number;
   minMs: number;
   maxMs: number;
+  source: AnalyticsSource;
 }
 
 export interface AnalyticsAppRow extends BatteryApp {
+  /** Direct rows always represent a complete source aggregate. */
   activityShare: number;
 }
 
-export interface AnalyticsResultMsg {
-  v: typeof ANALYTICS_PROTOCOL_VERSION;
-  kind: "analytics/result";
-  id: number;
+/** A source aggregate, never an interpolated bucket. */
+export interface AnalyticsEnergyPoint {
+  /** Start-time convenience for legacy chart consumers; interval bounds are authoritative. */
+  ts: number;
   startMs: number;
   endMs: number;
-  apps: AnalyticsAppRow[];
-  timeline: AnalyticsEnergyPoint[];
-  appSeries: Record<string, AnalyticsAppSeriesPoint[]>;
-}
-
-export interface AnalyticsEnergyPoint {
-  ts: number;
+  rawEnergy: number;
   energy: number;
   components: Record<string, number>;
 }
 
 export interface AnalyticsAppSeriesPoint {
   ts: number;
+  startMs: number;
+  endMs: number;
+  rawEnergy: number;
   energy: number;
+}
+
+export interface AnalyticsResultMsg {
+  v: typeof ANALYTICS_PROTOCOL_VERSION;
+  kind: "analytics/result";
+  id: number;
+  requestedRange: AnalyticsRange;
+  effectiveRange: AnalyticsRange | null;
+  sourceCoverage: AnalyticsRange;
+  availability: AnalyticsAvailability;
+  source: AnalyticsSource;
+  apps: AnalyticsAppRow[];
+  timeline: AnalyticsEnergyPoint[];
+  appSeries: Record<string, AnalyticsAppSeriesPoint[]>;
 }
 
 export interface AnalyticsComponent {
@@ -75,6 +102,8 @@ export interface AnalyticsComponent {
 
 export interface AnalyticsDetailPoint {
   ts: number;
+  startMs: number;
+  endMs: number;
   energy: number;
   foregroundSec: number;
   components: Record<string, number>;
@@ -84,10 +113,7 @@ export interface AnalyticsDetail {
   app: AnalyticsAppRow;
   components: AnalyticsComponent[];
   points: AnalyticsDetailPoint[];
-  sourceRange: {
-    startMs: number;
-    endMs: number;
-  };
+  sourceRange: AnalyticsRange;
   sourceRangeIsPartial: boolean;
 }
 
@@ -95,8 +121,8 @@ export interface AnalyticsDetailResultMsg {
   v: typeof ANALYTICS_PROTOCOL_VERSION;
   kind: "analytics/detail-result";
   id: number;
-  startMs: number;
-  endMs: number;
+  requestedRange: AnalyticsRange;
+  effectiveRange: AnalyticsRange | null;
   detail: AnalyticsDetail | null;
 }
 
@@ -116,11 +142,17 @@ export type AnalyticsOut =
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
-
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
-
+function isRange(value: unknown): value is AnalyticsRange {
+  return (
+    isRecord(value) &&
+    isFiniteNumber(value["startMs"]) &&
+    isFiniteNumber(value["endMs"]) &&
+    value["endMs"] >= value["startMs"]
+  );
+}
 function isBatteryApp(value: unknown): value is BatteryApp {
   if (!isRecord(value)) return false;
   const components = value["components"];
@@ -134,123 +166,85 @@ function isBatteryApp(value: unknown): value is BatteryApp {
       (isRecord(components) && Object.values(components).every(isFiniteNumber)))
   );
 }
-
-function isAnalyticsAppRow(value: unknown): boolean {
-  if (!isRecord(value) || !isBatteryApp(value)) return false;
-  return isFiniteNumber(value["activityShare"]);
-}
-
-function isAnalyticsDetail(value: unknown): value is AnalyticsDetail {
-  if (!isRecord(value) || !isAnalyticsAppRow(value["app"])) return false;
-  const components = value["components"];
-  const points = value["points"];
+function isEnergyPoint(value: unknown): boolean {
   return (
-    Array.isArray(components) &&
-    components.every(
-      (component) =>
-        isRecord(component) &&
-        typeof component["key"] === "string" &&
-        isFiniteNumber(component["energy"]),
-    ) &&
-    Array.isArray(points) &&
-    points.every(
-      (point) =>
-        isRecord(point) &&
-        isFiniteNumber(point["ts"]) &&
-        isFiniteNumber(point["energy"]) &&
-        isFiniteNumber(point["foregroundSec"]) &&
-        isRecord(point["components"]) &&
-        Object.values(point["components"]).every(isFiniteNumber),
-    ) &&
-    isRecord(value["sourceRange"]) &&
-    isFiniteNumber(value["sourceRange"]["startMs"]) &&
-    isFiniteNumber(value["sourceRange"]["endMs"]) &&
-    typeof value["sourceRangeIsPartial"] === "boolean"
+    isRecord(value) &&
+    isRange(value) &&
+    isFiniteNumber(value["ts"]) &&
+    isFiniteNumber(value["rawEnergy"]) &&
+    isFiniteNumber(value["energy"]) &&
+    isRecord(value["components"]) &&
+    Object.values(value["components"]).every(isFiniteNumber)
+  );
+}
+function isSource(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    value["table"] === "PLAccountingOperator_Aggregate_RootNodeEnergy" &&
+    value["schema"] === "root-node-energy-v1" &&
+    value["rawUnit"] === "uWh" &&
+    isFiniteNumber(value["mWhPerRawUnit"])
   );
 }
 
 export function isAnalyticsIn(value: unknown): value is AnalyticsIn {
-  if (!isRecord(value) || value["v"] !== ANALYTICS_PROTOCOL_VERSION) {
+  if (!isRecord(value) || value["v"] !== ANALYTICS_PROTOCOL_VERSION)
     return false;
-  }
-  if (
-    value["kind"] === "analytics/init" &&
-    typeof value["id"] === "number" &&
-    value["powerlog"] instanceof ArrayBuffer &&
-    Array.isArray(value["apps"]) &&
-    value["apps"].every(isBatteryApp) &&
-    isFiniteNumber(value["endTime"]) &&
-    isFiniteNumber(value["batteryWindowEndTime"])
-  ) {
-    return true;
-  }
+  if (value["kind"] === "analytics/init")
+    return (
+      typeof value["id"] === "number" &&
+      value["powerlog"] instanceof ArrayBuffer &&
+      Array.isArray(value["apps"]) &&
+      value["apps"].every(isBatteryApp) &&
+      isFiniteNumber(value["endTime"]) &&
+      isFiniteNumber(value["batteryWindowEndTime"])
+    );
   return (
     (value["kind"] === "analytics/query" &&
       typeof value["id"] === "number" &&
-      isFiniteNumber(value["startMs"]) &&
-      isFiniteNumber(value["endMs"]) &&
-      value["endMs"] >= value["startMs"]) ||
+      isRange(value)) ||
     (value["kind"] === "analytics/detail" &&
       typeof value["id"] === "number" &&
       typeof value["bundleId"] === "string" &&
-      isFiniteNumber(value["startMs"]) &&
-      isFiniteNumber(value["endMs"]) &&
-      value["endMs"] >= value["startMs"])
+      isRange(value))
   );
 }
 
 export function isAnalyticsOut(value: unknown): value is AnalyticsOut {
-  if (!isRecord(value) || value["v"] !== ANALYTICS_PROTOCOL_VERSION) {
+  if (!isRecord(value) || value["v"] !== ANALYTICS_PROTOCOL_VERSION)
     return false;
-  }
-  if (value["kind"] === "analytics/error") {
+  if (value["kind"] === "analytics/error")
     return (
       typeof value["id"] === "number" && typeof value["message"] === "string"
     );
-  }
-  if (value["kind"] === "analytics/ready") {
+  if (value["kind"] === "analytics/ready")
     return (
       typeof value["id"] === "number" &&
-      isFiniteNumber(value["minMs"]) &&
-      isFiniteNumber(value["maxMs"])
+      isRange({ startMs: value["minMs"], endMs: value["maxMs"] }) &&
+      isSource(value["source"])
     );
-  }
-  if (value["kind"] === "analytics/detail-result") {
+  if (value["kind"] === "analytics/detail-result")
     return (
       typeof value["id"] === "number" &&
-      isFiniteNumber(value["startMs"]) &&
-      isFiniteNumber(value["endMs"]) &&
-      (value["detail"] === null || isAnalyticsDetail(value["detail"]))
+      isRange(value["requestedRange"]) &&
+      (value["effectiveRange"] === null || isRange(value["effectiveRange"]))
     );
-  }
   if (value["kind"] !== "analytics/result") return false;
-  const timeline = value["timeline"];
-  const appSeries = value["appSeries"];
   return (
     typeof value["id"] === "number" &&
-    isFiniteNumber(value["startMs"]) &&
-    isFiniteNumber(value["endMs"]) &&
+    isRange(value["requestedRange"]) &&
+    (value["effectiveRange"] === null || isRange(value["effectiveRange"])) &&
+    isRange(value["sourceCoverage"]) &&
+    isSource(value["source"]) &&
     Array.isArray(value["apps"]) &&
-    value["apps"].every(isAnalyticsAppRow) &&
-    Array.isArray(timeline) &&
-    timeline.every(
-      (point) =>
-        isRecord(point) &&
-        isFiniteNumber(point["ts"]) &&
-        isFiniteNumber(point["energy"]) &&
-        isRecord(point["components"]) &&
-        Object.values(point["components"]).every(isFiniteNumber),
+    value["apps"].every(
+      (app) =>
+        isBatteryApp(app) &&
+        isRecord(app) &&
+        isFiniteNumber(app["activityShare"]),
     ) &&
-    isRecord(appSeries) &&
-    Object.values(appSeries).every(
-      (points) =>
-        Array.isArray(points) &&
-        points.every(
-          (point) =>
-            isRecord(point) &&
-            isFiniteNumber(point["ts"]) &&
-            isFiniteNumber(point["energy"]),
-        ),
-    )
+    Array.isArray(value["timeline"]) &&
+    value["timeline"].every(isEnergyPoint) &&
+    isRecord(value["appSeries"])
   );
 }
