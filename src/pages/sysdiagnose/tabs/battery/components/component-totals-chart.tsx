@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import type {
   ComponentTotalRow,
   QueryProvenance,
+  QueryRange,
 } from "@/workers/sysdiagnose-query/query.protocol";
 import { ChartTooltip } from "./chart-tooltip";
 
@@ -35,11 +36,15 @@ function intervalLabel(start: number, end: number) {
 }
 
 export function ComponentTotalsChart({
+  domain,
   rows,
   provenance,
+  selectedRange,
 }: {
+  domain: QueryRange;
   rows: ComponentTotalRow[];
   provenance?: QueryProvenance;
+  selectedRange: QueryRange;
 }) {
   const [hoveredIntervalKey, setHoveredIntervalKey] = useState<string | null>(
     null,
@@ -72,13 +77,21 @@ export function ComponentTotalsChart({
   const width = 760;
   const height = 260;
   const padding = { top: 20, right: 16, bottom: 48, left: 68 };
-  const sourceStart = intervals[0]?.start ?? 0;
-  const sourceEnd = intervals.at(-1)?.end ?? sourceStart + 1;
+  const sourceStart = domain.startMs;
+  const sourceEnd = domain.endMs;
   const x = (value: number) =>
     padding.left +
     ((value - sourceStart) / Math.max(1, sourceEnd - sourceStart)) *
       (width - padding.left - padding.right);
   const plotHeight = height - padding.top - padding.bottom;
+  const selectedStart = Math.max(
+    sourceStart,
+    Math.min(sourceEnd, selectedRange.startMs),
+  );
+  const selectedEnd = Math.max(
+    sourceStart,
+    Math.min(sourceEnd, selectedRange.endMs),
+  );
   const hoveredInterval = intervals.find(
     (group) => `${group.start}-${group.end}` === hoveredIntervalKey,
   );
@@ -119,8 +132,22 @@ export function ComponentTotalsChart({
               data-requested-end-ms={provenance?.requestedRange.endMs}
               data-effective-start-ms={provenance?.effectiveRange?.startMs}
               data-effective-end-ms={provenance?.effectiveRange?.endMs}
+              data-selected-start-ms={selectedRange.startMs}
+              data-selected-end-ms={selectedRange.endMs}
+              data-timeline-start-ms={sourceStart}
+              data-timeline-end-ms={sourceEnd}
               onPointerLeave={() => setHoveredIntervalKey(null)}
             >
+              <defs>
+                <clipPath id="component-totals-plot">
+                  <rect
+                    x={padding.left}
+                    y={padding.top}
+                    width={width - padding.left - padding.right}
+                    height={plotHeight}
+                  />
+                </clipPath>
+              </defs>
               {[0, 0.25, 0.5, 0.75, 1].map((tick) => {
                 const y = padding.top + (1 - tick) * plotHeight;
                 return (
@@ -144,43 +171,58 @@ export function ComponentTotalsChart({
                   </g>
                 );
               })}
-              {intervals.map((group) => {
-                let y = height - padding.bottom;
-                const components = [...group.components].sort((a, b) =>
-                  a.rootNode.name.localeCompare(b.rootNode.name),
-                );
-                const key = `${group.start}-${group.end}`;
-                return (
-                  <g
-                    key={key}
-                    data-interval-start-ms={group.start}
-                    data-interval-end-ms={group.end}
-                    onPointerEnter={() => setHoveredIntervalKey(key)}
-                  >
-                    {components.map((row) => {
-                      const barHeight = (row.rawEnergy / maximum) * plotHeight;
-                      y -= barHeight;
-                      return (
-                        <rect
-                          key={row.rootNode.id}
-                          x={x(group.start) + 1}
-                          width={Math.max(1, x(group.end) - x(group.start) - 2)}
-                          y={y}
-                          height={barHeight}
-                          fill={color(row.rootNode.name)}
-                        />
-                      );
-                    })}
-                    <rect
-                      x={x(group.start) + 1}
-                      y={padding.top}
-                      width={Math.max(1, x(group.end) - x(group.start) - 2)}
-                      height={plotHeight}
-                      fill="transparent"
-                    />
-                  </g>
-                );
-              })}
+              <rect
+                x={x(selectedStart)}
+                y={padding.top}
+                width={Math.max(1, x(selectedEnd) - x(selectedStart))}
+                height={plotHeight}
+                fill="#0071e3"
+                opacity={0.08}
+                pointerEvents="none"
+              />
+              <g clipPath="url(#component-totals-plot)">
+                {intervals.map((group) => {
+                  let y = height - padding.bottom;
+                  const components = [...group.components].sort((a, b) =>
+                    a.rootNode.name.localeCompare(b.rootNode.name),
+                  );
+                  const key = `${group.start}-${group.end}`;
+                  return (
+                    <g
+                      key={key}
+                      data-interval-start-ms={group.start}
+                      data-interval-end-ms={group.end}
+                      onPointerEnter={() => setHoveredIntervalKey(key)}
+                    >
+                      {components.map((row) => {
+                        const barHeight =
+                          (row.rawEnergy / maximum) * plotHeight;
+                        y -= barHeight;
+                        return (
+                          <rect
+                            key={row.rootNode.id}
+                            x={x(group.start) + 1}
+                            width={Math.max(
+                              1,
+                              x(group.end) - x(group.start) - 2,
+                            )}
+                            y={y}
+                            height={barHeight}
+                            fill={color(row.rootNode.name)}
+                          />
+                        );
+                      })}
+                      <rect
+                        x={x(group.start) + 1}
+                        y={padding.top}
+                        width={Math.max(1, x(group.end) - x(group.start) - 2)}
+                        height={plotHeight}
+                        fill="transparent"
+                      />
+                    </g>
+                  );
+                })}
+              </g>
               {hoveredInterval ? (
                 <line
                   x1={(x(hoveredInterval.start) + x(hoveredInterval.end)) / 2}

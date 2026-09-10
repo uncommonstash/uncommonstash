@@ -12,6 +12,13 @@ import { usePowerlogQuery, useQueryStore } from "./query-store";
 
 export function EnergyOverview({ battery }: { battery: BatteryPlistData }) {
   const { state } = useQueryStore();
+  const timelineRange = useMemo(
+    () => ({
+      startMs: battery.points[0]?.ts ?? state.range.startMs,
+      endMs: battery.points.at(-1)?.ts ?? state.range.endMs,
+    }),
+    [battery.points, state.range.endMs, state.range.startMs],
+  );
   const apps = useMemo<AppIdentity[]>(
     () =>
       battery.apps
@@ -23,9 +30,9 @@ export function EnergyOverview({ battery }: { battery: BatteryPlistData }) {
     useMemo(
       () => ({
         kind: "root-node-component-totals" as const,
-        range: state.range,
+        range: timelineRange,
       }),
-      [state.range],
+      [timelineRange],
     ),
   );
   const energy = usePowerlogQuery(
@@ -45,6 +52,10 @@ export function EnergyOverview({ battery }: { battery: BatteryPlistData }) {
     ),
   );
   const failure = energy.state === "error" || runtime.state === "error";
+  const componentDomain =
+    components.state === "ready" && components.result.provenance.effectiveRange
+      ? components.result.provenance.effectiveRange
+      : timelineRange;
   return (
     <div className="flex h-full min-h-0 flex-col gap-6">
       {components.state === "error" ? (
@@ -53,6 +64,7 @@ export function EnergyOverview({ battery }: { battery: BatteryPlistData }) {
         </p>
       ) : (
         <ComponentTotalsChart
+          domain={componentDomain}
           rows={
             components.state === "ready"
               ? components.result.rows.filter(isComponentTotalRow)
@@ -63,6 +75,7 @@ export function EnergyOverview({ battery }: { battery: BatteryPlistData }) {
               ? components.result.provenance
               : undefined
           }
+          selectedRange={state.range}
         />
       )}
       {failure ? (
