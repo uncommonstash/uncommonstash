@@ -18,8 +18,8 @@ importers:
         specifier: ^0.12.2
         version: 0.12.2
       '@imagemagick/magick-wasm':
-        specifier: ^0.0.37
-        version: 0.0.37
+        specifier: ^0.0.43
+        version: 0.0.43
       '@radix-ui/react-checkbox':
         specifier: ~1.3.3
         version: 1.3.11(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -674,8 +674,8 @@ packages:
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
 
-  '@imagemagick/magick-wasm@0.0.37':
-    resolution: {integrity: sha512-tVs9hcWu9u7I3Jz/XvUYVvCEniuxAR+JjZEzI+yKtQmYAtNsLF1WjoH1HZGCKPumaB9jAHZlcf2RGT9+1l3nxQ==}
+  '@imagemagick/magick-wasm@0.0.43':
+    resolution: {integrity: sha512-+Wlr3eEl4JlqLwrhAHBlf4VDzOWiFa8L2hYl7mOMXCgq896KghEnh3Go35nuZJMfmE6lX2waBZdr+u9FVluJLA==}
 
   '@isaacs/cliui@8.0.2':
     resolution: {integrity: sha512-O8jcjabXaleOG9DQ0+ARXWZBTfnP4WNAqzuiJK7ll44AmxGKv/J2M4TPjxjY3znBCfvBXFzucm1twdyFybFqEA==}
@@ -4417,7 +4417,7 @@ snapshots:
 
   '@floating-ui/utils@0.2.12': {}
 
-  '@imagemagick/magick-wasm@0.0.37': {}
+  '@imagemagick/magick-wasm@0.0.43': {}
 
   '@isaacs/cliui@8.0.2':
     dependencies:
