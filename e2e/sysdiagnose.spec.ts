@@ -35,6 +35,19 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
   await expect(
     page.locator('svg[aria-label="Battery level from Battery UI plist"] path'),
   ).toBeVisible();
+  const batteryChart = page.locator(
+    'svg[aria-label="Battery level from Battery UI plist"]',
+  );
+  const batteryChartBox = await batteryChart.boundingBox();
+  expect(batteryChartBox).not.toBeNull();
+  if (!batteryChartBox) throw new Error("battery chart is missing");
+  await page.mouse.move(
+    batteryChartBox.x + batteryChartBox.width * 0.25,
+    batteryChartBox.y + batteryChartBox.height * 0.5,
+  );
+  await expect(page.getByTestId("chart-sample-tooltip")).toContainText(
+    /battery/,
+  );
   const safari = page.getByRole("row", { name: /Safari/ });
   await expect(safari).toBeVisible();
   await expect(safari.getByRole("cell").nth(1)).toHaveText(
@@ -78,7 +91,14 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
     "data-interval-end-ms",
     String(firstInterval.endMs),
   );
-  const tooltip = await firstBar.locator("title").textContent();
+  const firstBarBox = await firstBar.boundingBox();
+  expect(firstBarBox).not.toBeNull();
+  if (!firstBarBox) throw new Error("component interval is missing");
+  await page.mouse.move(
+    firstBarBox.x + firstBarBox.width / 2,
+    firstBarBox.y + firstBarBox.height / 2,
+  );
+  const tooltip = await page.getByTestId("chart-sample-tooltip").textContent();
   for (const [component, energy] of Object.entries(
     firstInterval.componentEnergyMWh,
   )) {
