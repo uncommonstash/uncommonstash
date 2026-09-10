@@ -110,6 +110,15 @@ test("sysdiagnose renders Battery UI locally and queries the mock Powerlog archi
   await expect(
     chart.locator("g[data-interval-start-ms] rect").first(),
   ).toBeVisible();
+  const chartBox = await chart.boundingBox();
+  expect(chartBox).not.toBeNull();
+  if (!chartBox) throw new Error("component chart is missing");
+  const yAxisLabelLeftEdges = await chart
+    .locator("text")
+    .evaluateAll((labels) =>
+      labels.slice(0, 5).map((label) => label.getBoundingClientRect().left),
+    );
+  expect(yAxisLabelLeftEdges.every((left) => left >= chartBox.x)).toBe(true);
   const firstInterval = golden.componentIntervals[0];
   const firstBar = chart.locator("g[data-interval-start-ms]").first();
   await expect(firstBar).toHaveAttribute(

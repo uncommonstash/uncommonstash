@@ -76,7 +76,7 @@ export function ComponentTotalsChart({
   );
   const width = 760;
   const height = 260;
-  const padding = { top: 20, right: 16, bottom: 48, left: 68 };
+  const padding = { top: 20, right: 16, bottom: 48, left: 104 };
   const sourceStart = domain.startMs;
   const sourceEnd = domain.endMs;
   const x = (value: number) =>
