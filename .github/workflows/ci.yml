@@ -29,12 +29,15 @@ jobs:
           node-version: 24.12.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm run verify:sysdiagnose-fixture
+      - run: pnpm exec playwright install --with-deps chromium
       - run: node scripts/verify-inputs.mjs
       - run: node scripts/validate-tools.mjs
       - run: pnpm lint
       - run: npx tsc -b --pretty false
       - run: pnpm test --runInBand --silent
       - run: pnpm build
+      - run: pnpm exec playwright test e2e/sysdiagnose.spec.ts --workers=1
       - name: Guard against absolute paths / sourcemaps in dist
         run: |
           if find dist -name '*.map' | grep -q .; then

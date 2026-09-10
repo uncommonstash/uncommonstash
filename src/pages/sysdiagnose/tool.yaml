@@ -1,0 +1,4 @@
+name: Sysdiagnose
+description: Analyze iPhone sysdiagnose archives locally.
+ready: true
+icon: ActivityLogIcon
