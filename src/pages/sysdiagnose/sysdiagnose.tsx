@@ -219,7 +219,7 @@ export default csr(function SysdiagnosePage() {
               {tab === "storage" ? <StorageTab /> : null}
               {tab === "thermal" ? <ThermalTab /> : null}
               {tab === "device" ? <DeviceTab entries={entries} /> : null}
-              {tab === "crashes" ? <CrashesTab /> : null}
+              {tab === "crashes" ? <CrashesTab entries={entries} /> : null}
               {tab === "logs" ? <LogsTab entries={entries} /> : null}
               {tab === "files" ? <FilesTab entries={entries} /> : null}
             </div>

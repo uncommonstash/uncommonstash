@@ -4,3 +4,7 @@
 Powerlog tables used by Sysdiagnose analysis. It starts with the data model,
 timestamp calibration, and unit-confidence rules before documenting each
 table and column.
+
+[CRASHES.md](./CRASHES.md) documents the report shapes, conservative
+classification, recurrence grouping, and interpretation limits used by the
+Crashes tab.
