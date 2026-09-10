@@ -112,6 +112,22 @@ test("sysdiagnose extracts randomized Powerlog app activity for a selected range
   expect(yLabelBox).not.toBeNull();
   if (!chartBox || !yLabelBox) throw new Error("energy chart label is missing");
   expect(yLabelBox.x).toBeGreaterThanOrEqual(chartBox.x);
+
+  // Hourly Powerlog aggregates occupy a span. Hover guidance must target the
+  // middle of that span, not its timestamp/start edge.
+  const firstBar = energyChart.locator('rect[stroke="#1d1d1f"]').first();
+  const firstBarBox = await firstBar.boundingBox();
+  expect(firstBarBox).not.toBeNull();
+  if (!firstBarBox) throw new Error("energy bar is missing");
+  await page.mouse.move(
+    firstBarBox.x + firstBarBox.width / 2,
+    firstBarBox.y + firstBarBox.height / 2,
+  );
+  const hoverGuide = energyChart.locator('line[stroke-dasharray="3 3"]');
+  const guideX = Number(await hoverGuide.getAttribute("x1"));
+  const barX = Number(await firstBar.getAttribute("x"));
+  const barWidth = Number(await firstBar.getAttribute("width"));
+  expect(Math.abs(guideX - (barX + barWidth / 2))).toBeLessThan(0.01);
 });
 
 test("sysdiagnose renders the Powerlog overlap when a selected range extends past coverage", async ({

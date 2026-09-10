@@ -340,7 +340,11 @@ function BatteryChart({
     let nearestIndex = 0;
     let nearestDistance = Number.POSITIVE_INFINITY;
     samples.forEach((point, index) => {
-      const distance = Math.abs(point.ts - time);
+      // Energy samples are hourly aggregates. Their visual and interaction
+      // anchor is the centre of the bar, not its interval-start edge.
+      const anchor =
+        "startMs" in point ? (point.startMs + point.endMs) / 2 : point.ts;
+      const distance = Math.abs(anchor - time);
       if (distance < nearestDistance) {
         nearestIndex = index;
         nearestDistance = distance;
@@ -361,8 +365,14 @@ function BatteryChart({
     ? hoveredAppSeries.reduce<AnalyticsAppSeriesPoint | undefined>(
         (nearest, point) =>
           !nearest ||
-          Math.abs(point.ts - hoveredEnergy.ts) <
-            Math.abs(nearest.ts - hoveredEnergy.ts)
+          Math.abs(
+            (point.startMs + point.endMs) / 2 -
+              (hoveredEnergy.startMs + hoveredEnergy.endMs) / 2,
+          ) <
+            Math.abs(
+              (nearest.startMs + nearest.endMs) / 2 -
+                (hoveredEnergy.startMs + hoveredEnergy.endMs) / 2,
+            )
             ? point
             : nearest,
         undefined,
@@ -371,7 +381,7 @@ function BatteryChart({
   const tooltip = hovered
     ? mode === "energy" && hoveredEnergy
       ? {
-          title: formatPointTime(hoveredEnergy.ts),
+          title: `${formatPointTime(hoveredEnergy.startMs)}–${formatPointTime(hoveredEnergy.endMs)}`,
           lines: [
             `Total: ${formatEnergy(hoveredEnergy.energy)}`,
             ...(nearestAppPoint && hoveredAppName
@@ -569,8 +579,16 @@ function BatteryChart({
         )}
         {hovered ? (
           <line
-            x1={geom.X(hovered.ts)}
-            x2={geom.X(hovered.ts)}
+            x1={geom.X(
+              hoveredEnergy
+                ? (hoveredEnergy.startMs + hoveredEnergy.endMs) / 2
+                : hovered.ts,
+            )}
+            x2={geom.X(
+              hoveredEnergy
+                ? (hoveredEnergy.startMs + hoveredEnergy.endMs) / 2
+                : hovered.ts,
+            )}
             y1={P.top}
             y2={H - P.bottom}
             stroke="#1d1d1f"
