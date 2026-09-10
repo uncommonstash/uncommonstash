@@ -6,7 +6,6 @@
   - [Archive scope and evidence](#archive-scope-and-evidence)
   - [Powerlog ontology](#powerlog-ontology)
   - [Time model](#time-model)
-  - [Unit status for this archive](#unit-status-for-this-archive)
 - [Powerlog core tables](#powerlog-core-tables)
   - [`PLAccountingOperator_EventNone_Nodes`](#placcountingoperator_eventnone_nodes)
   - [`PLAccountingOperator_Aggregate_RootNodeEnergy`](#placcountingoperator_aggregate_rootnodeenergy)
@@ -98,15 +97,6 @@ raw start = Aggregate.timestamp - Aggregate.timeInterval
 raw end   = Aggregate.timestamp
 wall endpoint = raw endpoint + TimeOffset.system_at_that_endpoint
 ```
-
-## Unit status for this archive
-
-`Aggregate_RootNodeEnergy.Energy` is treated as **micro-watt-hours (uWh)** only
-for the recognized schema fingerprint. Archive validation found 4,350,330 raw
-units for Meta AI direct rows, which becomes 4,350.330 mWh at `0.001 mWh/raw`
-and matches the 4,350 mWh Battery UI total after rounding. This is strong
-archive-specific evidence, not a universal Apple contract. Other raw
-energy/power fields below remain unknown until independently validated.
 
 # Powerlog core tables
 
