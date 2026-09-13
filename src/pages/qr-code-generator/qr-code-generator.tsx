@@ -128,7 +128,7 @@ export default function QRCodeGeneratorPage() {
                 id="includeMargin"
                 checked={includeMargin}
                 onChange={(e) => setIncludeMargin(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300"
+                className="w-4 h-4 rounded border-input"
               />
               <Label htmlFor="includeMargin">Include Margin</Label>
             </div>

@@ -4,6 +4,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 import App from "./App";
+import { ThemeProvider } from "./lib/theme";
 
 // Cross-origin isolation (multithreaded FFmpeg) is a production-only
 // concern: it needs real response headers, and the service worker would
@@ -29,7 +30,9 @@ createRoot(rootElement).render(
   <StrictMode>
     <HelmetProvider>
       <BrowserRouter>
-        <App />
+        <ThemeProvider>
+          <App />
+        </ThemeProvider>
       </BrowserRouter>
     </HelmetProvider>
   </StrictMode>,

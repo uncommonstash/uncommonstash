@@ -92,7 +92,7 @@ export default csr(function MarkdownConverter() {
               </Button>
             </div>
           </div>
-          <div className="flex-1 border rounded-md p-4 bg-white prose dark:prose-invert">
+          <div className="flex-1 border rounded-md p-4 bg-card prose dark:prose-invert">
             {showRawHtml ? (
               <pre className="whitespace-pre-wrap break-all">{html}</pre>
             ) : (

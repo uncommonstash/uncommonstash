@@ -44,7 +44,7 @@ export default csr(function HtmlEditor() {
           <h2 className="text-lg font-semibold mb-2">Preview</h2>
           <iframe
             srcDoc={debouncedHtml}
-            className="flex-1 border bg-white w-full h-full rounded-md"
+            className="flex-1 border bg-card w-full h-full rounded-md"
             title="Preview"
             sandbox="allow-scripts"
           />
