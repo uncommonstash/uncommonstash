@@ -125,9 +125,9 @@ function FileSelector({
           </span>
         </label>
       ) : (
-        <div className="relative w-full h-32 rounded-xl overflow-hidden border bg-gray-50 flex items-center p-4 shadow-sm gap-4">
+        <div className="relative w-full h-32 rounded-xl overflow-hidden border bg-muted/50 flex items-center p-4 shadow-sm gap-4">
           <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center shrink-0">
-            <FileAudio className="w-8 h-8 text-gray-400" />
+            <FileAudio className="w-8 h-8 text-muted-foreground" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-medium truncate" title={file.name}>
@@ -154,8 +154,8 @@ function FileSelector({
 function ResultItem({ url, name }: { url: string; name: string }) {
   return (
     <div className="group relative flex flex-col bg-background border rounded-xl overflow-hidden shadow-sm transition-shadow hover:shadow-md mb-4">
-      <div className="p-4 bg-gray-50 flex flex-col items-center justify-center border-b">
-        <FileAudio className="w-12 h-12 text-gray-400 mb-4" />
+      <div className="p-4 bg-muted/50 flex flex-col items-center justify-center border-b">
+        <FileAudio className="w-12 h-12 text-muted-foreground mb-4" />
         <audio controls src={url} className="w-full" />
       </div>
       <div className="p-4 flex items-center justify-between gap-4">

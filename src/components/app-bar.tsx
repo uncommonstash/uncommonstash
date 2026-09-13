@@ -1,7 +1,8 @@
 import * as Popover from "@radix-ui/react-popover";
-import { Info } from "lucide-react";
+import { Info, Moon, Sun } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTheme } from "@/lib/theme";
 
 interface BuildInfoSummary {
   commit: string;
@@ -101,7 +102,33 @@ function BuildInfoPopover() {
   );
 }
 
-export default function AppBar() {
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+  const nextTheme = theme === "dark" ? "light" : "dark";
+  const label = `Switch to ${nextTheme} mode`;
+
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={() => setTheme(nextTheme)}
+      className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      {theme === "dark" ? (
+        <Sun className="h-4 w-4" aria-hidden="true" />
+      ) : (
+        <Moon className="h-4 w-4" aria-hidden="true" />
+      )}
+    </button>
+  );
+}
+
+export default function AppBar({
+  showThemeToggle = false,
+}: {
+  showThemeToggle?: boolean;
+}) {
   return (
     <header className="bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -122,12 +149,15 @@ export default function AppBar() {
             </Link>
             <BuildInfoPopover />
           </div>
-          <Link
-            to="/blog"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Blog
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/blog"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Blog
+            </Link>
+            {showThemeToggle && <ThemeToggle />}
+          </div>
         </div>
       </div>
     </header>

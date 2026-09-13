@@ -138,7 +138,7 @@ export function FileSelector({
         {files.map((file, index) => (
           <div
             key={`${file.name}-${file.size}-${file.lastModified}`}
-            className="relative w-40 h-40 rounded-xl overflow-hidden border group bg-gray-50 flex items-center justify-center p-4 shadow-sm"
+            className="relative w-40 h-40 rounded-xl overflow-hidden border group bg-muted/50 flex items-center justify-center p-4 shadow-sm"
           >
             {file.type.startsWith("image/") ? (
               <img
@@ -150,11 +150,11 @@ export function FileSelector({
             ) : (
               <div className="flex flex-col items-center text-center">
                 {file.type.startsWith("video/") ? (
-                  <FileVideo className="w-8 h-8 text-gray-400 mb-2" />
+                  <FileVideo className="w-8 h-8 text-muted-foreground mb-2" />
                 ) : (
-                  <FileAudio className="w-8 h-8 text-gray-400 mb-2" />
+                  <FileAudio className="w-8 h-8 text-muted-foreground mb-2" />
                 )}
-                <span className="text-sm break-all font-medium text-gray-500 line-clamp-3">
+                <span className="text-sm break-all font-medium text-muted-foreground line-clamp-3">
                   {file.name}
                 </span>
               </div>
@@ -190,14 +190,14 @@ export function ResultItem({
 }: ResultItemProps) {
   return (
     <div className="group relative flex flex-col bg-background border rounded-xl overflow-hidden shadow-sm transition-shadow hover:shadow-md">
-      <div className="aspect-[4/3] w-full bg-gray-100 p-4 flex items-center justify-center overflow-hidden">
+      <div className="aspect-[4/3] w-full bg-muted p-4 flex items-center justify-center overflow-hidden">
         {isVideo ? (
           <video src={url} controls className="w-full h-full object-contain" />
         ) : type === "image" ? (
           <img src={url} alt={name} className="w-full h-full object-contain" />
         ) : (
           <div className="flex flex-col items-center w-full">
-            <FileAudio className="w-12 h-12 text-gray-400 mb-2" />
+            <FileAudio className="w-12 h-12 text-muted-foreground mb-2" />
             <audio controls src={url} className="w-full max-w-[90%]" />
           </div>
         )}

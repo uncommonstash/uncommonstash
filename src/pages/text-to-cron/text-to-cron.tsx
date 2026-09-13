@@ -127,7 +127,7 @@ export function NextRuns({ cron, count = 5 }: NextRunsProps) {
       <p className="font-semibold mb-3">
         Next scheduled runs{timezone ? ` (${timezone})` : ""}:
       </p>
-      <ul className="list-disc pl-5 space-y-2 text-gray-600">
+      <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
         {runs.map((run) => (
           <li key={run}>{run}</li>
         ))}
@@ -288,27 +288,29 @@ export function CronInput({
         />
         {loading && (
           <div className="absolute right-4 top-1/2 -translate-y-1/2">
-            <div className="h-5 w-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+            <div className="h-5 w-5 border-2 border-border border-t-muted-foreground rounded-full animate-spin" />
           </div>
         )}
       </div>
 
       {/* Dropdown */}
       {isOpen && choices.length > 0 && (
-        <div className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-auto">
+        <div className="absolute z-50 w-full mt-2 bg-popover border rounded-lg shadow-lg max-h-80 overflow-auto">
           {choices.map((choice) => {
             const desc = getCronDescription(choice.cron);
             return (
               <button
                 key={choice.cron}
-                className="w-full px-4 py-3 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none border-b border-gray-100 last:border-b-0"
+                className="w-full px-4 py-3 text-left hover:bg-accent focus:bg-accent focus:outline-none border-b border-border last:border-b-0"
                 onClick={() => handleSelect(choice.cron)}
               >
                 <div className="font-mono text-base font-medium">
                   {choice.cron}
                 </div>
                 {desc && (
-                  <div className="text-sm text-gray-500 truncate">{desc}</div>
+                  <div className="text-sm text-muted-foreground truncate">
+                    {desc}
+                  </div>
                 )}
               </button>
             );
@@ -318,7 +320,7 @@ export function CronInput({
 
       {/* Selected Cron Display - fixed space reserved, opacity transition only */}
       <div
-        className={`mt-4 p-4 bg-gray-100 rounded-lg transition-opacity duration-300 ease-out ${
+        className={`mt-4 p-4 bg-muted rounded-lg transition-opacity duration-300 ease-out ${
           showExplanation ? "opacity-100" : "opacity-0"
         }`}
       >
@@ -327,14 +329,14 @@ export function CronInput({
             <p className="text-lg font-mono font-bold">
               {selectedCron || "\u00A0"}
             </p>
-            <p className="text-base text-gray-600 mt-1">
+            <p className="text-base text-muted-foreground mt-1">
               {description || "\u00A0"}
             </p>
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 shrink-0 text-gray-500 hover:text-gray-900"
+            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
             onClick={handleCopy}
             disabled={!selectedCron}
           >

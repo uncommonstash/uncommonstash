@@ -151,7 +151,7 @@ function HighlightHtml({ code }: { code: string }) {
             result.push(
               <span
                 key={keyFor("comment", part)}
-                className="text-gray-500 italic"
+                className="text-muted-foreground italic"
               >
                 {part}
               </span>,
@@ -170,10 +170,7 @@ function HighlightHtml({ code }: { code: string }) {
       } else {
         // Text content
         result.push(
-          <span
-            key={keyFor("text", part)}
-            className="text-gray-800 dark:text-gray-200"
-          >
+          <span key={keyFor("text", part)} className="text-foreground">
             {part}
           </span>,
         );
@@ -259,7 +256,7 @@ export default csr(function HtmlFormatterPage() {
               <Copy className="w-4 h-4 mr-2" /> Copy
             </Button>
           </div>
-          <div className="flex-1 border rounded-md bg-white dark:bg-black overflow-hidden">
+          <div className="flex-1 border rounded-md bg-card overflow-hidden">
             <HighlightHtml code={output} />
           </div>
         </div>
