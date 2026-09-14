@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-import * as ort from "onnxruntime-web/webgpu";
+import * as ort from "onnxruntime-web";
 import type {
   CronformerProgress,
   CronformerResponse,
@@ -294,16 +294,10 @@ async function createSession(
   model: ArrayBuffer,
 ): Promise<ort.InferenceSession> {
   const options = { graphOptimizationLevel: "all" as const };
-  if ("gpu" in navigator) {
-    try {
-      return await ort.InferenceSession.create(model, {
-        ...options,
-        executionProviders: ["webgpu"],
-      });
-    } catch {
-      // Older browsers can expose WebGPU but not support this graph. WASM is universal.
-    }
-  }
+  // The WebGPU entry point can leave session creation pending on devices that
+  // expose an adapter but cannot run this model, so its fallback never runs.
+  // Single-threaded WASM is reliable in workers and does not require COOP/COEP.
+  ort.env.wasm.numThreads = 1;
   return ort.InferenceSession.create(model, {
     ...options,
     executionProviders: ["wasm"],
