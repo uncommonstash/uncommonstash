@@ -198,6 +198,11 @@ export function CronInput({
 
     try {
       clientRef.current ??= new CronformerClient();
+      // Do not let the first conversion race model download, WASM compilation,
+      // or ORT session creation. This promise resets after a failed cold start.
+      await clientRef.current.ready((progress) => {
+        if (requestId === latestRequestRef.current) setLoadProgress(progress);
+      });
       const data = await clientRef.current.infer(text, (progress) => {
         if (requestId === latestRequestRef.current) setLoadProgress(progress);
       });
@@ -209,9 +214,7 @@ export function CronInput({
       if (requestId !== latestRequestRef.current) return;
       setChoices([]);
       setIsOpen(false);
-      setError(
-        "Cronformer could not run on this device. Try again or use a different browser.",
-      );
+      setError("Cronformer could not start. Try again in a moment.");
     } finally {
       if (requestId === latestRequestRef.current) {
         setLoading(false);
@@ -287,7 +290,9 @@ export function CronInput({
       }
       return "Downloading Cronformer…";
     }
-    if (loadProgress?.phase === "initializing") return "Starting Cronformer…";
+    if (loadProgress?.phase === "initializing")
+      return "Loading Cronformer model…";
+    if (!loadProgress) return "Loading Cronformer model…";
     return "Converting to cron…";
   })();
 
