@@ -37,7 +37,10 @@ jobs:
       - run: npx tsc -b --pretty false
       - run: pnpm test --runInBand --silent
       - run: pnpm build
-      - run: pnpm exec playwright test e2e/sysdiagnose.spec.ts e2e/text-to-cron.spec.ts --workers=1
+      # audio-cutter's real FFmpeg job exceeds serial CI timeouts; its unit coverage remains in place.
+      # COI requires the production server and is run below with its dedicated config.
+      - run: pnpm exec playwright test e2e --grep-invert "audio-cutter\\.spec\\.ts|coi-isolation\\.spec\\.ts" --workers=1
+      - run: pnpm exec playwright test -c playwright.prod.config.ts e2e/coi-isolation.spec.ts --workers=1
       - name: Guard against absolute paths / sourcemaps in dist
         run: |
           if find dist -name '*.map' | grep -q .; then
