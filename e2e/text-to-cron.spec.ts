@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { CronExpressionParser } from "cron-parser";
 
 test("Cronformer converts text to a cron expression in the browser", async ({
   page,
@@ -12,5 +13,8 @@ test("Cronformer converts text to a cron expression in the browser", async ({
   const suggestions = page.locator("button:has(div.font-mono)");
   await expect(suggestions).toHaveCount(1, { timeout: 90000 });
   await expect(suggestions).toContainText(/^\S+(?:\s+\S+){4}/);
+  const cron = await suggestions.locator("div.font-mono").textContent();
+  expect(cron).not.toBeNull();
+  expect(() => CronExpressionParser.parse(cron ?? "")).not.toThrow();
   await expect(page.getByRole("status")).toBeHidden();
 });
