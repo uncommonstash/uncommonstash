@@ -1,15 +1,18 @@
 import * as React from "react";
 
 export type Theme = "light" | "dark";
+export type ThemePreference = Theme | "system";
 
 export const THEME_STORAGE_KEY = "uncommonstash-theme";
 
-function getStoredTheme(): Theme | null {
+function getStoredPreference(): ThemePreference {
   try {
     const theme = window.localStorage.getItem(THEME_STORAGE_KEY);
-    return theme === "light" || theme === "dark" ? theme : null;
+    return theme === "light" || theme === "dark" || theme === "system"
+      ? theme
+      : "system";
   } catch {
-    return null;
+    return "system";
   }
 }
 
@@ -26,17 +29,17 @@ function applyTheme(theme: Theme) {
 
 interface ThemeContextValue {
   theme: Theme;
-  setTheme: (theme: Theme) => void;
+  preference: ThemePreference;
+  setTheme: (theme: ThemePreference) => void;
 }
 
 const ThemeContext = React.createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [preference, setPreference] = React.useState<Theme | null>(() =>
-    getStoredTheme(),
-  );
-  const [theme, setResolvedTheme] = React.useState<Theme>(
-    () => getStoredTheme() ?? getSystemTheme(),
+  const [preference, setPreference] =
+    React.useState<ThemePreference>(getStoredPreference);
+  const [theme, setResolvedTheme] = React.useState<Theme>(() =>
+    preference === "system" ? getSystemTheme() : preference,
   );
 
   React.useEffect(() => {
@@ -44,7 +47,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [theme]);
 
   React.useEffect(() => {
-    if (preference) return;
+    if (preference !== "system") {
+      setResolvedTheme(preference);
+      return;
+    }
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const onChange = (event: MediaQueryListEvent) => {
@@ -54,9 +60,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => mediaQuery.removeEventListener("change", onChange);
   }, [preference]);
 
-  const setTheme = React.useCallback((nextTheme: Theme) => {
+  const setTheme = React.useCallback((nextTheme: ThemePreference) => {
     setPreference(nextTheme);
-    setResolvedTheme(nextTheme);
+    setResolvedTheme(nextTheme === "system" ? getSystemTheme() : nextTheme);
     try {
       window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
     } catch {
@@ -64,7 +70,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const value = React.useMemo(() => ({ theme, setTheme }), [theme, setTheme]);
+  const value = React.useMemo(
+    () => ({ preference, theme, setTheme }),
+    [preference, theme, setTheme],
+  );
 
   return (
     <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
