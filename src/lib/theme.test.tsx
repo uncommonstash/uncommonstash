@@ -1,4 +1,5 @@
 import { act, render, screen } from "@testing-library/react";
+import { ThemeToggle } from "@/components/app-bar";
 import { THEME_STORAGE_KEY, ThemeProvider, useTheme } from "./theme";
 
 type MatchMediaListener = (event: MediaQueryListEvent) => void;
@@ -6,16 +7,17 @@ type MatchMediaListener = (event: MediaQueryListEvent) => void;
 let prefersDark = false;
 let listener: MatchMediaListener | undefined;
 
+function emitSystemThemeChange(matches: boolean) {
+  listener?.({ matches } as MediaQueryListEvent);
+}
+
 function ThemeProbe() {
-  const { theme, setTheme } = useTheme();
+  const { preference, theme, setTheme } = useTheme();
   return (
     <>
-      <output>{theme}</output>
-      <button
-        type="button"
-        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      >
-        Toggle
+      <output>{`${preference}:${theme}`}</output>
+      <button type="button" onClick={() => setTheme("dark")}>
+        Set dark
       </button>
     </>
   );
@@ -36,12 +38,16 @@ beforeEach(() => {
           listener = nextListener;
         },
       ),
-      removeEventListener: jest.fn(),
+      removeEventListener: jest.fn(
+        (_type: string, nextListener: MatchMediaListener) => {
+          if (listener === nextListener) listener = undefined;
+        },
+      ),
     })),
   });
 });
 
-test("uses the system preference until a visitor selects a theme", () => {
+test("defaults to the System preference and follows OS changes live", () => {
   prefersDark = true;
   render(
     <ThemeProvider>
@@ -49,16 +55,64 @@ test("uses the system preference until a visitor selects a theme", () => {
     </ThemeProvider>,
   );
 
-  expect(screen.getByText("dark")).toBeInTheDocument();
+  expect(screen.getByText("system:dark")).toBeInTheDocument();
   expect(document.documentElement).toHaveClass("dark");
 
-  act(() => listener?.({ matches: false } as MediaQueryListEvent));
-  expect(screen.getByText("light")).toBeInTheDocument();
+  act(() => emitSystemThemeChange(false));
+  expect(screen.getByText("system:light")).toBeInTheDocument();
   expect(document.documentElement).not.toHaveClass("dark");
 });
 
 test("persists an explicit selection and ignores later system changes", () => {
-  localStorage.setItem(THEME_STORAGE_KEY, "light");
+  prefersDark = false;
+  render(
+    <ThemeProvider>
+      <ThemeProbe />
+    </ThemeProvider>,
+  );
+
+  expect(screen.getByText("system:light")).toBeInTheDocument();
+  expect(listener).toBeDefined();
+
+  act(() => screen.getByRole("button", { name: "Set dark" }).click());
+  expect(screen.getByText("dark:dark")).toBeInTheDocument();
+  expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("dark");
+  expect(document.documentElement).toHaveClass("dark");
+  expect(listener).toBeUndefined();
+
+  act(() => emitSystemThemeChange(false));
+  expect(screen.getByText("dark:dark")).toBeInTheDocument();
+});
+
+test("selects and persists System from the theme toggle", () => {
+  localStorage.setItem(THEME_STORAGE_KEY, "dark");
+  prefersDark = false;
+  render(
+    <ThemeProvider>
+      <ThemeToggle />
+    </ThemeProvider>,
+  );
+
+  expect(screen.getByRole("button", { name: "Dark" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  act(() => screen.getByRole("button", { name: "System" }).click());
+
+  expect(screen.getByRole("button", { name: "System" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("system");
+  expect(document.documentElement).not.toHaveClass("dark");
+
+  act(() => emitSystemThemeChange(true));
+  expect(document.documentElement).toHaveClass("dark");
+});
+
+test("rehydrates a saved System preference", () => {
+  localStorage.setItem(THEME_STORAGE_KEY, "system");
   prefersDark = true;
   render(
     <ThemeProvider>
@@ -66,11 +120,23 @@ test("persists an explicit selection and ignores later system changes", () => {
     </ThemeProvider>,
   );
 
-  expect(screen.getByText("light")).toBeInTheDocument();
-  expect(listener).toBeUndefined();
+  expect(screen.getByText("system:dark")).toBeInTheDocument();
+  expect(listener).toBeDefined();
+});
 
-  act(() => screen.getByRole("button", { name: "Toggle" }).click());
-  expect(screen.getByText("dark")).toBeInTheDocument();
-  expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("dark");
+test("falls back to System for an invalid saved preference", () => {
+  localStorage.setItem(THEME_STORAGE_KEY, "midnight");
+  prefersDark = true;
+  render(
+    <ThemeProvider>
+      <ThemeToggle />
+    </ThemeProvider>,
+  );
+
+  expect(screen.getByRole("button", { name: "System" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   expect(document.documentElement).toHaveClass("dark");
+  expect(listener).toBeDefined();
 });

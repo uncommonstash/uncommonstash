@@ -1,5 +1,5 @@
 import * as Popover from "@radix-ui/react-popover";
-import { Info, Moon, Sun } from "lucide-react";
+import { Info, Laptop, Moon, Sun } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTheme } from "@/lib/theme";
@@ -102,25 +102,37 @@ function BuildInfoPopover() {
   );
 }
 
-function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
-  const nextTheme = theme === "dark" ? "light" : "dark";
-  const label = `Switch to ${nextTheme} mode`;
+export function ThemeToggle() {
+  const { preference, setTheme } = useTheme();
 
   return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={() => setTheme(nextTheme)}
-      className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    <div
+      aria-label="Color theme"
+      className="flex items-center rounded-md border border-input p-0.5"
+      role="group"
     >
-      {theme === "dark" ? (
-        <Sun className="h-4 w-4" aria-hidden="true" />
-      ) : (
-        <Moon className="h-4 w-4" aria-hidden="true" />
-      )}
-    </button>
+      {[
+        { icon: Sun, label: "Light", value: "light" as const },
+        { icon: Moon, label: "Dark", value: "dark" as const },
+        { icon: Laptop, label: "System", value: "system" as const },
+      ].map(({ icon: Icon, label, value }) => (
+        <button
+          key={value}
+          type="button"
+          aria-label={label}
+          aria-pressed={preference === value}
+          title={label}
+          onClick={() => setTheme(value)}
+          className={`flex h-7 w-7 items-center justify-center rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+            preference === value
+              ? "bg-accent text-accent-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Icon className="h-4 w-4" aria-hidden="true" />
+        </button>
+      ))}
+    </div>
   );
 }
 
