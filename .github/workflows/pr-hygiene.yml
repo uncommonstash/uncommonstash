@@ -1,0 +1,60 @@
+name: PR hygiene
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-pr-metadata:
+    name: Validate PR title and body
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Reject malformed PR metadata
+        env:
+          EVENT_PATH: ${{ github.event_path }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+
+          with open(os.environ["EVENT_PATH"], encoding="utf-8") as event_file:
+              pull_request = json.load(event_file)["pull_request"]
+
+          title = pull_request["title"]
+          body = pull_request["body"] or ""
+          first_nonempty_line = next(
+              (line for line in body.splitlines() if line.strip()), ""
+          )
+
+          problems = []
+          if "\\n" in body:
+              problems.append(
+                  "PR body contains a literal \\n sequence; use real newlines instead."
+              )
+          if len(title) > 80:
+              problems.append(
+                  f"PR title is {len(title)} characters; keep it to 80 or fewer."
+              )
+          if len(first_nonempty_line) > 120:
+              problems.append(
+                  "The first non-empty PR body line is "
+                  f"{len(first_nonempty_line)} characters; keep it to 120 or fewer."
+              )
+
+          if problems:
+              print("PR hygiene check failed:", file=sys.stderr)
+              for problem in problems:
+                  print(f"- {problem}", file=sys.stderr)
+              print(
+                  "Fix the metadata with `gh pr edit <number> --title ... --body-file ...` "
+                  "and use a file or quoted multiline text for the body.",
+                  file=sys.stderr,
+              )
+              sys.exit(1)
+
+          print("PR hygiene check passed.")
+          PY
