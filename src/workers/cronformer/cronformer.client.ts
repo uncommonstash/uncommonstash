@@ -1,4 +1,5 @@
 import type {
+  CronformerInitializeRequest,
   CronformerProgress,
   CronformerRequest,
   CronformerResult,
@@ -14,12 +15,24 @@ export class CronformerClient {
   private nextId = 0;
   private pending = new Map<
     number,
-    {
-      reject: (reason: Error) => void;
-      resolve: (result: CronformerResult) => void;
-      onProgress?: (progress: CronformerProgress) => void;
-    }
+    | {
+        kind: "initialize";
+        reject: (reason: Error) => void;
+        resolve: () => void;
+        onProgress?: (progress: CronformerProgress) => void;
+      }
+    | {
+        kind: "infer";
+        reject: (reason: Error) => void;
+        resolve: (result: CronformerResult) => void;
+        onProgress?: (progress: CronformerProgress) => void;
+      }
   >();
+  private readinessPromise: Promise<void> | null = null;
+  private readonly readinessProgressListeners = new Set<
+    (progress: CronformerProgress) => void
+  >();
+  private isReady = false;
 
   constructor() {
     this.worker = new Worker(
@@ -36,9 +49,12 @@ export class CronformerClient {
       if (!request) return;
       if (message.kind === "cronformer/progress") {
         request.onProgress?.(message.progress);
+      } else if (message.kind === "cronformer/ready") {
+        this.pending.delete(message.id);
+        if (request.kind === "initialize") request.resolve();
       } else if (message.kind === "cronformer/result") {
         this.pending.delete(message.id);
-        request.resolve(message.result);
+        if (request.kind === "infer") request.resolve(message.result);
       } else {
         this.pending.delete(message.id);
         request.reject(new Error(message.message));
@@ -49,6 +65,48 @@ export class CronformerClient {
       for (const request of this.pending.values()) request.reject(error);
       this.pending.clear();
     };
+  }
+
+  /** Resolves only after the model and its single-threaded WASM session exist. */
+  ready(onProgress?: (progress: CronformerProgress) => void): Promise<void> {
+    if (onProgress && !this.isReady) {
+      this.readinessProgressListeners.add(onProgress);
+    }
+    if (!this.readinessPromise) {
+      const id = this.nextId++;
+      const message: CronformerInitializeRequest = {
+        v: CRONFORMER_PROTOCOL_VERSION,
+        id,
+        kind: "cronformer/initialize",
+      };
+      this.readinessPromise = new Promise<void>((resolve, reject) => {
+        this.pending.set(id, {
+          kind: "initialize",
+          resolve,
+          reject,
+          onProgress: (progress) => {
+            for (const listener of this.readinessProgressListeners) {
+              listener(progress);
+            }
+          },
+        });
+        this.worker.postMessage(message);
+      }).catch((error) => {
+        // A transient cold-start failure must not turn into a permanent verdict.
+        this.readinessPromise = null;
+        throw error;
+      });
+      void this.readinessPromise.then(
+        () => {
+          this.isReady = true;
+          this.readinessProgressListeners.clear();
+        },
+        () => {
+          this.readinessProgressListeners.clear();
+        },
+      );
+    }
+    return this.readinessPromise;
   }
 
   infer(
@@ -63,7 +121,7 @@ export class CronformerClient {
       prompt,
     };
     return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject, onProgress });
+      this.pending.set(id, { kind: "infer", resolve, reject, onProgress });
       this.worker.postMessage(message);
     });
   }

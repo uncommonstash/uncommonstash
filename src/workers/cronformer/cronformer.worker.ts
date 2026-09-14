@@ -31,6 +31,7 @@ type ModelManifest = { revision: string };
 
 let sessionPromise: Promise<ort.InferenceSession> | null = null;
 let vocabularyPromise: Promise<Map<string, number>> | null = null;
+let inferenceQueue: Promise<void> = Promise.resolve();
 const activeRequests = new Set<number>();
 
 function post(response: CronformerResponse) {
@@ -338,21 +339,33 @@ async function session() {
 }
 
 async function infer(prompt: string): Promise<string> {
-  const loadedSession = await session();
-  const loadedVocabulary = await vocabularyPromise;
-  if (!loadedVocabulary)
-    throw new Error("Cronformer tokenizer could not be loaded");
-  const inputIds = tokenize(prompt, loadedVocabulary);
-  const attentionMask = BigInt64Array.from(inputIds, (id) =>
-    id === 0n ? 0n : 1n,
-  );
-  const output = await loadedSession.run({
-    input_ids: new ort.Tensor("int64", inputIds, [1, 128]),
-    attention_mask: new ort.Tensor("int64", attentionMask, [1, 128]),
+  // A slow cold start can queue leading and trailing debounced requests at the
+  // same time. Keep session.run() single-filed; Safari's WASM backend is not a
+  // safe place to discover concurrent first-run behavior.
+  const currentInference = inferenceQueue.then(async () => {
+    const loadedSession = await session();
+    const loadedVocabulary = await vocabularyPromise;
+    if (!loadedVocabulary)
+      throw new Error("Cronformer tokenizer could not be loaded");
+    const inputIds = tokenize(prompt, loadedVocabulary);
+    const attentionMask = BigInt64Array.from(inputIds, (id) =>
+      id === 0n ? 0n : 1n,
+    );
+    const output = await loadedSession.run({
+      input_ids: new ort.Tensor("int64", inputIds, [1, 128]),
+      attention_mask: new ort.Tensor("int64", attentionMask, [1, 128]),
+    });
+    return COMPONENTS.map((component, index) =>
+      componentToCron(output, component, index),
+    ).join(" ");
   });
-  return COMPONENTS.map((component, index) =>
-    componentToCron(output, component, index),
-  ).join(" ");
+  inferenceQueue = currentInference.then(
+    () => undefined,
+    () => {
+      // Keep a failed cold request from blocking the next attempt.
+    },
+  );
+  return currentInference;
 }
 
 self.onmessage = async (event: MessageEvent<unknown>) => {
@@ -374,6 +387,15 @@ self.onmessage = async (event: MessageEvent<unknown>) => {
   }
   activeRequests.add(message.id);
   try {
+    if (message.kind === "cronformer/initialize") {
+      await session();
+      post({
+        v: CRONFORMER_PROTOCOL_VERSION,
+        id: message.id,
+        kind: "cronformer/ready",
+      });
+      return;
+    }
     const cron = await infer(message.prompt);
     post({
       v: CRONFORMER_PROTOCOL_VERSION,

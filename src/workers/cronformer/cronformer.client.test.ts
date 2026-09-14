@@ -56,6 +56,51 @@ describe("CronformerClient", () => {
     );
   });
 
+  it("waits for one readiness request and retries after a failed cold start", async () => {
+    const client = new CronformerClient();
+    const firstProgress = jest.fn();
+    const secondProgress = jest.fn();
+    const firstReady = client.ready(firstProgress);
+
+    expect(FakeWorker.instance.postMessage).toHaveBeenCalledWith({
+      v: 1,
+      id: 0,
+      kind: "cronformer/initialize",
+    });
+    expect(client.ready(secondProgress)).toBe(firstReady);
+    FakeWorker.instance.emit({
+      v: 1,
+      id: 0,
+      kind: "cronformer/progress",
+      progress: {
+        phase: "initializing",
+        source: "network",
+        loadedBytes: 12,
+        totalBytes: 12,
+      },
+    });
+    expect(firstProgress).toHaveBeenCalledTimes(1);
+    expect(secondProgress).toHaveBeenCalledTimes(1);
+
+    FakeWorker.instance.onerror?.({
+      message: "WASM compile interrupted",
+    } as ErrorEvent);
+    await expect(firstReady).rejects.toThrow("WASM compile interrupted");
+
+    const retry = client.ready();
+    expect(FakeWorker.instance.postMessage).toHaveBeenLastCalledWith({
+      v: 1,
+      id: 1,
+      kind: "cronformer/initialize",
+    });
+    FakeWorker.instance.emit({
+      v: 1,
+      id: 1,
+      kind: "cronformer/ready",
+    });
+    await expect(retry).resolves.toBeUndefined();
+  });
+
   it("ignores malformed messages and rejects pending requests when disposed", async () => {
     const client = new CronformerClient();
     const result = client.infer("every day at noon");

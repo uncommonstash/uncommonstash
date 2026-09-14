@@ -16,6 +16,12 @@ export interface CronformerRequest {
   prompt: string;
 }
 
+export interface CronformerInitializeRequest {
+  v: typeof CRONFORMER_PROTOCOL_VERSION;
+  id: number;
+  kind: "cronformer/initialize";
+}
+
 export interface CronformerResult {
   cron: string;
 }
@@ -36,6 +42,11 @@ export type CronformerResponse =
   | {
       v: typeof CRONFORMER_PROTOCOL_VERSION;
       id: number;
+      kind: "cronformer/ready";
+    }
+  | {
+      v: typeof CRONFORMER_PROTOCOL_VERSION;
+      id: number;
       kind: "cronformer/error";
       message: string;
     };
@@ -46,13 +57,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function isCronformerRequest(
   value: unknown,
-): value is CronformerRequest {
+): value is CronformerRequest | CronformerInitializeRequest {
   if (!isRecord(value)) return false;
   return (
     value["v"] === CRONFORMER_PROTOCOL_VERSION &&
-    value["kind"] === "cronformer/infer" &&
     typeof value["id"] === "number" &&
-    typeof value["prompt"] === "string"
+    ((value["kind"] === "cronformer/infer" &&
+      typeof value["prompt"] === "string") ||
+      value["kind"] === "cronformer/initialize")
   );
 }
 
@@ -83,6 +95,8 @@ export function isCronformerResponse(
       return (
         isRecord(value["result"]) && typeof value["result"]["cron"] === "string"
       );
+    case "cronformer/ready":
+      return true;
     case "cronformer/error":
       return typeof value["message"] === "string";
     default:

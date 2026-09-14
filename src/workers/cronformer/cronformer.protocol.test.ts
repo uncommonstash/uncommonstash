@@ -5,7 +5,7 @@ import {
 } from "./cronformer.protocol";
 
 describe("Cronformer worker protocol", () => {
-  it("accepts a versioned inference request and rejects malformed input", () => {
+  it("accepts versioned inference and initialization requests", () => {
     expect(
       isCronformerRequest({
         v: CRONFORMER_PROTOCOL_VERSION,
@@ -14,12 +14,19 @@ describe("Cronformer worker protocol", () => {
         prompt: "every weekday at 9am",
       }),
     ).toBe(true);
+    expect(
+      isCronformerRequest({
+        v: CRONFORMER_PROTOCOL_VERSION,
+        id: 2,
+        kind: "cronformer/initialize",
+      }),
+    ).toBe(true);
     expect(isCronformerRequest({ id: 1, kind: "cronformer/infer" })).toBe(
       false,
     );
   });
 
-  it("accepts complete progress and result messages", () => {
+  it("accepts complete progress, ready, and result messages", () => {
     expect(
       isCronformerResponse({
         v: CRONFORMER_PROTOCOL_VERSION,
@@ -31,6 +38,13 @@ describe("Cronformer worker protocol", () => {
           loadedBytes: 12,
           totalBytes: 24,
         },
+      }),
+    ).toBe(true);
+    expect(
+      isCronformerResponse({
+        v: CRONFORMER_PROTOCOL_VERSION,
+        id: 1,
+        kind: "cronformer/ready",
       }),
     ).toBe(true);
     expect(
