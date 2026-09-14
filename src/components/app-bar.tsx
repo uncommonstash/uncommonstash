@@ -1,3 +1,4 @@
+import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import * as Popover from "@radix-ui/react-popover";
 import { Info, Laptop, Moon, Sun } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -161,13 +162,22 @@ export default function AppBar({
             </Link>
             <BuildInfoPopover />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <Link
               to="/blog"
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               Blog
             </Link>
+            <a
+              href="https://github.com/uncommonstash/uncommonstash"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="GitHub repository"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <GitHubLogoIcon className="h-4 w-4" aria-hidden="true" />
+            </a>
             {showThemeToggle && <ThemeToggle />}
           </div>
         </div>
