@@ -1,0 +1,9 @@
+{
+  "source": "https://huggingface.co/uncommonstash/cronformer",
+  "revision": "69c05ab04e16d2d7f3b3ba740175f9b33ebd9258",
+  "sourceModelSha256": "6c9b7a57b49c10b35fd74b21719dc593b7c262c4e4293fde3d7471853704025f",
+  "exportedModel": "model.onnx",
+  "exportedModelSha256": "e1f30ba26b822702752464bbe9c022abcd72517795f4896352d381f366b575ce",
+  "inputShape": [1, 128],
+  "opset": 17
+}

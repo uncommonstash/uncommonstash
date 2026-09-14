@@ -8,6 +8,8 @@ import { useDebounce } from "use-debounce";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { csr } from "@/lib/compat";
+import { CronformerClient } from "@/workers/cronformer/cronformer.client";
+import type { CronformerProgress } from "@/workers/cronformer/cronformer.protocol";
 
 // ============================================================================
 // Types
@@ -18,18 +20,9 @@ export interface CronChoice {
   probability: number;
 }
 
-export interface CronResult {
-  cron: string;
-  choices: CronChoice[];
-}
-
 export interface CronInputProps {
-  /** API endpoint for cron conversion */
-  apiEndpoint?: string;
   /** Debounce delay in ms */
   debounceMs?: number;
-  /** Number of choices to fetch */
-  numChoices?: number;
   /** Placeholder text */
   placeholder?: string;
   /** Currently selected cron (controlled) */
@@ -146,15 +139,12 @@ export function NextRuns({ cron, count = 5 }: NextRunsProps) {
  * @example
  * ```tsx
  * <CronInput
- *   apiEndpoint="/api/cron"
  *   onCronSelected={(cron) => console.log('Selected:', cron)}
  * />
  * ```
  */
 export function CronInput({
-  apiEndpoint = import.meta.env.VITE_CRONFORMER_API_URL ?? "/api/cron",
   debounceMs = 300,
-  numChoices = 5,
   placeholder = "e.g. every last day of the month at 2pm",
   value,
   onCronSelected,
@@ -171,9 +161,19 @@ export function CronInput({
   const [isOpen, setIsOpen] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadProgress, setLoadProgress] = useState<CronformerProgress | null>(
+    null,
+  );
+  const [error, setError] = useState("");
   const [selectedCron, setSelectedCron] = useState(value ?? "");
   const [copied, setCopied] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const clientRef = useRef<CronformerClient | null>(null);
+  const latestRequestRef = useRef(0);
+
+  useEffect(() => {
+    return () => clientRef.current?.dispose();
+  }, []);
 
   // Sync with controlled value
   useEffect(() => {
@@ -182,42 +182,43 @@ export function CronInput({
     }
   }, [value]);
 
-  const fetchCron = useCallback(
-    async (text: string) => {
-      if (!text) {
-        setChoices([]);
-        setIsOpen(false);
-        return;
-      }
+  const fetchCron = useCallback(async (text: string) => {
+    const requestId = ++latestRequestRef.current;
+    if (!text) {
+      setChoices([]);
+      setIsOpen(false);
+      setError("");
+      setLoading(false);
+      return;
+    }
 
-      setLoading(true);
+    setLoading(true);
+    setError("");
+    setLoadProgress(null);
 
-      try {
-        const response = await fetch(apiEndpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt: text, k: numChoices }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to convert to cron expression");
-        }
-
-        const data: CronResult = await response.json();
-        const newChoices = data.choices ?? [
-          { cron: data.cron, probability: 1.0 },
-        ];
-        setChoices(newChoices);
-        setIsOpen(newChoices.length > 0);
-      } catch {
-        setChoices([]);
-        setIsOpen(false);
-      } finally {
+    try {
+      clientRef.current ??= new CronformerClient();
+      const data = await clientRef.current.infer(text, (progress) => {
+        if (requestId === latestRequestRef.current) setLoadProgress(progress);
+      });
+      if (requestId !== latestRequestRef.current) return;
+      const newChoices = [{ cron: data.cron, probability: 1.0 }];
+      setChoices(newChoices);
+      setIsOpen(newChoices.length > 0);
+    } catch {
+      if (requestId !== latestRequestRef.current) return;
+      setChoices([]);
+      setIsOpen(false);
+      setError(
+        "Cronformer could not run on this device. Try again or use a different browser.",
+      );
+    } finally {
+      if (requestId === latestRequestRef.current) {
         setLoading(false);
+        setLoadProgress(null);
       }
-    },
-    [apiEndpoint, numChoices],
-  );
+    }
+  }, []);
 
   useEffect(() => {
     fetchCron(debouncedPrompt);
@@ -271,6 +272,25 @@ export function CronInput({
     }
   };
 
+  const retry = () => {
+    clientRef.current?.dispose();
+    clientRef.current = null;
+    void fetchCron(prompt);
+  };
+
+  const loadingLabel = (() => {
+    if (!loading) return "";
+    if (loadProgress?.phase === "downloading") {
+      if (loadProgress.source === "cache") return "Loading cached Cronformer…";
+      if (loadProgress.totalBytes > 0) {
+        return `Downloading Cronformer · ${Math.round((loadProgress.loadedBytes / loadProgress.totalBytes) * 100)}%`;
+      }
+      return "Downloading Cronformer…";
+    }
+    if (loadProgress?.phase === "initializing") return "Starting Cronformer…";
+    return "Converting to cron…";
+  })();
+
   const description = selectedCron ? getCronDescription(selectedCron) : "";
 
   return (
@@ -292,6 +312,12 @@ export function CronInput({
           </div>
         )}
       </div>
+
+      {loading && (
+        <p className="mt-2 text-sm text-muted-foreground" role="status">
+          {loadingLabel}
+        </p>
+      )}
 
       {/* Dropdown */}
       {isOpen && choices.length > 0 && (
@@ -315,6 +341,15 @@ export function CronInput({
               </button>
             );
           })}
+        </div>
+      )}
+
+      {error && (
+        <div className="mt-2 flex items-center gap-2 text-sm text-destructive">
+          <p>{error}</p>
+          <Button onClick={retry} size="sm" type="button" variant="outline">
+            Try again
+          </Button>
         </div>
       )}
 
