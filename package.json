@@ -42,7 +42,7 @@
     "@sqlite.org/sqlite-wasm": "3.53.0-build1",
     "@types/react-beautiful-dnd": "^13.1.8",
     "class-variance-authority": "^0.7.1",
-    "cron-parser": "^5.10.0",
+    "cron-parser": "^5.10.1",
     "cronstrue": "^3.25.0",
     "date-fns": "^4.1.0",
     "dompurify": "^3.4.15",
