@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { BackLink } from "@/components/back-link";
 import { PageMeta } from "@/components/page-meta";
 import {
   Card,
@@ -41,6 +42,7 @@ export default function BlogIndex() {
         description="Thoughts and insights from UncommonStash"
         jsonLd={jsonLd}
       />
+      <BackLink />
       <h1 className="text-4xl font-bold tracking-tight">Blog</h1>
       <div className="grid grid-cols-1 gap-6">
         {posts.map((post) => (
