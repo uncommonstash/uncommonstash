@@ -65,7 +65,7 @@
     "@biomejs/biome": "2.5.14",
     "@ffmpeg/core-mt": "0.12.10",
     "@playwright/test": "^1.63.0",
-    "@swc/core": "^1.16.12",
+    "@swc/core": "^1.16.13",
     "@swc/jest": "^0.2.36",
     "@tailwindcss/postcss": "^4",
     "@tailwindcss/vite": "^4",
