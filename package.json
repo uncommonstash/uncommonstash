@@ -43,7 +43,7 @@
     "@types/react-beautiful-dnd": "^13.1.8",
     "class-variance-authority": "^0.7.1",
     "cron-parser": "^5.10.2",
-    "cronstrue": "^3.37.0",
+    "cronstrue": "^3.38.0",
     "date-fns": "^4.1.0",
     "dompurify": "^3.4.17",
     "html2canvas": "^1.4.1",
