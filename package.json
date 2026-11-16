@@ -86,7 +86,7 @@
     "marked": "^18.2.0",
     "tailwind-merge": "^3.7.0",
     "tailwindcss": "^4",
-    "tar": "7.5.22",
+    "tar": "7.5.23",
     "typescript": "^7",
     "vite": "^8.3.7",
     "vite-plugin-static-copy": "^4.1.1"
