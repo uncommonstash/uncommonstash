@@ -69,8 +69,8 @@ importers:
         specifier: ^5.10.6
         version: 5.10.6
       cronstrue:
-        specifier: ^3.39.0
-        version: 3.39.0
+        specifier: ^3.41.0
+        version: 3.41.0
       date-fns:
         specifier: ^4.1.0
         version: 4.4.0
@@ -2118,8 +2118,8 @@ packages:
     resolution: {integrity: sha512-kpoxgQyveO1l29nw+FWdvmotyV7eOSzGHQpxiXOEZIDOjqO1iR6kfgJ0PVHTuV26uBemKq3ppzma7dHFAG7viw==}
     engines: {node: '>=18'}
 
-  cronstrue@3.39.0:
-    resolution: {integrity: sha512-b5lKTLr5uFJZfkjjGx3k/XIHvi1xKmv1wVmHOC1hVUJCgf8SYX/EoX4SHeJKYPVQRXDVddN78lwhmwtnUbdn7w==}
+  cronstrue@3.41.0:
+    resolution: {integrity: sha512-1B5JJP3vsZbP4NOoz9OboFljpcc+aGg6WBQsyGr/Q0LS7ZYoSH9oimGpEglTGMS4ywwY1aYfr1So2GgfdeXj0w==}
     hasBin: true
 
   cross-spawn@7.0.6:
@@ -5427,7 +5427,7 @@ snapshots:
     dependencies:
       luxon: 3.7.2
 
-  cronstrue@3.39.0: {}
+  cronstrue@3.41.0: {}
 
   cross-spawn@7.0.6:
     dependencies:
